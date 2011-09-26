@@ -1,0 +1,1 @@
+/home/auv/bin/g++   -O3 -DNDEBUG   CMakeFiles/vdpcluster.dir/vdpcluster.cpp.o  -o ../vdpcluster -rdynamic ../../lib/libcluster.so -Wl,-rpath,/home/auv/svn-tas/libcluster/lib 
