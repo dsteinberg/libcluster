@@ -1,1 +1,0 @@
-/home/auv/bin/g++   -O3 -DNDEBUG   CMakeFiles/vdp_labels.dir/vdp_labels.cpp.o  -o ../vdp_labels -rdynamic ../../lib/libcluster.so -lseabedcommon -lplankton -ladt -Wl,-rpath,/home/auv/svn-tas/libcluster/lib: 

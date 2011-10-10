@@ -27,41 +27,52 @@ int main()
   vector<MatrixXd> X;
   makedata(X1, X2, Xcat, X);
 
+
   // GMC
   GMM gmm;
   double F;
   vector<RowVectorXd> w;
-  vector<MatrixXd> qZ;
-
+  vector<MatrixXd> qZgroup;
   clock_t start = clock();
-
-  try { F = learnGMC (X, qZ, w, gmm, true, true); }
-  catch (runtime_error e) { throw e; }
-  catch (logic_error e) { throw e; }
+  F = learnGMC (X, qZgroup, w, gmm, true, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "GMC Elapsed time = " << stop << " sec." << endl;
 
   for (unsigned int j = 0; j < X.size(); ++j)
-  {
     cout << "w" << j << " = " << w[j] << endl;
-  }
+  cout << endl << gmm << endl;
+
+
+  // SGMC
+  start = clock();
+  F = learnSGMC (X, qZgroup, w, gmm, true, true);
+
+  stop = (double)((clock() - start))/CLOCKS_PER_SEC;
+  cout << "Symmetric GMC Elapsed time = " << stop << " sec." << endl;
+
+  for (unsigned int j = 0; j < X.size(); ++j)
+    cout << "w" << j << " = " << w[j] << endl;
   cout << endl << gmm << endl;
 
 
   // VDP
-  GMM gmm2;
-  MatrixXd qZ2;
+  MatrixXd qZ;
   start = clock();
-
-  try { learnVDP(Xcat, qZ2, gmm2, true); }
-  catch (runtime_error e) { throw e; }
-  catch (logic_error e) { throw e; }
+  learnVDP(Xcat, qZ, gmm, true);
 
   stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "VDP Elapsed time = " << stop << " sec." << endl;
+  cout << endl << gmm << endl;
 
-  cout << endl << gmm2 << endl;
+
+  // GMM
+  start = clock();
+  learnGMM(Xcat, qZ, gmm, true);
+
+  stop = (double)((clock() - start))/CLOCKS_PER_SEC;
+  cout << "Bayesian GMM Elapsed time = " << stop << " sec." << endl;
+  cout << endl << gmm << endl;
 
   return 0;
 }

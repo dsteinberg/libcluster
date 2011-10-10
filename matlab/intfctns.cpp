@@ -57,17 +57,17 @@ public:
         this->tau      = (int)    *mxGetPr(mxGetField(igmc, 0, "tau"));
         this->lambda   = (double) *mxGetPr(mxGetField(igmc, 0, "lambda"));
         this->rho      = (double) *mxGetPr(mxGetField(igmc, 0, "rho"));
-        this->Fpi      = (double) *mxGetPr(mxGetField(igmc, 0, "Fpi"));
+        this->Fw       = (double) *mxGetPr(mxGetField(igmc, 0, "Fw"));
         this->Fxz      = (double) *mxGetPr(mxGetField(igmc, 0, "Fxz"));
 
         for (int k = 0; k < this->K; ++k)
         {
-            this->Nk_.push_back(*mxGetPr(mxGetCell(
-                mxGetField(igmc, 0, "Nk_"), k)));
-            this->Xk_.push_back(Map<MatrixXd>(mxGetPr(
-                mxGetCell(mxGetField(igmc, 0, "Xk_"), k)), 1, this->D));
-            this->Rk_.push_back(Map<MatrixXd>(mxGetPr(
-                mxGetCell(mxGetField(igmc, 0, "Rk_"), k)), this->D, this->D));
+            this->N_s.push_back(*mxGetPr(mxGetCell(
+                mxGetField(igmc, 0, "N_s"), k)));
+            this->x_s.push_back(Map<MatrixXd>(mxGetPr(
+                mxGetCell(mxGetField(igmc, 0, "x_s"), k)), 1, this->D));
+            this->xx_s.push_back(Map<MatrixXd>(mxGetPr(
+                mxGetCell(mxGetField(igmc, 0, "xx_s"), k)), this->D, this->D));
 
             this->w.push_back(*mxGetPr(mxGetCell(mxGetField(igmc, 0, "w"), k)));
             this->mu.push_back(Map<MatrixXd>(mxGetPr(
@@ -105,8 +105,8 @@ public:
         mxSetField(igmcr, 0, "rho", mxCreateDoubleScalar(this->rho));
         mxAddField(igmcr, "lambda");
         mxSetField(igmcr, 0, "lambda", mxCreateDoubleScalar(this->lambda));
-        mxAddField(igmcr, "Fpi");
-        mxSetField(igmcr, 0, "Fpi", mxCreateDoubleScalar(this->Fpi));
+        mxAddField(igmcr, "Fw");
+        mxSetField(igmcr, 0, "Fw", mxCreateDoubleScalar(this->Fw));
         mxAddField(igmcr, "Fxz");
         mxSetField(igmcr, 0, "Fxz", mxCreateDoubleScalar(this->Fxz));
 
@@ -121,18 +121,18 @@ public:
 
         for (int k = 0; k < K; ++k)
         {
-            mxSetCell(Nkc, k, mxCreateDoubleScalar(this->Nk_[k]));
-            mxSetCell(Xkc, k, eig2mat(this->Xk_[k]));
-            mxSetCell(Rkc, k, eig2mat(this->Rk_[k]));
+            mxSetCell(Nkc, k, mxCreateDoubleScalar(this->N_s[k]));
+            mxSetCell(Xkc, k, eig2mat(this->x_s[k]));
+            mxSetCell(Rkc, k, eig2mat(this->xx_s[k]));
         }
 
         // Copy these cell arrays to a structure.
-        mxAddField(igmcr, "Nk_");
-        mxSetField(igmcr, 0, "Nk_", Nkc);
-        mxAddField(igmcr, "Xk_");
-        mxSetField(igmcr, 0, "Xk_", Xkc);
-        mxAddField(igmcr, "Rk_");
-        mxSetField(igmcr, 0, "Rk_", Rkc);
+        mxAddField(igmcr, "N_s");
+        mxSetField(igmcr, 0, "N_s", Nkc);
+        mxAddField(igmcr, "x_s");
+        mxSetField(igmcr, 0, "x_s", Xkc);
+        mxAddField(igmcr, "xx_s");
+        mxSetField(igmcr, 0, "xx_s", Rkc);
 
         return igmcr;
     }

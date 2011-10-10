@@ -7,9 +7,9 @@ function IGMC = setcounts (IGMC, J, tau)
 
     % Rescale the suff. stats.
     for k = 1:IGMC.K,
-        IGMC.Nk_{k} = J * IGMC.Nk_{k} / IGMC.J;
-        IGMC.Xk_{k} = J * IGMC.Xk_{k} / IGMC.J;
-        IGMC.Rk_{k} = J * IGMC.Rk_{k} / IGMC.J;
+        IGMC.N_s{k} = J  * IGMC.N_s{k} / IGMC.J;
+        IGMC.x_s{k} = J  * IGMC.x_s{k} / IGMC.J;
+        IGMC.xx_s{k} = J * IGMC.xx_s{k} / IGMC.J;
     end
 
     % Rescale the free energy contribs

@@ -69,14 +69,9 @@ MatrixXd libcluster::classify (const MatrixXd& X, const libcluster::GMM& gmm)
   MatrixXd loglike(N,K);
   for (int k=0; k < K; ++k)
   {
-    try
-    {
-      loglike.col(k) = log(gmm.getw(k))
-                       - 0.5 * ( D * log(2 * pi) + logdet(gmm.getsigma(k))
-                       + mahaldist(X, gmm.getmu(k), gmm.getsigma(k)).array());
-    }
-    catch (invalid_argument e)
-      { throw; }
+    loglike.col(k) = log(gmm.getw(k))
+                     - 0.5 * ( D * log(2 * pi) + logdet(gmm.getsigma(k))
+                     + mahaldist(X, gmm.getmu(k), gmm.getsigma(k)).array());
   }
 
   // Make log probability log(p(Z|X)), i.e. normalise the log likelihoods
@@ -100,14 +95,9 @@ VectorXd libcluster::predict (const MatrixXd& X, const libcluster::GMM& gmm)
   MatrixXd loglike(N,K);
   for (int k=0; k < K; ++k)
   {
-    try
-    {
-      loglike.col(k) = log(gmm.getw(k))
-                       - 0.5 * ( D * log(2 * pi) + logdet(gmm.getsigma(k))
-                       + mahaldist(X, gmm.getmu(k), gmm.getsigma(k)).array());
-    }
-    catch (invalid_argument e)
-      { throw; }
+    loglike.col(k) = log(gmm.getw(k))
+                     - 0.5 * ( D * log(2 * pi) + logdet(gmm.getsigma(k))
+                     + mahaldist(X, gmm.getmu(k), gmm.getsigma(k)).array());
   }
 
   // Sum out p(Z) to make p(x*|X), use logsumexp to do this accurately
@@ -122,9 +112,10 @@ ostream& libcluster::operator<< (ostream& s, const libcluster::GMM& gmm)
   s << "D = " << gmm.getD() << endl << endl;
 
   // Weights of each cluster
-  s << "w = [ ";
-  for (int k=0; k < gmm.getK(); ++k) { s << gmm.getw(k) << " "; }
-  s << "]" << endl << endl;
+  s << "w = ";
+  for (int k=0; k < gmm.getK(); ++k)
+    s << gmm.getw(k) << ' ';
+  s << endl << endl;
 
   // Means of each cluster
   for (int k=0; k < gmm.getK(); ++k)

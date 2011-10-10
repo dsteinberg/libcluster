@@ -60,10 +60,12 @@ add_library(cluster SHARED
   ${LIB_INCLUDE_DIR}/probutils.h
   ${LIB_SOURCE_DIR}/vbcommon.h
   ${LIB_SOURCE_DIR}/vbcommon.cpp
+  ${LIB_SOURCE_DIR}/distributions.h
+  ${LIB_SOURCE_DIR}/distributions.cpp
   ${LIB_SOURCE_DIR}/gmm.cpp
-  ${LIB_SOURCE_DIR}/vdp.cpp
-  ${LIB_SOURCE_DIR}/gmc.cpp
-  ${LIB_SOURCE_DIR}/igmc.cpp
+  ${LIB_SOURCE_DIR}/cluster.cpp
+  ${LIB_SOURCE_DIR}/clustergroup.cpp
+  ${LIB_SOURCE_DIR}/clusterinc.cpp
   ${LIB_SOURCE_DIR}/probutils.cpp
 )
 

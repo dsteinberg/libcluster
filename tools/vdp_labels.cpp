@@ -10,8 +10,14 @@
  *
  *  This program outputs two files:
  *   image_labels.data  --   The labels for each point of data, 0 is a no-label
- *   GMM.data           --   The Gaussian mixture model learned by the VDP, with
- *                           the prior cluster width recorded at the top.
+ *   GMM.data           --   The Gaussian mixture model learned by the VDP.
+ *
+ *
+ * \note The GMM.data output uses a subset of the dimensions, which have been
+ *       transformed and standardised.
+ *
+ * \todo Find a nice way to document the tranforms and standardisation
+ *       coefficients used to create the labels and GMM.
  *
  * \author Daniel Steinberg
  *         Australian Centre for Field Robotics
@@ -46,7 +52,7 @@ using namespace probutils;
 
 const int FEATDIMS = 7 + (2*Image_Feats::LAB_LENGTH) + Image_Feats::LBP_LENGTH;
 const double CLUSTWIDTH = 0.01;
-
+const double SCALEFACTOR = 10;   // scaling for features.
 
 //
 // Helper functions
@@ -93,7 +99,7 @@ static void print_usage ()
 // Main
 //
 
-int main (int argc, char *argv[ ])
+int main (int argc, char *argv[])
 {
 
   // Parse command line arguments
@@ -146,6 +152,7 @@ int main (int argc, char *argv[ ])
     // Test for NaNs
     isvdata(i) = !isnan(Xparse.row(i).sum());
   }
+
   int nvalid = isvdata.count();
   cout << nvalid << '/' << imfeats.size() << " features kept." << endl << endl;
 
@@ -164,14 +171,23 @@ int main (int argc, char *argv[ ])
   RowVectorXd meanX  = mean(X);
   RowVectorXd stdevX = stdev(X);
   for (int i=0; i < X.rows(); ++i)
-    X.row(i) = (X.row(i) - meanX).array() / stdevX.array();
+    X.row(i) = SCALEFACTOR * (X.row(i) - meanX).array() / stdevX.array();
 
   // Cluster features
   GMM gmm;
   MatrixXd qZ;
-  learnVDP(X, qZ, gmm, true, clustwidth);
-
-  // Just let it sink in a bit :-p
+  try
+    { learnVDP(X, qZ, gmm, true, clustwidth); }
+  catch (runtime_error e)
+  {
+    cerr << "Runtime error: " << e.what() << endl;
+    exit(1);
+  }
+  catch (invalid_argument e)
+  {
+    cerr << "Invalid argument: " << e.what() << endl;
+    exit(1);
+  }
   cout << endl;
 
   // Create image label data
@@ -205,7 +221,7 @@ int main (int argc, char *argv[ ])
 
     // GMM object
     ofstream gmmfile("GMM.data");
-    gmmfile << "clusterwidth = " << clustwidth << endl;
+    gmmfile << endl << "% Gaussian Mixture model parameters: " << endl;
     gmmfile << gmm << endl;
     gmmfile.close();
   }

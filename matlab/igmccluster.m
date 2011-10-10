@@ -37,16 +37,16 @@ function [IGMC, ischanged] = igmccluster (X, IGMC, verbose)
 % See also VDPCLUSTER, GMCCLUSTER, GMMCLASSIFY, GMMPREDICT
 
     if nargout < 1, error('You need to at least have an I-GMC output!');  end
-    if ~isfield(IGMC, 'Nk_'), error('use an I-GMC structure!'); end
+    if ~isfield(IGMC, 'N_s'), error('use an I-GMC structure!'); end
 
     % Convert I-GMC structure
     IGMC = convgmma2c(IGMC);
 
     % Run the suitable version of igmccluster_mex depending on the arguments
     if nargin == 2,
-        [IGMC ischanged] = igmccluster_mex(X, IGMC);
+        [IGMC ischanged] = clusterinc_mex(X, IGMC);
     elseif nargin == 3,
-        [IGMC ischanged] = igmccluster_mex(X, IGMC, logical(verbose));
+        [IGMC ischanged] = clusterinc_mex(X, IGMC, logical(verbose));
     else
         error('Invalid number of input arguments.');
     end

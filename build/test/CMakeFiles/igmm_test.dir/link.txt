@@ -1,1 +1,0 @@
-/home/auv/bin/g++   -O3 -DNDEBUG   CMakeFiles/igmm_test.dir/igmm_test.cpp.o  -o ../igmm_test -rdynamic ../../lib/libcluster.so -Wl,-rpath,/home/auv/svn-tas/libcluster/lib 

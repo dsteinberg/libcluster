@@ -1,11 +1,11 @@
-function [Z, qZ, gmm, F] = vdpcluster (X, verbose, clustwidth)
-% VDPCLUSTER Variational Dirichlet Process (VDP) for Gaussian mixture models. 
-%   It is an interface for a C++ library that implements the VDP as specified 
-%   by [1]. 
+function [Z, qZ, gmm, F] = gmmcluster (X, verbose, clustwidth)
+% GMMCLUSTER Bayesian Gaussian Mixture model (GMM)xs. 
+%   It is an interface for a C++ library that implements the Bayesian GMM as 
+%   specified by [1]. 
 %
-%   [Z, qZ, gmm, F] = vdpcluster (X)
-%   [Z, qZ, gmm, F] = vdpcluster (X, verbose)
-%   [Z, qZ, gmm, F] = vdpcluster (X, verbose, clustwidth)
+%   [Z, qZ, gmm, F] = gmmcluster (X)
+%   [Z, qZ, gmm, F] = gmmcluster (X, verbose)
+%   [Z, qZ, gmm, F] = gmmcluster (X, verbose, clustwidth)
 %   
 % Inputs:
 %   - X [NxD] observation/feature matrix. N is the number of elements, D is the 
@@ -39,22 +39,21 @@ function [Z, qZ, gmm, F] = vdpcluster (X, verbose, clustwidth)
 %           Australian Centre for Field Robotics
 %           The University of Sydney
 %
-% Date:     18/03/2011
+% Date:     01/09/2011
 %
 % References:
-%   [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational 
-%       Dirichlet process mixtures, Advances in Neural Information 
-%       Processing Systems, vol. 19, p. 761, 2007.
+%   [1] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
+%       Springer Science+Business Media, 2006.
 %
-% See also GMMCLUSTER, GMMCLASSIFY, GMMPREDICT
+% See also VDPCLUSTER, GMMCLASSIFY, GMMPREDICT
 
     % Run the suitable version of vdpcluster_mex depending on the arguments
     if nargin == 1,
-        [F qZ gmm] = cluster_mex(X, 0);
+        [F qZ gmm] = cluster_mex(X, 1);
     elseif nargin == 2,
-        [F qZ gmm] = cluster_mex(X, 0, logical(verbose));
+        [F qZ gmm] = cluster_mex(X, 1, logical(verbose));
     elseif nargin == 3,
-        [F qZ gmm] = cluster_mex(X, 0, logical(verbose), clustwidth);
+        [F qZ gmm] = cluster_mex(X, 1, logical(verbose), clustwidth);
     else
         error('Invalid number of input arguments.');
     end

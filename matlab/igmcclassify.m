@@ -31,16 +31,16 @@ function [Z, qZ, wj] = igmcclassify (X, IGMC, verbose)
 %
 % See also VDPCLUSTER, GMCCLUSTER, GMMCLASSIFY, GMMPREDICT
 
-    if ~isfield(IGMC, 'Nk_'), error('use an IGMC structure!'); end
+    if ~isfield(IGMC, 'N_s'), error('use an IGMC structure!'); end
 
     % Convert I-GMC structure
     IGMC = convgmma2c(IGMC);
 
     % Run the suitable version of igmccluster_mex depending on the arguments
     if nargin == 2,
-        [qZ wj] = igmcclassify_mex(X, IGMC);
+        [qZ wj] = classifyinc_mex(X, IGMC);
     elseif nargin == 3,
-        [qZ wj] = igmcclassify_mex(X, IGMC, logical(verbose));
+        [qZ wj] = classifyinc_mex(X, IGMC, logical(verbose));
     else
         error('Invalid number of input arguments.');
     end

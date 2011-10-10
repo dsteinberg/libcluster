@@ -20,27 +20,27 @@ compiler  = 'CXX=g++ CC=g++ LD=g++';
 dlname = dir(strcat(clusterdylib,'/libcluster.*'));
 clusterdylib = strcat(clusterdylib,'/',dlname.name);
 
-% Create compile string for vdpcluster
-vdpcluster_cmp = sprintf( ...
-    'mex %s -I%s -I%s vdpcluster_mex.cpp intfctns.cpp %s', ...
+% Create compile string for cluster
+cluster_cmp = sprintf( ...
+    'mex %s -I%s -I%s cluster_mex.cpp intfctns.cpp %s', ...
     compiler, eigendir, include, clusterdylib ...
     );
 
-% Create compile string for gmccluster
-gmccluster_cmp = sprintf( ...
-    'mex %s -I%s -I%s gmccluster_mex.cpp intfctns.cpp %s', ...
+% Create compile string for clustergroup
+clustergroup_cmp = sprintf( ...
+    'mex %s -I%s -I%s clustergroup_mex.cpp intfctns.cpp %s', ...
     compiler, eigendir, include, clusterdylib ...
     );
 
-% Create compile string for igmccluster
-igmccluster_cmp = sprintf( ...
-    'mex %s -I%s -I%s igmccluster_mex.cpp intfctns.cpp %s', ...
+% Create compile string for clusterinc
+clusterinc_cmp = sprintf( ...
+    'mex %s -I%s -I%s clusterinc_mex.cpp intfctns.cpp %s', ...
     compiler, eigendir, include, clusterdylib ...
     );
 
-% Create compile string for igmcclassify
-igmcclassify_cmp = sprintf( ...
-    'mex %s -I%s -I%s igmcclassify_mex.cpp intfctns.cpp %s', ...
+% Create compile string for classifyinc
+classifyinc_cmp = sprintf( ...
+    'mex %s -I%s -I%s classifyinc_mex.cpp intfctns.cpp %s', ...
     compiler, eigendir, include, clusterdylib ...
     );
 
@@ -57,14 +57,14 @@ gmmpredict_cmp = sprintf( ...
     );
 
 % Compile!
-fprintf('Compiling vdpcluster...\n')
-eval(vdpcluster_cmp);
-fprintf('Compiling gmccluster...\n')
-eval(gmccluster_cmp);
-fprintf('Compiling igmccluster...\n')
-eval(igmccluster_cmp);
-fprintf('Compiling igmcclassify...\n')
-eval(igmcclassify_cmp);
+fprintf('Compiling cluster...\n')
+eval(cluster_cmp);
+fprintf('Compiling clustergroup...\n')
+eval(clustergroup_cmp);
+fprintf('Compiling clusterinc...\n')
+eval(clusterinc_cmp);
+fprintf('Compiling classifyinc...\n')
+eval(classifyinc_cmp);
 fprintf('Compiling gmmclassify...\n')
 eval(gmmclassify_cmp);
 fprintf('Compiling gmmpredict...\n')
@@ -81,18 +81,20 @@ if strcmp(ansstr,'y') || strcmp(ansstr,'Y'),
     
     eval(sprintf('!mkdir %s', instpath));
     
-    eval(sprintf('!cp vdpcluster_mex.%s %s', mexext, instpath));
+    eval(sprintf('!cp cluster_mex.%s %s', mexext, instpath));
     eval(sprintf('!cp vdpcluster.m %s', instpath));
+    eval(sprintf('!cp gmmcluster.m %s', instpath));
         
-    eval(sprintf('!cp gmccluster_mex.%s %s', mexext, instpath));
+    eval(sprintf('!cp clustergroup_mex.%s %s', mexext, instpath));
     eval(sprintf('!cp gmccluster.m %s', instpath));
+    eval(sprintf('!cp sgmccluster.m %s', instpath));
     
-    eval(sprintf('!cp igmccluster_mex.%s %s', mexext, instpath));
+    eval(sprintf('!cp clusterinc_mex.%s %s', mexext, instpath));
     eval(sprintf('!cp igmccluster.m %s', instpath));
     eval(sprintf('!cp createigmc.m %s', instpath));
     eval(sprintf('!cp setcounts.m %s', instpath));
     
-    eval(sprintf('!cp igmcclassify_mex.%s %s', mexext, instpath));
+    eval(sprintf('!cp classifyinc_mex.%s %s', mexext, instpath));
     eval(sprintf('!cp igmcclassify.m %s', instpath));
     
     eval(sprintf('!cp gmmclassify_mex.%s %s', mexext, instpath));

@@ -5,9 +5,6 @@
 #include <stdexcept>
 #include "intfctns.h"
 
-#define SPARSDEF    0
-#define VERBDEF     0
-#define CWIDTHDEF   0.01f
 
 //
 // Namespaces
@@ -21,10 +18,11 @@ using namespace libcluster;
 // Functions
 //
 
-// GMC Cluster Mex file entry point
+// Group Mixture Models for clustering Mex file entry point
 //
 //  Inputs:
-//      - X, {J x [NjxD double]} cell of matrices of observations. Essential.
+//      - X, {J x [NjxD double]} cell of matrices of observations, Required
+//      - alg, [integer] the type of algorithm [2=GMC, 1=SGMC], Required
 //      - sparse, [logical] (optional) 1=sparse algorithm, 0=original (default).
 //      - verbose, [logical] (optional) 1=verbose output, 0=quiet (default).
 //      - clustwidth, [double] (opition) cluster prior width (default = 0.01).
@@ -48,14 +46,23 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     switch (nrhs)
     {
+    case 5:
+        if (
+                mxGetM(prhs[4]) != 1 
+                || mxGetN(prhs[4]) != 1
+                || mxIsDouble(prhs[4]) == false
+           )
+            mexErrMsgTxt("Clusterwidth should be one double element.");
+        clstwptr = (double*)mxGetPr(prhs[4]);
+    
     case 4:
         if (
                 mxGetM(prhs[3]) != 1 
-                || mxGetN(prhs[3]) != 1
-                || mxIsDouble(prhs[3]) == false
+                || mxGetN(prhs[3]) != 1 
+                || mxIsLogical(prhs[3]) == false
            )
-            mexErrMsgTxt("Clusterwidth should be one double element.");
-        clstwptr = (double*)mxGetPr(prhs[3]);
+            mexErrMsgTxt("Verbose flag should be one logical element.");
+        verbptr = (bool*)mxGetPr(prhs[3]);
     
     case 3:
         if (
@@ -63,19 +70,10 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 || mxGetN(prhs[2]) != 1 
                 || mxIsLogical(prhs[2]) == false
            )
-            mexErrMsgTxt("Verbose flag should be one logical element.");
-        verbptr = (bool*)mxGetPr(prhs[2]);
-    
-    case 2:
-        if (
-                mxGetM(prhs[1]) != 1 
-                || mxGetN(prhs[1]) != 1 
-                || mxIsLogical(prhs[1]) == false
-           )
             mexErrMsgTxt("Sparse flag should be one logical element.");
-        sparsptr = (bool*)mxGetPr(prhs[1]);
+        sparsptr = (bool*)mxGetPr(prhs[2]);
         
-    case 1:
+    case 2:
         break;
         
     default:
@@ -103,19 +101,37 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double F;
     vector<RowVectorXd> wj;
     
-    // Call various versions of learnvdp depending on the arguments
+    // Call various versions of clustering algorithms depending on the arguments
+    double *algptr = (double*)mxGetPr(prhs[1]);
+    int algval = (int) algptr[0];
     mexstreambuf mexout;
     ostream mout(&mexout);
     try
     {
-        if (nrhs == 1)
+        if (algval == GMC)
+        {
+          if (nrhs == 2)
             F = learnGMC(X, qZ, wj, gmm, SPARSDEF, VERBDEF, CWIDTHDEF, mout);
-        else if (nrhs == 2)
+          else if (nrhs == 3)
             F = learnGMC(X, qZ, wj, gmm, sparsptr[0], VERBDEF, CWIDTHDEF, mout);
-        else if (nrhs == 3)
+          else if (nrhs == 4)
             F = learnGMC(X,qZ,wj,gmm,sparsptr[0],verbptr[0],CWIDTHDEF,mout);
-        else if (nrhs == 4)
+          else if (nrhs == 5)
             F = learnGMC(X,qZ,wj,gmm,sparsptr[0],verbptr[0],clstwptr[0],mout);
+        }
+        else if (algval == SGMC)
+        {
+          if (nrhs == 2)
+            F = learnSGMC(X, qZ, wj, gmm, SPARSDEF, VERBDEF, CWIDTHDEF, mout);
+          else if (nrhs == 3)
+            F = learnSGMC(X,qZ,wj,gmm,sparsptr[0],VERBDEF,CWIDTHDEF,mout);
+          else if (nrhs == 4)
+            F = learnSGMC(X,qZ,wj,gmm,sparsptr[0],verbptr[0],CWIDTHDEF,mout);
+          else if (nrhs == 5)
+            F = learnSGMC(X,qZ,wj,gmm,sparsptr[0],verbptr[0],clstwptr[0],mout);
+        }
+        else
+            throw logic_error("Wrong algorithm type specified!");
     }
     catch (logic_error e) 
         { mexErrMsgTxt(e.what()); }

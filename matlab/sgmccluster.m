@@ -1,11 +1,11 @@
-function [qZ, wj, gmm, F] = gmccluster (X, sparse, verbose, clustwidth)
-% GMCCLUSTER Grouped Mixtures Clustering model for Gaussian mixture models. This 
-% is an interface for a C++ library that implements the GMC. 
+function [qZ, wj, gmm, F] = sgmccluster (X, sparse, verbose, clustwidth)
+% SGMCCLUSTER Symmetric Grouped Mixtures Clustering model for Gaussian mixture  
+% models. This is an interface for a C++ library that implements the S-GMC. 
 %
-%   [qZ, wj, gmm, F] = gmccluster (X)
-%   [qZ, wj, gmm, F] = gmccluster (X, sparse)
-%   [qZ, wj, gmm, F] = gmccluster (X, sparse, verbose)
-%   [qZ, wj, gmm, F] = gmccluster (X, sparse, verbose, clustwidth)
+%   [qZ, wj, gmm, F] = sgmccluster (X)
+%   [qZ, wj, gmm, F] = sgmccluster (X, sparse)
+%   [qZ, wj, gmm, F] = sgmccluster (X, sparse, verbose)
+%   [qZ, wj, gmm, F] = sgmccluster (X, sparse, verbose, clustwidth)
 %   
 % Inputs:
 %   - X {Jx[NjxD]} cell array of observation/feature matrices. Nj is the number 
@@ -50,20 +50,20 @@ function [qZ, wj, gmm, F] = gmccluster (X, sparse, verbose, clustwidth)
 %       mixtures for clustering multiple related datasets." NIPS 2011
 %       Submission, June 2011.
 %
-% See also SGMCCLUSTER, GMMCLASSIFY, GMMPREDICT
+% See also GMCCLUSTER, GMMCLASSIFY, GMMPREDICT
 
     if ~iscell(X), error('X must be a cell array!'); end
     
     % Run the suitable version of cmgcluster_mex depending on the arguments
     if nargin == 1,
-        [F qZ wj gmm] = clustergroup_mex(X, 2);
+        [F qZ wj gmm] = clustergroup_mex(X, 3);
     elseif nargin == 2,
-        [F qZ wj gmm] = clustergroup_mex(X, 2, logical(sparse));
+        [F qZ wj gmm] = clustergroup_mex(X, 3, logical(sparse));
     elseif nargin == 3,
-        [F qZ wj gmm] = clustergroup_mex(X, 2, logical(sparse), ...
+        [F qZ wj gmm] = clustergroup_mex(X, 3, logical(sparse), ...
                                 logical(verbose));
     elseif nargin == 4,
-        [F qZ wj gmm] = clustergroup_mex(X, 2, logical(sparse), ...
+        [F qZ wj gmm] = clustergroup_mex(X, 3, logical(sparse), ...
                                	logical(verbose), clustwidth);
     else
         error('Invalid number of input arguments.');

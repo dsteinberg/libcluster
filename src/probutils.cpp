@@ -1,3 +1,6 @@
+// TODO
+// - make mxdigamma and mxlgamma work on all eigen matrix and array types!
+
 #include "probutils.h"
 #include <boost/math/special_functions.hpp>
 
@@ -69,14 +72,8 @@ MatrixXd probutils::cov (const MatrixXd& X)
 MatrixXd probutils::cov (const vector<MatrixXd>& X)
 {
   int J = X.size(), D = X[0].cols(), N = 0;
-  RowVectorXd mean;
+  RowVectorXd mean = probutils::mean(X);
   MatrixXd cov = MatrixXd::Zero(D, D), X_mu;
-
-  // Calculate the mean for all of the data
-  try
-    { mean = probutils::mean(X); }
-  catch (...)
-    { throw; }
 
   for (int j = 0; j < J; ++j)
   {

@@ -1,1 +1,0 @@
-/home/auv/bin/g++   -O3 -DNDEBUG   CMakeFiles/gmm_test.dir/gmm_test.cpp.o  -o ../gmm_test -rdynamic ../../lib/libcluster.so -Wl,-rpath,/home/auv/svn-tas/libcluster/lib 

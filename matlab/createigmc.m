@@ -27,15 +27,15 @@ IGMC.K = 0;
 IGMC.tau = 1;
 IGMC.lambda = 0;
 IGMC.rho = 1;
-IGMC.Fpi = 0;
+IGMC.Fw = 0;
 IGMC.Fxz = 0;
 
 IGMC.w  = [];
 IGMC.mu = [];
 IGMC.sigma = [];
 
-IGMC.Nk_ = {};
-IGMC.Xk_ = {};
-IGMC.Rk_ = {};
+IGMC.N_s = {};
+IGMC.x_s = {};
+IGMC.xx_s = {};
 
 end

@@ -1,1 +1,0 @@
-/home/auv/bin/g++  -fPIC -O3 -DNDEBUG  -shared -Wl,-soname,libcluster.so -o ../lib/libcluster.so CMakeFiles/cluster.dir/src/vbcommon.cpp.o CMakeFiles/cluster.dir/src/gmm.cpp.o CMakeFiles/cluster.dir/src/vdp.cpp.o CMakeFiles/cluster.dir/src/gmc.cpp.o CMakeFiles/cluster.dir/src/igmc.cpp.o CMakeFiles/cluster.dir/src/probutils.cpp.o 

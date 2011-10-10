@@ -8,6 +8,14 @@
 #include "mex.h"
 #include "libcluster.h"
 
+// Globals and Symbolics
+
+#define SPARSDEF    0
+#define VERBDEF     0
+#define CWIDTHDEF   0.01f
+
+enum algs { VDP, BGMM, GMC, SGMC, INCGMC };
+
 // Mex stream buffer class, prints using mexPrintf()
 class mexstreambuf : public std::streambuf
 {

@@ -1,4 +1,0 @@
-/usr/local/lib/libcluster.so
-/usr/local/include/libcluster/libcluster.h
-/usr/local/include/libcluster/probutils.h
-/usr/local/bin/vdp_labels
