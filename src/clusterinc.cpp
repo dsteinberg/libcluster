@@ -707,7 +707,7 @@ RowVectorXd libcluster::classifyIGMC (
     ostrm << "Classifying using I-GMC: ";
 
   // Initialise free energy and other loop variables
-  double F = numeric_limits<double>::max(), Fold, F_wj, F_xzj, Ftheta;
+  double F = numeric_limits<double>::max(), Fold, F_wj, F_xzj, F_c;
   fenergy<GDirichlet, GaussWish>(wdist, cdists, F_wj, F_xzj);
 
   do
@@ -721,9 +721,9 @@ RowVectorXd libcluster::classifyIGMC (
     F_xzj = vbexpectation<GDirichlet, GaussWish>(X, qZ, wdist, cdists);
 
     // Calculate the free energy of the model
-    fenergy<GDirichlet, GaussWish>(wdist, cdists, F_wj, F_xzj);
-    igmc.calcF(F_wj, F_xzj); // Add in discount factors for Fpi and Fxz
-    F = Ftheta + F_wj + F_xzj;
+    fenergy<GDirichlet, GaussWish>(wdist, cdists, F_wj, F_c);
+    igmc.calcF(F_wj, F_xzj); // Add in discount factors for F_wj and F_xzj
+    F = F_c + F_wj + F_xzj;
 
     if (F < 0)            // Check for bad free energy calculation
       throw runtime_error("Calculated a negative free energy!");
