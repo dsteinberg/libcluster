@@ -158,19 +158,20 @@ void libcluster::IGMC::calcSS (
   // Now calculate the new suff. stats.
   for (unsigned int k = 0; k < zK; ++k)
   {
-    qZkX = qZ.col(k).asDiagonal() * X;
+    qZkX.noalias() = qZ.col(k).asDiagonal() * X;
 
     if (k < (unsigned) this->K)
     {
       Nk[k] = this->J*this->rho*Njk(k) + (1-this->rho)*this->N_s[k];
       xk[k] = this->J*this->rho*qZkX.colwise().sum()+(1-this->rho)*this->x_s[k];
-      Rk[k] = this->J*this->rho*qZkX.transpose()*X + (1-this->rho)*this->xx_s[k];
+      Rk[k].noalias() = this->J*this->rho*qZkX.transpose()*X
+                        + (1-this->rho)*this->xx_s[k];
     }
     else
     {
       Nk[k] = this->J*Njk(k);
       xk[k] = this->J*qZkX.colwise().sum();
-      Rk[k] = this->J*qZkX.transpose()*X;
+      Rk[k].noalias() = this->J*qZkX.transpose()*X;
     }
   }
 }

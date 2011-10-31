@@ -45,9 +45,9 @@ template <class W, class C> void vbmaximisation (
   for (int k = 0; k < K; ++k)
   {
     // Create the sufficient statistics of the mixed data
-    qZkX = qZ.col(k).asDiagonal() * X;
-    x_s  = qZkX.colwise().sum();
-    xx_s = qZkX.transpose() * X;
+    qZkX.noalias() = qZ.col(k).asDiagonal() * X;
+    x_s            = qZkX.colwise().sum();
+    xx_s.noalias() = qZkX.transpose() * X;
 
     // Update the Gaussian Wishart Parameters using the sufficient statistics
     cdists[k].update(Nk(k), x_s, xx_s);

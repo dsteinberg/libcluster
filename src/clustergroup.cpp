@@ -54,10 +54,10 @@ template <class W, class C> void vbmaximisation (
     {
       if ( (Njk(k) >= ZEROCUTOFF) || (sparse == false) )
       {
-        qZkXj    = qZ[j].col(k).asDiagonal() * X[j];
-        Nk[k]   += Njk(k);
-        x_s[k]  += qZkXj.colwise().sum();
-        xx_s[k] += qZkXj.transpose() * X[j];
+        qZkXj.noalias()   = qZ[j].col(k).asDiagonal() * X[j];
+        Nk[k]             += Njk(k);
+        x_s[k]            += qZkXj.colwise().sum();
+        xx_s[k].noalias() += qZkXj.transpose() * X[j];
       }
     }
   }

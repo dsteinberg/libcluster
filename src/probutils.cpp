@@ -81,7 +81,7 @@ MatrixXd probutils::cov (const vector<MatrixXd>& X)
       throw invalid_argument("Insufficient no. of observations.");
     X_mu = X[j].rowwise() - mean;
     N   += X[j].rows();
-    cov += (X_mu.transpose()*X_mu); // (X_j-mu)'*(X_j-mu)
+    cov.noalias() += (X_mu.transpose()*X_mu); // (X_j-mu)'*(X_j-mu)
   }
 
   return cov / (N-1);
@@ -150,7 +150,7 @@ double probutils::eigpower (const MatrixXd& A, VectorXd& eigvec)
   for (int i=0; (vdist>EIGCONTHRESH) && (i<MAXITER); ++i)
   {
     oeigvec = eigvec;
-    v = A*oeigvec;
+    v.noalias() = A*oeigvec;
     eigval = v.norm();
     eigvec = v/eigval;
     vdist = (eigvec - oeigvec).norm();

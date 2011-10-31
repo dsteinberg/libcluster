@@ -285,7 +285,7 @@ void distributions::GaussWish::update (
   this->nu   = this->nu_p + N;
   this->beta = this->beta_p + N;
   this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
-  this->iW   = this->iW_p + Sk
+  this->iW.noalias() = this->iW_p + Sk
                + (this->beta_p*N/this->beta) * xk_m.transpose() * xk_m;
   try
     { this->logdW = -logdet(this->iW); }
@@ -303,7 +303,7 @@ VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
   double sumpsi = mxdigamma((this->nu + 1 - enumdims(D)).matrix() / 2).sum();
   try
   {
-    E_logX = 0.5 * (sumpsi + this->logdW - D*(1/this->beta + log(pi))
+    E_logX.noalias() = 0.5 * (sumpsi + this->logdW - D*(1/this->beta + log(pi))
              - this->nu * mahaldist(X, this->m, this->iW).array()).matrix();
   }
   catch (invalid_argument e)
