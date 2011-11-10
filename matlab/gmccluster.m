@@ -53,6 +53,8 @@ function [qZ, wj, gmm, F] = gmccluster (X, sparse, verbose, clustwidth)
 % See also SGMCCLUSTER, GMMCLASSIFY, GMMPREDICT
 
     if ~iscell(X), error('X must be a cell array!'); end
+
+    if ~iscell(X), error('X must be a cell array!'); end
     
     % Run the suitable version of cmgcluster_mex depending on the arguments
     if nargin == 1,

@@ -18,6 +18,9 @@ This library implements the following algorithms, classes and functions:
 
     - The Incremental Grouped Clusters (I-GMC) model
 
+
+    - The Incremental Grouped Clusters (I-GMC) model
+
     - Gaussian mixture model class that can be learned by these two algorithms
       and can be used for classifying new data, and also density
       estimation/prediction.
