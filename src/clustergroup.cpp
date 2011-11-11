@@ -188,14 +188,12 @@ template <class W, class C> double vbem (
     // Calculate free energy of model
     F = fenergy<W, C>(wdists, cdists) + Fxz;
 
-    ++i;
-    if (F < 0)                        // Check for bad free energy calculation
-      throw runtime_error("Calculated a negative free energy!");
-    if ((F-Fold)/Fold > FENGYDEL)     // Check bad free energy step
-    {
-      cerr << (F-Fold)/Fold << endl;
+    // Check bad free energy step
+    if ((F-Fold)/abs(Fold) > FENGYDEL)
       throw runtime_error("Free energy increase!");
-    }
+
+    // Print iteration notification if verbose, check max iterations
+    ++i;
     if (verbose == true)              // Notify iteration
       ostrm << '-' << flush;
     if ((i >= maxit) && (maxit > 0))  // Check max iter reached

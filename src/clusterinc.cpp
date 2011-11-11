@@ -412,11 +412,11 @@ template <class W, class C> int vbem (
     igmc.calcF(dF_wj, dF_xzj); // Add in discount factors for Fpi and Fxz
     F = F_c + dF_wj + dF_xzj;
 
-    ++i;
-    if (F < 0)                    // Check for bad free energy calculation
-      throw runtime_error("Calculated a negative free energy!");
-    if (((F-Fold)/Fold > FENGYDEL) && (verbose == true)) // pos FE steps
+    // TEMP: print pos FE steps
+    if (((F-Fold)/abs(Fold) > FENGYDEL) && (verbose == true))
       ostrm << '(' << (F-Fold) << ')' << flush;
+
+    ++i;
     if (verbose == true)              // Notify iteration
       ostrm << '-' << flush;
     if ((i >= maxit) && (maxit > 0))  // Check max iter reached
