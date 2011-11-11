@@ -197,15 +197,8 @@ For best clustering results, I have found the following tips may help:
 
     X* = C * ( X - mean(X) ) / std(X)
 
-    where C is some constant (usually I use 10) and the mean and std are for
-    each column of X.
-
-3)  If you get "calculated a negative free energy" error, make sure you data is
-    scaled well. Sometimes this error can be caused by the total variance of you
-    data being small enough that the resulting Gaussian likelihoods can be
-    greater than one, causing a negaive free energy. This may not be a problem
-    -- however I explicitly check for this condition.
-
+    where C is some constant (optional) and the mean and std are for each 
+    column of X.
 
 COMMAND LINE INTERFACES --------------------------------------------------------
 
