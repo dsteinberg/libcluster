@@ -4,13 +4,11 @@
 #include <vector>
 #include <stdexcept>
 #include <Eigen/Dense>
-#include "probutils.h"
+#include "libcluster.h"
+#include "distributions.h"
 
 
-/*! Functions and classes that implement commonly occuring Variational
- *   Bayes hyperparameters, updates and other calculations for Gaussians,
- *   Stick Breaking entities (Generalised Dirichlet, DPs) etc.
- */
+/*! Functions and that implement commonly occuring routines. */
 namespace vbcommon
 {
 
@@ -62,8 +60,9 @@ Eigen::MatrixXd augmentqZ (
     );
 
 
-/*! Check if a vector of ClustDist parameter distributions have any dists without
- *    observations contributing to their posteriors.
+/*! Check if a vector of ClustDist parameter distributions have any dists
+ *    without observations contributing to their posteriors.
+ *
  * \param cdists is a vector of posterior distribution classes. These classes
  *    must have a getN() member function that returns a double (a count of
  *    observations).
@@ -78,6 +77,15 @@ template<class C> bool anyempty (const std::vector<C>& cdists)
 
   return false;
 }
+
+
+/*! Make a Gaussian mixture model object (GMM) from the Gaussian-Wishart
+ *    distributions.
+ *
+ * \param cdists is the vector of posterior Gaussian-Wishart distributions.
+ * \returns the GMM object.
+ */
+libcluster::GMM makeGMM (const std::vector<distributions::GaussWish>& cdists);
 
 }
 

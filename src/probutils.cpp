@@ -28,7 +28,7 @@ const int    MAXITER      = 100;
 //
 
 
-RowVectorXd probutils::mean (const MatrixXd& X)
+RowVectorXd inline probutils::mean (const MatrixXd& X)
 {
   return X.colwise().sum()/X.rows();
 }
@@ -42,7 +42,7 @@ RowVectorXd probutils::mean (const vector<MatrixXd>& X)
   for (int j = 0; j < J; ++j)
   {
     if (X[j].cols() != D)
-      throw invalid_argument("X dims inconsistent!");
+      throw invalid_argument("X dimensions are inconsistent between groups!");
 
     mean += X[j].colwise().sum();
     N    += X[j].rows();

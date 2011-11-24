@@ -1,6 +1,7 @@
 #include <boost/math/special_functions.hpp>
 #include "distributions.h"
 
+
 //
 // Namespaces
 //
@@ -9,6 +10,7 @@ using namespace std;
 using namespace Eigen;
 using namespace probutils;
 using namespace boost::math;
+
 
 //
 //  File scope variables

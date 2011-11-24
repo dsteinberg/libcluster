@@ -1,5 +1,5 @@
 function [qZ, wj, gmm, F] = sgmccluster (X, sparse, verbose, clustwidth)
-% SGMCCLUSTER Symmetric Grouped Mixtures Clustering model for Gaussian mixture  
+% SGMCCLUSTER Symmetric Groups of Mixtures Clustering model for Gaussian mixture  
 % models. This is an interface for a C++ library that implements the S-GMC. 
 %
 %   [qZ, wj, gmm, F] = sgmccluster (X)
@@ -46,9 +46,8 @@ function [qZ, wj, gmm, F] = sgmccluster (X, sparse, verbose, clustwidth)
 % Date:     19/04/2011
 %
 % References:
-%   [1] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Hierarchal Bayesian
-%       mixtures for clustering multiple related datasets." NIPS 2011
-%       Submission, June 2011.
+%   [1] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Clustering Groups 
+%       of Related Visual Datasets," unpublished, 2011.
 %
 % See also GMCCLUSTER, GMMCLASSIFY, GMMPREDICT
 

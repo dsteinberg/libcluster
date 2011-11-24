@@ -23,8 +23,8 @@
  *
  *    - Variational Dirichlet Process (VDP) for Gaussian observations [1].
  *    - The Bayesian Gaussian Mixture model [5] ch 11.
- *    - Grouped Mixtures Clustering (GMC) model for Gaussian observations [3].
- *    - Symmetric Grouped Mixtures Clustering (S-GMC) model for Gaussian
+ *    - Groups of Mixtures Clustering (GMC) model for Gaussian observations [3].
+ *    - Symmetric Groups of Mixtures Clustering (S-GMC) model for Gaussian
  *      observations [3].
  *    - Incremental version of the GMC (I-GMC) for Gaussian observations.
  *
@@ -41,11 +41,10 @@
  *     for HDP. Advances in Neural Information Processing Systems,
  *     20:1481–1488, 2008.
  *
- * [3] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Hierarchal Bayesian
- *     mixtures for clustering multiple related datasets." NIPS 2011
- *     Submission, June 2011.
+ * [3] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Clustering Groups of
+ *     Related Visual Datasets," unpublished, 2011.
  *
- * [4] M. Sato, “Online model selection based on the variational bayes,” Neural
+ * [4] M. Sato, “Online model selection based on the variational Bayes,” Neural
  *     Computation, vol. 13, no. 7, pp. 1649–1681, 2001.
  *
  * [5] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
@@ -303,14 +302,14 @@ double learnGMM (
 
 
 //
-// Grouped Mixture Models for clustering (clustergroup.cpp)
+// Group Mixture Models for clustering (clustergroup.cpp)
 //
 
-/*! \brief The learning algorithm for the Grouped Mixtues Clustering model.
+/*! \brief The learning algorithm for the Groups of Mixtures Clustering model.
  *
- * This function implements the Grouped Mixtues Clustering model clustering
- * algorithm as specified by [3], with the additional of a "sparse" option. The
- * GMC uses a Generalised Dirichlet prior on the group mixture weights.
+ * This function implements the Groups of Mixtues Clustering model algorithm
+ * as specified by [3], with the additional of a "sparse" option. The GMC uses a
+ * Generalised Dirichlet prior on the group mixture weights.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number
@@ -352,13 +351,12 @@ double learnGMC (
     );
 
 
-/*! \brief The learning algorithm for the Symmetric Grouped Mixtues Clustering
- *         model.
+/*! \brief The learning algorithm for the Symmetric Groups of Mixtures
+ *         Clustering model.
  *
- * This function implements the Symmetric Grouped Mixtues Clustering model
- * clustering algorithm as specified by [3], with the additional of a "sparse"
- * option. The Symmetric GMC uses a symmetric Dirichlet prior on the group
- * mixture weights.
+ * This function implements the Symmetric Groups of Mixtures Clustering model
+ * as specified by [3], with the additional of a "sparse" option. The Symmetric
+ * GMC uses a symmetric Dirichlet prior on the group mixture weights.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number

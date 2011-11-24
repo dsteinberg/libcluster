@@ -12,6 +12,7 @@ using namespace std;
 using namespace Eigen;
 using namespace boost::math;
 using namespace probutils;
+using namespace distributions;
 
 
 //
@@ -77,4 +78,27 @@ MatrixXd  vbcommon::augmentqZ (
   }
 
   return qZk;
+}
+
+
+libcluster::GMM vbcommon::makeGMM (const vector<GaussWish>& cdists)
+{
+  int K = cdists.size();
+  int N = 0;
+
+  for (int k = 0; k < K; ++k)
+    N += cdists[k].getN();
+
+  vector<RowVectorXd> mu(K);
+  vector<MatrixXd> sigma(K);
+  vector<double> w(K);
+
+  for (int k = 0; k < K; ++k)
+  {
+    cdists[k].getmeancov(mu[k], sigma[k]);
+    w[k] = cdists[k].getN()/N;
+  }
+
+  libcluster::GMM retgmm(mu, sigma, w);
+  return retgmm;
 }

@@ -270,6 +270,9 @@ template <class W, class C> double modelselection (
   if (cdists.size() < 1)
     throw invalid_argument("Need to instantiate at least one cluster dist.");
 
+  // Make initial qZ a column vector of all ones of appropriate length
+  qZ = MatrixXd::Ones(X.rows(), 1);
+
   double F, Fsplit;
   MatrixXd qZsplit;
 
@@ -324,14 +327,9 @@ double libcluster::learnVDP (
     ostream& ostrm
     )
 {
-  int N = X.rows();
-
   // Make parameter distributions and create priors
   StickBreak wdist;
   vector<GaussWish> cdists(1, GaussWish(clustwidth, mean(X), cov(X)));
-
-  // Make initial qZ a column vector of all ones of appropriate length
-  qZ = MatrixXd::Ones(N, 1);
 
   if (verbose == true)
     ostrm << "Learning VDP..." << endl; // Print start
@@ -341,19 +339,7 @@ double libcluster::learnVDP (
                                                    verbose, ostrm);
 
   // Create GMM
-  int K = qZ.cols();
-  vector<RowVectorXd> mu(K);
-  vector<MatrixXd> sigma(K);
-  vector<double> w(K);
-
-  for (int k = 0; k < K; ++k)
-  {
-    cdists[k].getmeancov(mu[k], sigma[k]);
-    w[k] = cdists[k].getN()/N;
-  }
-
-  GMM retgmm(mu, sigma, w);
-  gmm = retgmm;
+  gmm = makeGMM(cdists);
 
   // Return final Free energy and qZ
   return F;
@@ -369,36 +355,20 @@ double libcluster::learnGMM (
     ostream& ostrm
     )
 {
-  int N = X.rows();
 
   // Make parameter distributions and create priors
   Dirichlet wdist;
   vector<GaussWish> cdists(1, GaussWish(clustwidth, mean(X), cov(X)));
 
-  // Make initial qZ a column vector of all ones of appropriate length
-  qZ = MatrixXd::Ones(N, 1);
-
   if (verbose == true)
     ostrm << "Learning Bayesian GMM..." << endl; // Print start
 
   // Perform model learning and selection
-  double F = modelselection<Dirichlet, GaussWish>(X, qZ, wdist, cdists,
-                                                   verbose, ostrm);
+  double F = modelselection<Dirichlet, GaussWish>(X, qZ, wdist, cdists, verbose,
+                                                  ostrm);
 
   // Create GMM
-  int K = qZ.cols();
-  vector<RowVectorXd> mu(K);
-  vector<MatrixXd> sigma(K);
-  vector<double> w(K);
-
-  for (int k = 0; k < K; ++k)
-  {
-    cdists[k].getmeancov(mu[k], sigma[k]);
-    w[k] = cdists[k].getN()/N;
-  }
-
-  GMM retgmm(mu, sigma, w);
-  gmm = retgmm;
+  gmm = makeGMM(cdists);
 
   // Return final Free energy and qZ
   return F;

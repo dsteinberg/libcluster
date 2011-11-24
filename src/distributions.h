@@ -1,7 +1,3 @@
-// TODO
-//  - Documentation
-//  - Finish documenting how to create templates
-
 #ifndef DISTRIBUTIONS_H
 #define DISTRIBUTIONS_H
 
@@ -11,6 +7,7 @@
 #include "probutils.h"
 
 
+/*! Namespace that implements weight and cluster distributions. */
 namespace distributions
 {
 
@@ -134,7 +131,7 @@ protected:
 // Cluster Parameter Distribution classes
 //
 
-/* To make a new distribution class that will work with the agorithm templates
+/* To make a new distribution class that will work with the algorithm templates
  *  your class must have the following minimum interface:
  *
  *  class ClusterDist

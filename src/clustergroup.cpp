@@ -386,17 +386,7 @@ double libcluster::learnGMC (
     ostream& ostrm
     )
 {
-  int J = X.size(),
-      D = X[0].cols(),
-      N = 0;
-
-  // Test X for consistency
-  for (int j = 0; j < J; ++j)
-  {
-    if (X[j].cols() != D)
-      throw invalid_argument("X dimensions are inconsistent between groups!");
-    N += X[j].rows();    // Get number of observations
-  }
+  int J = X.size();
 
   // Construct the priors
   vector<GDirichlet> wdists(J, GDirichlet());
@@ -410,23 +400,10 @@ double libcluster::learnGMC (
                                                    sparse, verbose, ostrm);
 
   // Create GMM from model parameters, and get group weights
-  int K = cdists.size();
-  vector<RowVectorXd> mu(K);
-  vector<MatrixXd> sigma(K);
-  vector<double> wK(K);
-  w.resize(J);
-
-  for (int k = 0; k < K; ++k)
-  {
-    cdists[k].getmeancov(mu[k], sigma[k]);
-    wK[k] = cdists[k].getN()/N;
-  }
+  gmm = makeGMM(cdists);
 
   for (int j = 0; j < J; ++j)
     w[j] = wdists[j].getNk()/X[j].rows();
-
-  GMM retgmm(mu, sigma, wK);
-  gmm = retgmm;
   return F;
 }
 
@@ -442,17 +419,7 @@ double libcluster::learnSGMC (
     ostream& ostrm
     )
 {
-  int J = X.size(),
-      D = X[0].cols(),
-      N = 0;
-
-  // Test X for consistency
-  for (int j = 0; j < J; ++j)
-  {
-    if (X[j].cols() != D)
-      throw invalid_argument("X dimensions are inconsistent between groups!");
-    N += X[j].rows();    // Get number of observations
-  }
+  int J = X.size();
 
   // Construct the priors
   vector<Dirichlet> wdists(J, Dirichlet());
@@ -466,22 +433,10 @@ double libcluster::learnSGMC (
                                                    sparse, verbose, ostrm);
 
   // Create GMM from model parameters, and get group weights
-  int K = cdists.size();
-  vector<RowVectorXd> mu(K);
-  vector<MatrixXd> sigma(K);
-  vector<double> wK(K);
-  w.resize(J);
-
-  for (int k = 0; k < K; ++k)
-  {
-    cdists[k].getmeancov(mu[k], sigma[k]);
-    wK[k] = cdists[k].getN()/N;
-  }
+  gmm = makeGMM(cdists);
 
   for (int j = 0; j < J; ++j)
     w[j] = wdists[j].getNk()/X[j].rows();
 
-  GMM retgmm(mu, sigma, wK);
-  gmm = retgmm;
   return F;
 }
