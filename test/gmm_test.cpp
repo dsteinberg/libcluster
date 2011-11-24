@@ -30,11 +30,10 @@ int main()
 
   // GMC
   GMM gmm;
-  double F;
   vector<RowVectorXd> w;
   vector<MatrixXd> qZgroup;
   clock_t start = clock();
-  F = learnGMC (X, qZgroup, w, gmm, true, true);
+  learnGMC (X, qZgroup, w, gmm, true, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "GMC Elapsed time = " << stop << " sec." << endl;
@@ -46,7 +45,7 @@ int main()
 
   // SGMC
   start = clock();
-  F = learnSGMC (X, qZgroup, w, gmm, true, true);
+  learnSGMC (X, qZgroup, w, gmm, true, true);
 
   stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Symmetric GMC Elapsed time = " << stop << " sec." << endl;

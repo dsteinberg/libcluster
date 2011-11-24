@@ -9,7 +9,7 @@
 instpath = strcat(strrep(userpath, ':', ''), '/libcluster/');
 
 % Compiler options
-eigendir  = '/usr/local/include/eigen3';
+eigendir  = '/usr/include/eigen3';
 include   = '../include';
 clusterdylib = '../lib';
 compiler  = 'CXX=g++ CC=g++ LD=g++';
