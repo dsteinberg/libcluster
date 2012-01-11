@@ -28,7 +28,7 @@ const int    MAXITER      = 100;
 //
 
 
-RowVectorXd inline probutils::mean (const MatrixXd& X)
+RowVectorXd probutils::mean (const MatrixXd& X)
 {
   return X.colwise().sum()/X.rows();
 }
