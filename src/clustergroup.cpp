@@ -402,6 +402,7 @@ double libcluster::learnGMC (
   // Create GMM from model parameters, and get group weights
   gmm = makeGMM(cdists);
 
+  w.resize(J);
   for (int j = 0; j < J; ++j)
     w[j] = wdists[j].getNk()/X[j].rows();
   return F;
@@ -435,6 +436,7 @@ double libcluster::learnSGMC (
   // Create GMM from model parameters, and get group weights
   gmm = makeGMM(cdists);
 
+  w.resize(J);
   for (int j = 0; j < J; ++j)
     w[j] = wdists[j].getNk()/X[j].rows();
 
