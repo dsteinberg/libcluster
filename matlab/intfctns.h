@@ -8,13 +8,13 @@
 #include "mex.h"
 #include "libcluster.h"
 
+
 // Globals and Symbolics
+const bool      SPARSDEF  = false;
+const bool      VERBDEF   = false;
+const bool      DIAGDEF   = false;
 
-#define SPARSDEF    0
-#define VERBDEF     0
-#define CWIDTHDEF   0.01f
-
-enum algs { VDP, BGMM, GMC, SGMC, INCGMC };
+enum algs { VDP=0, BGMM=1, GMC=2, SGMC=3 };
 
 // Mex stream buffer class, prints using mexPrintf()
 class mexstreambuf : public std::streambuf
@@ -31,29 +31,23 @@ protected:
 mxArray* eig2mat(const Eigen::MatrixXd& X);
 
 
-// GMM object to matlab struct
+// SuffStat object to matlab struct
 //  The matlab struct will be of the form:
-//      gmm.K     = scalar double number of clusters
-//      gmm.w     = {1xK} array of scalar weights
-//      gmm.mu    = {1x[1xD]} array of means
-//      gmm.sigma = {1x[DxD]} array of covariances
-mxArray* gmm2str (const libcluster::GMM& gmm);
+//      SS.K        = scalar double number of clusters
+//      SS.priorval = prior cluster hyperparameter
+//      SS.N_k      = {1xK} array of observation counts
+//      SS.x_k      = {1x[1xD]} array of observation sums
+//      SS.xx_k     = {1x[DxD]} array of observation sum outer products
+mxArray* SS2str (const libcluster::SuffStat& SS);
 
 
-// Matlab struct to GMM object
+// Matlab struct to SuffStat object
 //  The matlab struct will be of the form:
-//      gmm.K     = scalar double number of clusters
-//      gmm.w     = {1xK} array of scalar weights
-//      gmm.mu    = {1x[1xD]} array of means
-//      gmm.sigma = {1x[DxD]} array of covariances
-libcluster::GMM str2gmm (const mxArray* gmm);
-
-
-// I-GMC object to matlab struct TODO DOC
-mxArray* igmc2str (const libcluster::IGMC& igmc);
-
-
-// Matlab struct to I-GMC object TODO DOC
-libcluster::IGMC str2igmc (const mxArray* igmc);
+//      SS.K        = scalar double number of clusters
+//      SS.priorval = prior cluster hyperparameter
+//      SS.N_k      = {1xK} array of observation counts
+//      SS.x_k      = {1x[1xD]} array of observation sums
+//      SS.xx_k     = {1x[DxD]} array of observation sum outer products
+libcluster::SuffStat str2SS (const mxArray* SS);
 
 #endif // INTFCTNS_H

@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 2.6)
 
 include(${PROJECT_SOURCE_DIR}/FindBoost1.cmake REQUIRED)
 include(${PROJECT_SOURCE_DIR}/../CMakeUtils/FindEigen3.cmake REQUIRED)
+include(FindOpenMP)
 
 #--------------------------------#
 # Enforce an out-of-source build #
@@ -39,6 +40,12 @@ if(NOT CMAKE_BUILD_TYPE)
      )
 endif(NOT CMAKE_BUILD_TYPE)
 
+# Search for OpenMP support for multi-threading
+if(OPENMP_FOUND)
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+  set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}" )
+endif(OPENMP_FOUND)
+
 # Path to AUV libs
 if(NOT AUVLIB_PREFIX)
    set(AUVLIB_PREFIX /usr/local/)
@@ -58,14 +65,10 @@ include_directories(${LIB_INCLUDE_DIR})
 add_library(cluster SHARED
   ${LIB_INCLUDE_DIR}/libcluster.h
   ${LIB_INCLUDE_DIR}/probutils.h
-  ${LIB_SOURCE_DIR}/vbcommon.h
-  ${LIB_SOURCE_DIR}/vbcommon.cpp
   ${LIB_SOURCE_DIR}/distributions.h
   ${LIB_SOURCE_DIR}/distributions.cpp
-  ${LIB_SOURCE_DIR}/gmm.cpp
+  ${LIB_SOURCE_DIR}/suffstat.cpp
   ${LIB_SOURCE_DIR}/cluster.cpp
-  ${LIB_SOURCE_DIR}/clustergroup.cpp
-  ${LIB_SOURCE_DIR}/clusterinc.cpp
   ${LIB_SOURCE_DIR}/probutils.cpp
 )
 

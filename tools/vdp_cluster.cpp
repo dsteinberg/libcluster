@@ -1,5 +1,5 @@
 // TODO:
-//   - create more of an interactive command line interface, including a
+//  - create more of an interactive command line interface, including a
 //     help switch.
 
 #include <fstream>
@@ -13,7 +13,6 @@
 // Namespaces
 //
 
-
 using namespace std;
 using namespace Eigen;
 using namespace libcluster;
@@ -22,7 +21,6 @@ using namespace libcluster;
 //
 // Function Prototypes
 //
-
 
 // Parse the features file
 MatrixXd parse_features (const char* fname);
@@ -36,24 +34,21 @@ char* replace_tilde (char* pathstr);
 // Functions
 //
 
-
 // Main
 int main (int argc, char* argv[])
 {
   // Parse arguments
-  char *ffile, *gfile, *rfile; // input and output files
-  if (argc == 4)
+  char *ffile, *rfile; // input and output files
+  if (argc == 3)
   {
     ffile = argv[1];
-    gfile = argv[2];
-    rfile = argv[3];
+    rfile = argv[2];
   }
   else
     throw logic_error("Invalid number of arguments.");
 
   // Handle tilde ('~') in paths
   ffile = replace_tilde(ffile);
-  gfile = replace_tilde(gfile);
   rfile = replace_tilde(rfile);
 
   // Read in data file
@@ -62,30 +57,27 @@ int main (int argc, char* argv[])
   cout << "done. X is [ " << X.rows() << " x " << X.cols() << " ]." << endl;
 
   // Cluster observations using VDP
-  GMM gmm;
+  SuffStat SS;
   MatrixXd qZ;
   double F;
   clock_t start = clock();
+
   try
-    { F = learnVDP(X, qZ, gmm, true); }
+    { F = learnVDP(X, qZ, SS, false, true); }
   catch (logic_error e)
     { throw; }
   catch (runtime_error e)
     { throw; }
+
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Elapsed time = " << stop << " sec." << endl;
 
-  // Save GMM object data
-  ofstream gmmfile(gfile);
-  gmmfile << gmm << endl;
-  gmmfile.close();
-
   // Save result data
   ofstream resfile(rfile);
-  resfile << "N = " << qZ.rows() << endl;  // Number of observations
-  resfile << "K = " << gmm.getK() << endl;         // Number of clusters
-  resfile << "F = " << F << endl;          // Final free energy
-  resfile << "p(z|x) = " << endl;              // Probability of class label
+  resfile << "N = " << qZ.rows() << endl; // Number of observations
+  resfile << "K = " << qZ.cols() << endl; // Number of clusters
+  resfile << "F = " << F << endl;         // Final free energy
+  resfile << "p(z|x) = " << endl;         // Probability of class label
   resfile << qZ << endl;
   resfile.close();
 

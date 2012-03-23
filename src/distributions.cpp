@@ -1,6 +1,6 @@
 #include <boost/math/special_functions.hpp>
 #include "distributions.h"
-
+#include "probutils.h"
 
 //
 // Namespaces
@@ -37,27 +37,21 @@ ArrayXd enumdims (int D)
 }
 
 
-bool paircomp (const pair<int,double>& i, const pair<int,double> j)
-{
-  return i.second > j.second;
-}
-
-
 //
-// Stick-Breaking (Dirichlet Process) parameter distribution.
+// Stick-Breaking (Dirichlet Process) weight distribution.
 //
 
 distributions::StickBreak::StickBreak ()
   : alpha1_p(distributions::ALPHA1PRIOR),
     alpha2_p(distributions::ALPHA2PRIOR),
     Nk(ArrayXd::Zero(1)),
-    alpha1(ArrayXd::Zero(1)),
-    alpha2(ArrayXd::Zero(1)),
+    alpha1(ArrayXd::Ones(1)*distributions::ALPHA1PRIOR),
+    alpha2(ArrayXd::Ones(1)*distributions::ALPHA2PRIOR),
     E_logv(ArrayXd::Zero(1)),
     E_lognv(ArrayXd::Zero(1)),
+    E_logpi(ArrayXd::Zero(1)),
     ordvec(1, pair<int,double>(0,0))
 {
-
   // Prior free energy contribution
   this->F_p = lgamma(this->alpha1_p) + lgamma(this->alpha2_p)
               - lgamma(this->alpha1_p + this->alpha2_p);
@@ -122,7 +116,7 @@ double distributions::StickBreak::fenergy () const
 
 
 //
-// Generalised Dirichlet parameter distribution.
+// Generalised Dirichlet weight distribution.
 //
 
 void distributions::GDirichlet::update (const ArrayXd& Nk)
@@ -158,13 +152,14 @@ double distributions::GDirichlet::fenergy () const
 
 
 //
-// Dirichlet parameter distribution.
+// Dirichlet weight distribution.
 //
 
 distributions::Dirichlet::Dirichlet ()
   : alpha_p(distributions::ALPHA1PRIOR),
     Nk(ArrayXd::Zero(1)),
-    alpha(ArrayXd::Zero(1))
+    alpha(ArrayXd::Ones(1)*distributions::ALPHA1PRIOR),
+    E_logpi(ArrayXd::Zero(1))
 {}
 
 
@@ -196,85 +191,72 @@ double distributions::Dirichlet::fenergy () const
 
 
 //
-// Gaussian Wishart parameter distribution.
+// Gaussian Wishart cluster distribution.
 //
 
 distributions::GaussWish::GaussWish (
     const double clustwidth,
-    const RowVectorXd& meanX,
-    const MatrixXd& covX
+    const unsigned int D
     )
-  : beta_p(distributions::BETAPRIOR),
-    nu(0),
-    beta(0),
+  : ClusterDist(clustwidth, D),
+    nu_p(D),
+    beta_p(distributions::BETAPRIOR),
+    m_p(RowVectorXd::Zero(D)),
+    nu(D),
+    beta(distributions::BETAPRIOR),
+    m(RowVectorXd::Zero(D)),
     logdW(0),
     N(0)
 {
-  int D = meanX.cols();
+  if (clustwidth <= 0)
+    throw invalid_argument("clustwidth must be > 0!");
 
   // Create Prior
-  this->nu_p = D;
-  this->m_p  = meanX;
+  this->iW_p = this->iW = this->nu_p * this->prior * MatrixXd::Identity(D, D);
 
   try
-  {
-    VectorXd eigvec;
-    double eigval = eigpower(covX, eigvec);
-    this->iW_p    = eigval * this->nu_p * clustwidth * MatrixXd::Identity(D, D);
-    this->logdW_p = -logdet(this->iW_p);
-  }
+    { this->logdW_p = this->logdW = -logdet(this->iW_p); }
   catch (invalid_argument e)
     { throw invalid_argument(string("Creating prior: ").append(e.what())); }
 
   // Calculate prior free energy contribution
   this->F_p = mxlgamma((this->nu_p + 1
               - enumdims(this->m_p.cols())).matrix() / 2).sum();
-
-  // Initialise Posterior to zeros, and other variables
-  this->m  = RowVectorXd::Zero(D);
-  this->iW = MatrixXd::Zero(D, D);
 }
 
 
-distributions::GaussWish::GaussWish (
-    const double cwidthp,
-    const RowVectorXd& cmeanp
+void distributions::GaussWish::makeSS (
+    const VectorXd& qZk,
+    const MatrixXd& X,
+    MatrixXd& x_s,
+    MatrixXd& xx_s
     )
-  : beta_p(distributions::BETAPRIOR),
-    nu(0),
-    beta(0),
-    logdW(0),
-    N(0)
 {
-  int D = cmeanp.cols();
-
-  if (cwidthp <= 0)
-    throw invalid_argument("cwidthp must be > 0!");
-
-  this->nu_p = D;
-  this->m_p  = cmeanp;
-  this->iW_p = this->nu_p * cwidthp *  MatrixXd::Identity(D, D);
-  try
-    { this->logdW_p = -logdet(this->iW_p); }
-  catch (invalid_argument e)
-    { throw invalid_argument(string("Creating prior: ").append(e.what())); }
-
-  // Calculate prior free energy contribution
-  this->F_p = mxlgamma((this->nu_p + 1
-              - enumdims(this->m_p.cols())).matrix() / 2).sum();
-
-  // Initialise Posterior to zeros, and other variables
-  this->m  = RowVectorXd::Zero(D);
-  this->iW = MatrixXd::Zero(D, D);
+  MatrixXd qZkX = qZk.asDiagonal() * X;
+  x_s  = qZkX.colwise().sum();  // [1xD] row vector
+  xx_s = qZkX.transpose() * X;  // [DxD] matrix
 }
 
+
+Array4i distributions::GaussWish::dimSS (const Eigen::MatrixXd& X)
+{
+  return Array4i(1, X.cols(), X.cols(), X.cols());
+}
 
 void distributions::GaussWish::update (
       double N,
-      const RowVectorXd& x_s,
+      const MatrixXd& x_s,
       const MatrixXd& xx_s
     )
 {
+  if (
+      (x_s.rows() != 1)
+      || (x_s.cols() != this->D)
+      || (xx_s.cols() != this->D)
+      || (xx_s.rows() != this->D)
+     )
+    throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
+
   // Prepare the Sufficient statistics
   RowVectorXd xk = RowVectorXd::Zero(x_s.cols());
   if (N > 0)
@@ -298,15 +280,13 @@ void distributions::GaussWish::update (
 
 VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
 {
-  int D = X.cols();
-
   // Expectations of log Gaussian likelihood
   VectorXd E_logX(X.rows());
-  double sumpsi = mxdigamma((this->nu + 1 - enumdims(D)).matrix() / 2).sum();
+  double sumpsi = mxdigamma((this->nu+1-enumdims(this->D)).matrix()/2).sum();
   try
   {
-    E_logX.noalias() = 0.5 * (sumpsi + this->logdW - D*(1/this->beta + log(pi))
-             - this->nu * mahaldist(X, this->m, this->iW).array()).matrix();
+    E_logX.noalias() = 0.5 * (sumpsi + this->logdW - this->D*(1/this->beta
+      + log(pi)) - this->nu * mahaldist(X, this->m, this->iW).array()).matrix();
   }
   catch (invalid_argument e)
     { throw(string("Calculating Gaussian likelihood: ").append(e.what())); }
@@ -315,7 +295,9 @@ VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
 }
 
 
-ArrayXb distributions::GaussWish::splitobs (const MatrixXd& X) const
+distributions::ArrayXb distributions::GaussWish::splitobs (
+    const MatrixXd& X
+    ) const
 {
 
   // Find the principle eigenvector using the power method if not done so
@@ -330,24 +312,126 @@ ArrayXb distributions::GaussWish::splitobs (const MatrixXd& X) const
 
 double distributions::GaussWish::fenergy () const
 {
-  int D = this->m.cols();
-  ArrayXd l = enumdims(D);
+  ArrayXd l = enumdims(this->D);
   double sumpsi = mxdigamma((this->nu + 1 - l).matrix() / 2).sum();
 
-  return this->F_p + 0.5 * (D * (this->beta_p/this->beta - 1 - this->nu
-          - log(this->beta_p/this->beta)) + this->nu
-          * ((this->iW.ldlt().solve(this->iW_p)).trace()+this->beta_p
-          * mahaldist(this->m, this->m_p, this->iW).coeff(0,0))
-          + this->nu_p * (this->logdW_p - this->logdW)
-          + this->N*sumpsi) - mxlgamma((this->nu+1-l).matrix() / 2).sum();
+  return this->F_p + (this->D * (this->beta_p/this->beta - 1 - this->nu
+          - log(this->beta_p/this->beta))
+          + this->nu * ((this->iW.ldlt().solve(this->iW_p)).trace()
+          + this->beta_p * mahaldist(this->m, this->m_p, this->iW).coeff(0,0))
+          + this->nu_p * (this->logdW_p - this->logdW) + this->N*sumpsi)/2
+          - mxlgamma((this->nu+1-l).matrix() / 2).sum();
 }
 
 
-void distributions::GaussWish::getmeancov (
-    RowVectorXd& mean,
-    MatrixXd& cov
+//
+// Normal Gamma parameter distribution.
+//
+
+distributions::NormGamma::NormGamma (
+    const double clustwidth,
+    const unsigned int D
+    )
+  : ClusterDist(clustwidth, D),
+    nu_p(distributions::NUPRIOR),
+    beta_p(distributions::BETAPRIOR),
+    m_p(RowVectorXd::Zero(D)),
+    nu(distributions::NUPRIOR),
+    beta(distributions::BETAPRIOR),
+    m(RowVectorXd::Zero(D)),
+    N(0)
+{
+  if (clustwidth <= 0)
+    throw invalid_argument("clustwidth must be > 0!");
+
+  // Create Prior
+  this->L_p = this->L = this->nu_p * this->prior * RowVectorXd::Ones(D);
+  this->logL_p = this->L_p.array().log().sum();
+}
+
+
+void distributions::NormGamma::makeSS (
+    const VectorXd& qZk,
+    const MatrixXd& X,
+    MatrixXd& x_s,
+    MatrixXd& xx_s
+    )
+{
+  MatrixXd qZkX = qZk.asDiagonal() * X;
+  x_s  = qZkX.colwise().sum();                        // [1xD] row vector
+  xx_s = (qZkX.array() * X.array()).colwise().sum();  // [1xD] row vector
+}
+
+
+Array4i distributions::NormGamma::dimSS (const Eigen::MatrixXd& X)
+{
+  return Array4i(1, X.cols(), 1, X.cols());
+}
+
+
+void distributions::NormGamma::update (
+      double N,
+      const MatrixXd& x_s,
+      const MatrixXd& xx_s
+    )
+{
+  if (
+      (x_s.rows() != 1)
+      || (x_s.cols() != this->D)
+      || (xx_s.cols() != this->D)
+      || (xx_s.rows() != 1)
+     )
+    throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
+
+  // Prepare the Sufficient statistics
+  RowVectorXd xk = RowVectorXd::Zero(x_s.cols());
+  if (N > 0)
+    xk = x_s/N;
+  RowVectorXd Sk = xx_s.array() - x_s.array().square()/N;
+
+  // Update posterior params
+  this->N    = N;
+  this->beta = this->beta_p + N;
+  this->nu   = this->nu_p + N/2;
+  this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
+  this->L    = this->L_p + Sk/2 + (this->beta_p * N / (2 * this->beta))
+                * (xk - this->m_p).array().square().matrix();
+  this->logL = this->L.array().log().sum();
+}
+
+
+VectorXd distributions::NormGamma::Eloglike (const MatrixXd& X) const
+{
+  // Distance evaluation in the exponent
+  VectorXd Xmdist = (X.rowwise() - this->m).array().square().matrix()
+                      * this->L.array().inverse().matrix().transpose();
+
+  // Expectations of log Gaussian likelihood
+  return 0.5 * (this->D * (digamma(this->nu) - log(2 * pi) - 1/this->beta)
+              - this->logL - this->nu * Xmdist.array());
+}
+
+
+distributions::ArrayXb distributions::NormGamma::splitobs (
+    const MatrixXd& X
     ) const
 {
-  mean = this->m;
-  cov  = this->iW/this->nu;
+  // Find location of largest element in L, this is the 'eigenvector'
+  int eigvec;
+  this->L.maxCoeff(&eigvec);
+
+  // 'split' the observations perpendicular to this 'eigenvector'.
+  return (X.col(eigvec).array() - this->m(eigvec)) >= 0;
+}
+
+
+double distributions::NormGamma::fenergy () const
+{
+  VectorXd iL = this->L.array().inverse().matrix().transpose();
+
+  return D*(lgamma(this->nu_p) - lgamma(this->nu)
+    + this->N*digamma(this->nu)/2 - this->nu)
+    + D/2 * (log(this->beta) - log(this->beta_p) - 1 + this->beta_p/this->beta)
+    + this->beta_p*this->nu/2*(this->m - this->m_p).array().square().matrix()*iL
+    + this->nu_p*(this->logL - this->logL_p) + this->nu*this->L_p*iL;
 }

@@ -1,6 +1,3 @@
-// TODO
-// - make mxdigamma and mxlgamma work on all eigen matrix and array types!
-
 #include "probutils.h"
 #include <boost/math/special_functions.hpp>
 
@@ -97,17 +94,22 @@ VectorXd probutils::mahaldist (
   // Check for same number of dimensions, D
   if((X.cols() != mu.cols()) || (X.cols() != A.cols()))
     throw invalid_argument("Arguments do not have the same dimensionality");
+
   // Check if A is square
   if (A.rows() != A.cols())
     throw invalid_argument("Matrix A must be square!");
-  // Check if A is PSD
-  if (A.ldlt().isPositive() == false)
-    throw invalid_argument("Matrix A is not positive semidefinite");
+
+  // Decompose A
+  LDLT<MatrixXd> Aldl(A);
+
+  // Check if A is PD
+  if ((Aldl.vectorD().array() <= 0).any() == true)
+    throw invalid_argument("Matrix A is not positive definite");
 
   // Do the Mahalanobis distance for each sample (N times)
   MatrixXd X_mu = (X.rowwise() - mu).transpose();
-  return (( X_mu.array() * (A.ldlt().solve(X_mu)).array() )
-          .colwise().sum() ).transpose();
+  return ((X_mu.array() * (Aldl.solve(X_mu)).array())
+          .colwise().sum()).transpose();
 }
 
 
@@ -165,11 +167,13 @@ double probutils::logdet (const MatrixXd& A)
   // Check if A is square
   if (A.rows() != A.cols())
     throw invalid_argument("Matrix A must be square!");
-  // Check if A is PSD
-  if (A.ldlt().isPositive() == false)
-    throw invalid_argument("Matrix A is not positive semidefinite");
 
-  VectorXd d = A.ldlt().vectorD();  // Get the diagonal from an LDL decomp
+  VectorXd d = A.ldlt().vectorD();  // Get the diagonal from a Cholesky decomp.
+
+  // Check if A is PD
+  if ((d.array() <= 0).any() == true)
+    throw domain_error("Matrix A is not positive definite.");
+
   return (d.array().log()).sum();   // ln(det(A)) = sum(log(d))
 }
 
@@ -199,19 +203,4 @@ MatrixXd probutils::mxlgamma (const MatrixXd& X)
       result(i,j) = boost::math::lgamma(X(i,j));
 
   return result;
-}
-
-
-double probutils::cseperation (
-    double eigvalk,
-    double eigvall,
-    const RowVectorXd& muk,
-    const RowVectorXd& mul
-    )
-{
-  if (muk.cols() != mul.cols())
-    throw invalid_argument("muk and mul must have the same dimensionality!");
-
-  return (muk - mul).array().square().sum()
-      / ( muk.cols() * max<double>(eigvalk, eigvall));
 }

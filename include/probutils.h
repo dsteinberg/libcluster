@@ -6,13 +6,6 @@
 #include <vector>
 
 //
-// Useful Typedefs
-//
-
-typedef Eigen::Array<bool, Eigen::Dynamic, 1> ArrayXb; //!< Boolean Array
-
-
-//
 // Namespaces
 //
 
@@ -58,7 +51,7 @@ Eigen::RowVectorXd stdev (const Eigen::MatrixXd& X);
  *
  *    If X is an NxD matrix, then this calculates:
  *
- *    Cov(X) = (X-E[X])' * (X-E[X]) / (N-1)
+ *    \f[ Cov(X) = \frac{1} {N-1} (X-E[X])^T (X-E[X]) \f]
  *
  *  \param X is a NxD matrix to calculate the covariance of.
  *  \returns a DxD covariance matrix.
@@ -73,7 +66,7 @@ Eigen::MatrixXd cov (const Eigen::MatrixXd& X);
  *
  *    This calculates:
  *
- *    Cov(X) = Sum_j (X_j-E[X])' * (X_j-E[X]) / [-1 + Sum_j N_j]
+ *    \f[ Cov(X) = \frac{1} {\sum_j N_j-1}  \sum_j (X_j-E[X])^T (X_j-E[X]) \f]
  *
  *  \param X is a a vector of N_jxD matrices for j = 1:J.
  *  \returns a DxD covariance matrix.
@@ -112,7 +105,7 @@ Eigen::VectorXd logsumexp (const Eigen::MatrixXd& X);
 /*! \brief The eigen power method. Return the principal eigenvalue and
  *         eigenvector.
  *
- *  \param A is the DxD matrix to decompose.
+ *  \param A is the square DxD matrix to decompose.
  *  \param eigvec is the Dx1 principal eigenvector (mutable)
  *  \returns the principal eigenvalue.
  *  \throws std::invalid_argument if the matrix A is not square
@@ -149,23 +142,21 @@ Eigen::MatrixXd mxdigamma (const Eigen::MatrixXd& X);
 Eigen::MatrixXd mxlgamma (const Eigen::MatrixXd& X);
 
 
-/*! \brief Calculate the square c-seperation between two Gaussians, defined:
+/*! \brief Compare an <int,double> double pair by the double member. Useful
+ *         for sorting an array in descending order while retaining a notion of
+ *         the original order of the array.
  *
- *    C^2_k,l = ||mu_k - mu_l||^2 / (D*max(eigval_max,k, eigval_max,l))
- *
- *  \param eigvalk, maximum eigenvalue of the covariance matrix of Gaussian k
- *  \param eigvall, maximum eigenvalue of the covariance matrix of Gaussian l
- *  \param muk, the mean vector of Gaussian k
- *  \param mul, the mean vector of Gaussian l
- *  \returns the square of the c-seperation of the two Gaussians
- *  \throws std::invalid_argument if muk and mul are not the same length.
+ *  \param i first pair to compare.
+ *  \param j second pair to compare.
+ *  \returns true if i.second > j.second.
  */
-double cseperation (
-    double eigvalk,
-    double eigvall,
-    const Eigen::RowVectorXd& muk,
-    const Eigen::RowVectorXd& mul
-    );
+bool inline paircomp (
+    const std::pair<int,double>& i,
+    const std::pair<int,double>& j
+    )
+{
+  return i.second > j.second;
+}
 
 }
 

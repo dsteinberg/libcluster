@@ -10,14 +10,14 @@
  *
  *  This program outputs two files:
  *   image_labels.data  --   The labels for each point of data, 0 is a no-label
- *   GMM.data           --   The Gaussian mixture model learned by the VDP.
+ *   SS.data            --   The sufficient statistics learned by the VDP.
  *
  *
- * \note The GMM.data output uses a subset of the dimensions, which have been
+ * \note The SS.data output uses a subset of the dimensions, which have been
  *       transformed and standardised.
  *
- * \todo Find a nice way to document the tranforms and standardisation
- *       coefficients used to create the labels and GMM.
+ * \todo Find a nice way to document the transforms and standardisation
+ *       coefficients used to create the labels and SS.
  *
  * \author Daniel Steinberg
  *         Australian Centre for Field Robotics
@@ -174,10 +174,10 @@ int main (int argc, char *argv[])
     X.row(i) = SCALEFACTOR * (X.row(i) - meanX).array() / stdevX.array();
 
   // Cluster features
-  GMM gmm;
+  SuffStat SS;
   MatrixXd qZ;
   try
-    { learnVDP(X, qZ, gmm, true, clustwidth); }
+    { learnVDP(X, qZ, SS, false, true, clustwidth); }
   catch (runtime_error e)
   {
     cerr << "Runtime error: " << e.what() << endl;
@@ -213,17 +213,17 @@ int main (int argc, char *argv[])
     image_label_data.push_back(label);
   }
 
-  // Write the image label file and GMM file.
+  // Write the image label file and Sufficient Statistic file.
   try
   {
     // Image labels
     write_image_label_file("image_label.data", "", image_label_data);
 
-    // GMM object
-    ofstream gmmfile("GMM.data");
-    gmmfile << endl << "% Gaussian Mixture model parameters: " << endl;
-    gmmfile << gmm << endl;
-    gmmfile.close();
+    // SuffStat object
+    ofstream SSfile("SS.data");
+    SSfile << endl << "% Cluster Sufficient Statistics:" << endl; 
+    SSfile << SS << endl;
+    SSfile.close();
   }
   catch (Seabed_SLAM_IO_Exception &e)
     { cerr << "ERROR - " << e.what() << endl; }

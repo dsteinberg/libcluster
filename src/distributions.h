@@ -4,12 +4,16 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <stdexcept>
-#include "probutils.h"
-
 
 /*! Namespace that implements weight and cluster distributions. */
 namespace distributions
 {
+
+//
+// Useful Typedefs
+//
+
+typedef Eigen::Array<bool, Eigen::Dynamic, 1> ArrayXb; //!< Boolean Array
 
 
 //
@@ -17,6 +21,7 @@ namespace distributions
 //
 
 const double BETAPRIOR   = 1.0;      //!< beta prior value
+const double NUPRIOR     = 1.0;      //!< nu prior value (for diagonal GMM)
 const double ALPHA1PRIOR = 1.0;      //!< alpha1 prior value
 const double ALPHA2PRIOR = 1.0;      //!< alpha2 prior value
 
@@ -25,28 +30,45 @@ const double ALPHA2PRIOR = 1.0;      //!< alpha2 prior value
 // Weight Parameter Distribution classes
 //
 
-/* To make a new distribution class that will work with the agorithm templates
- *  your class must have the following minimum interface:
- *
- *  class WeightDist
- *  {
- *  public:
- *
- *    void update (const Eigen::ArrayXd& Nk);
- *
- *    const Eigen::VectorXd& Emarginal () const;
- *
- *    const Eigen::ArrayXd& getNk () const
- *
- *    double fenergy () const;
- *
- *  };
+/*! \brief To make a new cluster weight class that will work with the algorithm
+ *         templates your class must have this as the minimum interface.
  */
+class WeightDist
+{
+public:
+
+  // WeightDist(), required inherited contructor template
+
+  /*! \brief Update the distribution.
+   *  \param Nk an array of observations counts.
+   */
+  virtual void update (const Eigen::ArrayXd& Nk) = 0;
+
+  /*! \brief Evaluate the log marginal likelihood of the labels.
+   *  \returns An array of likelihoods for the labels given the weights
+   */
+  virtual const Eigen::ArrayXd& Eloglike () const = 0;
+
+  /*! \brief Get the number of observations in each cluster.
+   *  \returns An array the number of observations in each cluster.
+   */
+  virtual const Eigen::ArrayXd& getNk () const = 0;
+
+  /*! \brief Get the free energy contribution of these weights.
+   *  \returns the free energy contribution of these weights
+   */
+  virtual double fenergy () const = 0;
+
+  /*! \brief virtual destructor.
+   */
+  virtual ~WeightDist() {}
+};
+
 
 /*!
  *  \brief Stick-Breaking (Dirichlet Process) parameter distribution.
  */
-class StickBreak
+class StickBreak : public WeightDist
 {
 public:
 
@@ -54,7 +76,7 @@ public:
 
   void update (const Eigen::ArrayXd& Nk);
 
-  const Eigen::ArrayXd& Emarginal () const { return this->E_logpi; }
+  const Eigen::ArrayXd& Eloglike () const { return this->E_logpi; }
 
   const Eigen::ArrayXd& getNk () const { return this->Nk; }
 
@@ -83,7 +105,8 @@ protected:
 
 
 /*!
- *  \brief Generalised Dirichlet parameter distribution.
+ *  \brief Generalised Dirichlet parameter distribution (truncated stick
+ *         breaking).
  */
 class GDirichlet : public StickBreak
 {
@@ -98,7 +121,7 @@ public:
 /*!
  *  \brief Dirichlet parameter distribution.
  */
-class Dirichlet
+class Dirichlet : public WeightDist
 {
 public:
 
@@ -106,7 +129,7 @@ public:
 
   void update (const Eigen::ArrayXd& Nk);
 
-  const Eigen::ArrayXd& Emarginal () const { return this->E_logpi; }
+  const Eigen::ArrayXd& Eloglike () const { return this->E_logpi; }
 
   const Eigen::ArrayXd& getNk () const { return this->Nk; }
 
@@ -127,63 +150,130 @@ protected:
 
 };
 
+
 //
 // Cluster Parameter Distribution classes
 //
 
-/* To make a new distribution class that will work with the algorithm templates
- *  your class must have the following minimum interface:
+/*! \brief To make a new cluster distribution class that will work with the
+ *         algorithm templates your class must have this as the minimum
+ *         interface.
  *
- *  class ClusterDist
- *  {
- *  public:
+ *   In addition to the vitual member functions requiring implementation, the
+ *   following STATIC member functions require definition:
  *
- *    void update (
- *      double N,
- *      const Eigen::RowVectorXd& x_s,
- *      const Eigen::MatrixXd& xx_s
- *    );
+ *   Make sufficient statistics given observations X, and observation
+ *   assignments q(Z = k), or qZk:
  *
- *    Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
+ *    \code
+ *      static void makeSS (
+ *        const Eigen::VectorXd& qZk,
+ *        const Eigen::MatrixXd& X,
+ *        Eigen::MatrixXd& SuffStat1,
+ *        Eigen::MatrixXd& SuffStat2
+ *        );
+ *    \endcode
  *
- *    double fenergy () const;
+ *    Where qZk is the observation assignment probabilities of observations, X,
+ *    to this cluster. SuffStat1 must return this clusters first sufficient
+ *    statistic, and SuffStat2 must return the second.
  *
- *    ArrayXb splitobs (const Eigen::MatrixXd& X);
+ *    Return the size of the sufficient statistics, given the observations X:
  *
- *    double getN () const
+ *    \code
+ *      static Eigen::Array4i dimSS (const Eigen::MatrixXd& X);
+ *    \endcode
  *
- *  };
+ *    Where the returning array must be of the form:
+ *      [
+ *        number of rows of SuffStat1,
+ *        number of cols of SuffStat1,
+ *        number of rows of SuffStat2,
+ *        number of cols of SuffStat2
+ *      ]
  *
- *  Notes:
- *   -  splitobs() needs to consistently split observations between multiple
- *      subsequent calls, but can change after each update().
  */
-
-/*!
- *  \brief Gaussian-Wishart parameter distribution.
- */
-class GaussWish
+class ClusterDist
 {
 public:
 
-  GaussWish (
-      const double clustwidth,
-      const Eigen::RowVectorXd& meanX,
-      const Eigen::MatrixXd& covX
-      );
+  /*! \brief Update the distribution.
+   *  \param N an array of observations counts belonging to this cluster
+   *  \param suffstat1 sufficient statistic 1, made by makeSS()
+   *  \param suffstat2 sufficient statistic 2, made by makeSS()
+   */
+  virtual void update (
+      double N,
+      const Eigen::MatrixXd& suffstat1,
+      const Eigen::MatrixXd& suffstat2
+      ) = 0;
+
+  /*! \brief Evaluate the log marginal likelihood of the observations.
+   *  \param X a matrix of observations, [obs, dims].
+   *  \returns An array of likelihoods for the observations given this dist.
+   */
+  virtual Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const = 0;
+
+  /*! \brief Get the free energy contribution of these cluster parameters.
+   *  \returns the free energy contribution of these cluster parameters.
+   */
+  virtual double fenergy () const = 0;
+
+  /*! \brief Propose a split for the observations given these cluster parameters
+   *  \param X a matrix of observations, [obs, dims], to split.
+   *  \returns a binary array of split assignments.
+   *  \note this needs to consistently split observations between multiple
+   *        subsequent calls, but can change after each update().
+   */
+  virtual ArrayXb splitobs (const Eigen::MatrixXd& X) const = 0;
+
+  /*! \brief virtual destructor.
+   */
+  virtual ~ClusterDist() {}
+
+protected:
+
+  /*! \brief Constructor that must be called to set the prior and cluster
+   *         dimensionality.
+   *  \param prior the cluster prior.
+   *  \param D the dimensionality of this cluster.
+   */
+  ClusterDist (const double prior, const unsigned int D) : D(D), prior(prior) {}
+
+  unsigned int D;
+  double prior;
+
+};
+
+
+/*!
+ *  \brief Gaussian-Wishart parameter distribution for full Gaussian clusters.
+ */
+class GaussWish : public ClusterDist
+{
+public:
 
   /*! \brief Make an uninformed Gaussian-Wishart prior.
    *
-   *  \param cwidthp makes the covariance prior cwidthp*I.
-   *  \param cmeanp is the mean prior cluster centre.
-   *  \throws std::invalid_argument if cwidthp is less than or equal to 0.
+   *  \param clustwidth makes the covariance prior \f$ clustwidth \times D
+   *          \times \mathbf{I}_D \f$.
+   *  \param D is the dimensionality of the data
    */
-  GaussWish (const double cwidthp, const Eigen::RowVectorXd& cmeanp);
+  GaussWish (const double clustwidth, const unsigned int D);
+
+  static void makeSS (
+      const Eigen::VectorXd& qZk,
+      const Eigen::MatrixXd& X,
+      Eigen::MatrixXd& x_s,       //!< [1xD] Row Vector sufficient stat.
+      Eigen::MatrixXd& xx_s       //!< [DxD] Matrix sufficient stats.
+      );
+
+  static Eigen::Array4i dimSS (const Eigen::MatrixXd& X);
 
   void update (
         double N,
-        const Eigen::RowVectorXd& x_s,
-        const Eigen::MatrixXd& xx_s
+        const Eigen::MatrixXd& x_s, //!< [1xD] Row Vector sufficient stat.
+        const Eigen::MatrixXd& xx_s //!< [DxD] Matrix sufficient stats.
       );
 
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
@@ -192,9 +282,6 @@ public:
 
   double fenergy () const;
 
-  double getN () const { return this->N; }
-
-  void getmeancov (Eigen::RowVectorXd& mean, Eigen::MatrixXd& cov) const;
 
 private:
 
@@ -212,6 +299,61 @@ private:
   Eigen::RowVectorXd m;   // m, mu ~ Normal(m, (beta*Lambda)^-1)
   Eigen::MatrixXd iW;     // Inverse W, Lambda ~ Wishart(W, nu)
   double logdW;           // log(det(W))
+  double N;
+};
+
+/*!
+ *  \brief Normal-Gamma parameter distribution for diagonal Gaussian clusters.
+ */
+class NormGamma : public ClusterDist
+{
+public:
+
+  /*! \brief Make an uninformed Normal-Gamma prior.
+   *
+   *  \param clustwidth makes the covariance prior \f$ clustwidth \times
+   *         \mathbf{I}_D \f$.
+   *  \param D is the dimensionality of the data
+   */
+  NormGamma (const double clustwidth, const unsigned int D);
+
+  static void makeSS (
+      const Eigen::VectorXd& qZk,
+      const Eigen::MatrixXd& X,
+      Eigen::MatrixXd& x_s,   //!< [1xD] Row Vector sufficient stat.
+      Eigen::MatrixXd& xx_s   //!< [1xD] Row Vector sufficient stat.
+      );
+
+  static Eigen::Array4i dimSS (const Eigen::MatrixXd& X);
+
+  void update (
+        double N,
+        const Eigen::MatrixXd& x_s, //!< [1xD] Row Vector sufficient stat.
+        const Eigen::MatrixXd& xx_s //!< [1xD] Row Vector sufficient stat.
+      );
+
+  Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
+
+  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+
+  double fenergy () const;
+
+
+private:
+
+  // Prior hyperparameters etc
+  double nu_p;
+  double beta_p;
+  Eigen::RowVectorXd m_p;
+  Eigen::RowVectorXd L_p;
+  double logL_p;
+
+  // Posterior hyperparameters
+  double nu;
+  double beta;
+  Eigen::RowVectorXd m;
+  Eigen::RowVectorXd L;
+  double logL;
   double N;
 };
 

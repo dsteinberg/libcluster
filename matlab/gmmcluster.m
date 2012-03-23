@@ -1,67 +1,95 @@
-function [Z, qZ, gmm, F] = gmmcluster (X, verbose, clustwidth)
-% GMMCLUSTER Bayesian Gaussian Mixture model (GMM)xs. 
-%   It is an interface for a C++ library that implements the Bayesian GMM as 
-%   specified by [1]. 
+function [Z, qZ, SS, F] = gmmcluster (X, Alg, diagcov, verbose, clustwidth)
+% GMMCLUSTER Bayesian Gaussian Mixture models (GMM). 
+%   This is an interface for a C++ library that implements the Bayesian GMM [1],
+%   and also the Variation Dirichlet Process for GMMs [2].
 %
-%   [Z, qZ, gmm, F] = gmmcluster (X)
-%   [Z, qZ, gmm, F] = gmmcluster (X, verbose)
-%   [Z, qZ, gmm, F] = gmmcluster (X, verbose, clustwidth)
+%   [Z, qZ, SS, F] = gmmcluster (X, Alg)
+%   [Z, qZ, SS, F] = gmmcluster (X, Alg, diagcov)
+%   [Z, qZ, SS, F] = gmmcluster (X, Alg, diagcov, verbose)
+%   [Z, qZ, SS, F] = gmmcluster (X, Alg, diagcov, verbose, clustwidth)
 %   
 % Inputs:
 %   - X [NxD] observation/feature matrix. N is the number of elements, D is the 
 %       number of dimensions. 
-%   - verbose 1 = print verbose output, 0 = no output. This is optional, default
-%             is 0.
-%   - clustwidth is the prior notion of the width of the clusters relative to 
-%                the principal eigen value of the data. This is optional, and 
-%                the default value is 0.01. Typically a good range for this 
-%                parameter is [0.01 1]. 
+%   - Alg is the algorithm to use, valid options are:
+%       * 'GMM' which is the Bayesian Gaussian Mixture Model
+%       * 'VDP' which is the Variational Dirichlet Process for GMMs
+%   - diagcov true = use diagonal covariance, false = full covariance. This is 
+%             optional, false is default.
+%   - verbose true = print verbose output, false = no output. This is optional, 
+%             default is false.
+%   - clustwidth is the prior notion of the width of the clusters. This is 
+%                optional, and the default value is 1e-5 which is mostly data-
+%                driven.
 %
 % Returns (all are optional):
 %   - Z [Nx1] labels. These are the most likely clusters for each observation
 %       in X.
-%   - qZ [NxK] probability of each observation beloning to each cluster. This is
-%        the Variational posterior approximation to p(Z|X).
-%   - gmm is the Gaussian Mixture Model structure. It has fields:
-%       .K      the number of clusters.
-%       .w      [1xK] weights of each cluster.
-%       .mu     [KxD] cluster means.
-%       .sigma  [DxDxK] cluster covariances.
+%   - qZ [NxK] probability of each observation belonging to each cluster. This 
+%        is the Variational posterior approximation to p(Z|X).
+%   - SS is a sufficient statistics structure. It has fields:
+%       .K        the number of clusters for which there are suff. stats.
+%       .priorval the value of the cluster hyperprior (e.g. cluster width)
+%       .N_k      {1xK} the number of observations in each cluster.
+%       .ss1      {Kx[?x?]} array of observation suff. stats. no 1.
+%       .ss2      {Kx[?x?]} array of observation suff. stats. no 2.
 %   - F [scalar] final free energy. 
 %
 % Notes:
-%   - I find that standardising all of the dimensions of X before clustering 
-%     improves results dramatically. I.e.,
-%   
-%       X = 10*(X - repmat(mean(X),size(X,1),1)) ./ repmat(std(X),size(X,1),1);
+%   - The difference between the VDP and GMM algorithms is that the prior
+%     over the mixture weights is different. The VDP uses a Stick-Breaking
+%     prior, while the GMM uses a symmetric Dirichlet prior.
+%   - I find that standardising or whitening all of the dimensions of X before 
+%     clustering improves results. 
 %
 % Author:   Daniel Steinberg
 %           Australian Centre for Field Robotics
 %           The University of Sydney
 %
-% Date:     01/09/2011
+% Date:     13/12/2011
 %
 % References:
 %   [1] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
 %       Springer Science+Business Media, 2006.
 %
-% See also VDPCLUSTER, GMMCLASSIFY, GMMPREDICT
+%   [2] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational 
+%       Dirichlet process mixtures, Advances in Neural Information 
+%       Processing Systems, vol. 19, p. 761, 2007.
+%
+% See also GMCCLUSTER, SS2GMM
 
-    % Run the suitable version of vdpcluster_mex depending on the arguments
-    if nargin == 1,
-        [F qZ gmm] = cluster_mex(X, 1);
-    elseif nargin == 2,
-        [F qZ gmm] = cluster_mex(X, 1, logical(verbose));
-    elseif nargin == 3,
-        [F qZ gmm] = cluster_mex(X, 1, logical(verbose), clustwidth);
-    else
-        error('Invalid number of input arguments.');
+    % Check to see if X is double precision
+    if isa( X, 'double' ) == false
+      error( 'X must be double precision' );
     end
     
-    % Find most likely qz and assign it to z 
-    [tmp, Z] = max(qZ,[],2);
+    % Parse Alg argument
+    switch lower(Alg)
+        case 'vdp'
+            algval = 0;
+        case 'gmm',
+            algval = 1;
+        otherwise
+            error('Unknown algorithm specified!');
+    end
+            
+    % Run the suitable version of cluster_mex depending on the arguments
+    switch nargin
+        case 2,
+            [F qZ SS] = cluster_mex(X, algval);
+        case 3,
+            [F qZ SS] = cluster_mex(X, algval, logical(diagcov));
+        case 4,
+            [F qZ SS] = cluster_mex(X, algval, logical(diagcov), ...
+                          logical(verbose));
+        case 5,
+            [F qZ SS] = cluster_mex(X, algval, logical(diagcov), ...
+                          logical(verbose), clustwidth);
+        otherwise
+            error('Invalid number of input arguments.');
+    end
     
-    % Convert gmm structure
-    if nargout > 2, gmm = convgmmc2a(gmm); end
-
+    % Find most likely qZ and assign it to z 
+    [~, Z] = max(qZ,[],2);
+    
 end
