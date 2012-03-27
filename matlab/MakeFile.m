@@ -16,6 +16,14 @@ compiler  = 'CXX=g++ CC=g++ LD=g++';
 
 %% Compile... Think twice about changing stuff in here.
 
+% Do not attempt to compile if the Eigen location is wrong.
+if ( exist( eigendir, 'dir' ) ~= 7 )
+    error( 'MATLAB:libcluster:MakeFile', '\n%s%s%s\n%s', ...
+           'The eigen directory: ', eigendir,            ...
+           ', does not exist. Cannot compile.',          ...
+           'Please specify the correct location of Eign.' );
+end
+
 % Get dynamic library name
 dlname = dir(strcat(clusterdylib,'/libcluster.*'));
 clusterdylib = strcat(clusterdylib,'/',dlname.name);
