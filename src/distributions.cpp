@@ -21,9 +21,28 @@ const double pi = constants::pi<double>(); // Boost high precision pi
 
 
 //
-// Private Functions
+// Private Helper Functions
 //
 
+/* Compare an <int,double> double pair by the double member. Useful
+ *  for sorting an array in descending order while retaining a notion of
+ *  the original order of the array.
+ *
+ *  returns: true if i.second > j.second.
+ */
+bool inline paircomp (
+    const std::pair<int,double>& i, // the first pair to compare.
+    const std::pair<int,double>& j  // the second pair to compare.
+    )
+{
+  return i.second > j.second;
+}
+
+
+/* Enumerate the dimensions.
+ *
+ *  returns: 1:D or if D = 1, return 1.
+ */
 ArrayXd enumdims (int D)
 {
   ArrayXd l;

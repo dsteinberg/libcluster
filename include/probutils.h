@@ -141,23 +141,6 @@ Eigen::MatrixXd mxdigamma (const Eigen::MatrixXd& X);
  */
 Eigen::MatrixXd mxlgamma (const Eigen::MatrixXd& X);
 
-
-/*! \brief Compare an <int,double> double pair by the double member. Useful
- *         for sorting an array in descending order while retaining a notion of
- *         the original order of the array.
- *
- *  \param i first pair to compare.
- *  \param j second pair to compare.
- *  \returns true if i.second > j.second.
- */
-bool inline paircomp (
-    const std::pair<int,double>& i,
-    const std::pair<int,double>& j
-    )
-{
-  return i.second > j.second;
-}
-
 }
 
 #endif // PROBUTILS_H

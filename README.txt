@@ -45,14 +45,17 @@ To build libcluster:
 
   (These are in the repositories as of Ubuntu 11.10)
 
-2) Make a build directory where you checked out the source if it does not
+2) Make sure you have checked out CMakeUtils to the same location as libcluster
+
+3) Make a build directory where you checked out the source if it does not
    already exist, then change into this directory,
 
     cd {where you checked out the source}
     mkdir build
     cd build
 
-3) Run the following from the build directory:
+4a) To build libcluster INCLUDING the AUV pipeline tools, run the following from
+    the build directory:
 
         cmake ..
         make
@@ -66,11 +69,18 @@ To build libcluster:
    The AUV pipeline tools are (requires BUILD_PIPELINE_TOOLS to be on):
         vdp_label       /usr/local/bin       (config options in vdp_cluster.cfg)
 
-   NOTE: IF you dont want to build the pipeline tools (requires extra
-   dependencies) then change BUILD_PIPELINE_TOOLS to off using ccmake.
+4b) To build libcluster EXCLUDING the AUV pipeline tools, run the following
+    from the build directory:
 
-4) Use the doxyfile in {where you checked out the source}/doc to make the
-   documentation with doxygen.
+        cmake ..
+	ccmake ./ (and turn BUILD_PIPELINE_TOOLS  OFF)
+        make
+        sudo make install
+
+5) Use the doxyfile in {where you checked out the source}/doc to make the
+   documentation with doxygen:
+
+        doxygen Doxyfile
 
 Notes:
  - On linux you may have to run "sudo ldconfig" before the system can find
@@ -84,6 +94,7 @@ need to make sure that:
 
   a) You have used a 32 bit compiler if you have 32 bit Matlab (or 64 bit 
      compiler for 64 bit Matlab).
+
   b) The compiler you have used is similar to Matlab's (I have found that if you
       are off by a minor version number it is ok still).
 
@@ -91,7 +102,12 @@ To build the Matlab interface:
 
   1) In Matlab, navigate to {where you checked out the source}/matlab.
 
-  2) Type MakeFile.m and enter.
+  2) If Eigen is installed at 
+
+        /usr/include/eigen3
+
+     type MakeFile.m and enter. Otherwise specify the location of Eigen in 
+     MakeFile.m and execute.
 
   3) If compilation succeeds, you will be prompted if you want to copy the
      binaries and .m files to a location of your choice, and update Matlab's 
@@ -104,9 +120,6 @@ Notes:
 
  - I have included the script SS2GMM.m to turn the Sufficient Statistics structs
    (SS) into Gaussian mixture model structs.
-
- - If you get an error saying the Eigen libraries can't be found, then you can
-   change the path to Eigen in MakeFile.m.
 
  - Either the build will warn you, or running the .m files will fail if your
    compiler is not compatible with Matlab. To fix this with Ubuntu 10.10 and

@@ -29,8 +29,33 @@ const double ZEROCUTOFF  = 0.1;         // Obs. count cut off sparse updates
 
 
 //
-// Private Helper functions
+// Private Helper structures and functions
 //
+
+/* Triplet that contains the information for choosing a good cluster split
+ *  ordering.
+ */
+struct SplitOrder
+{
+  int k;      // Cluster number/index
+  int tally;  // Number of times a cluster has failed to split
+  double Fk;  // The clusters approximate free energy contribution
+};
+
+
+/* Compares two SplitOrder triplets and returns which is more optimal to split.
+ *  Precendence is given to less split fail tally, and then to more free energy
+ *  contribution.
+ */
+bool inline splitcomp (const SplitOrder& i, const SplitOrder& j)
+{
+  if (i.tally == j.tally)       // If the tally is the same, use the greater Fk
+    return i.Fk > j.Fk;
+  else if (i.tally < j.tally)   // Otherwise prefer the lower tally
+    return true;
+  else
+    return false;
+}
 
 
 /* Find the indices of the ones and zeros in a binary array.
@@ -365,12 +390,13 @@ template <class W, class C> double vbem (
 
 
 /*  Find a mixture split that lowers model free energy, or return false.
- *    An attempt is made ad looking for good split candidates first, as soon as
- *    a split canditate is found that lowers model F, it is returned. This may
- *    not be the "best" split, but it is certainly faster.
+ *    An attempt is made at looking for good, untried, split candidates first,
+ *    as soon as a split canditate is found that lowers model F, it is returned.
+ *    This may not be the "best" split, but it is certainly faster.
  *
  *    returns: true if a split was found, false if no splits can be found
  *    mutable: qZ is augmented with a new split if one is found, otherwise left
+ *    mutable tally is a tally time a cluster has been unsuccessfully split
  *    throws: invalid_argument rethrown from other functions
  *    throws: runtime_error from its internal VBEM calls
  */
@@ -380,6 +406,7 @@ template <class W, class C> bool split (
     const libcluster::SuffStat& SS,          // Sufficient stats
     const double F,                          // Current model free energy
     vector<MatrixXd>& qZ,                    // Probabilities qZ
+    vector<int>& tally,                      // Count of unsuccessful splits
     const bool sparse,                       // Do sparse updates to groups
     const bool verbose,                      // Verbose output
     ostream& ostrm                           // Stream to print notification
@@ -389,48 +416,50 @@ template <class W, class C> bool split (
                K = SS.getK();
 
   // Split order chooser and cluster parameters
-  vector< pair<int,double> > F_k(K);
+  tally.resize(K, 0); // Make sure tally is the right size
+  vector<SplitOrder> ord(K);
   vector<C> csplit(K, C(SS.getprior(), X[0].cols()));
-  W wsplit;
 
   // Get cluster parameters and their free energy
   #pragma omp parallel for schedule(dynamic)
   for (unsigned int k = 0; k < K; ++k)
   {
     csplit[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
-    F_k[k].first  = k;
-    F_k[k].second = csplit[k].fenergy();
+    ord[k].k     = k;
+    ord[k].tally = tally[k];
+    ord[k].Fk    = csplit[k].fenergy();
   }
 
   // Get cluster likelihoods
-  #pragma omp parallel for schedule(dynamic) private(wsplit)
+  #pragma omp parallel for schedule(dynamic)
   for (unsigned int j = 0; j < J; ++j)
   {
     // Get cluster weights
+    W wsplit;
     wsplit.update(qZ[j].colwise().sum());
     ArrayXd logpi = wsplit.Eloglike();
 
     // Add in cluster log-likelihood, weighted by responsability
     for (unsigned int k = 0; k < K; ++k)
     {
-      double L = logpi(k) + qZ[j].col(k).transpose() * csplit[k].Eloglike(X[j]);
+      double L = logpi(k) + qZ[j].col(k).dot(csplit[k].Eloglike(X[j]));
 
       #pragma omp atomic
-      F_k[k].second -= L;
+      ord[k].Fk -= L;
     }
   }
 
-  // Sort clusters by free energy contributions
-  sort(F_k.begin(), F_k.end(), paircomp);
+  // Sort clusters by split tally, then free energy contributions
+  sort(ord.begin(), ord.end(), splitcomp);
 
-  // Pre allocate objects for loops (this makes a runtime difference)
+  // Pre allocate big objects for loops (this makes a runtime difference)
   vector<ArrayXi> mapidx(J, ArrayXi());
   vector<MatrixXd> qZref(J,MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd());
 
   // Loop through each potential cluster in order and split it
-  for (vector< pair<int,double> >::iterator i = F_k.begin(); i < F_k.end(); ++i)
+  for (vector<SplitOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
   {
-    int k = i->first;
+    int k = i->k;
 
     // Don't waste time with clusters that can't really be split min (2:2)
     if (SS.getN_k(k) < 4)
@@ -443,7 +472,7 @@ template <class W, class C> bool split (
     for (unsigned int j = 0; j < J; ++j)
     {
       // Make COPY of the observations with only relevant data points, p > 0.5
-      mapidx[j] = partX(X[j], (qZ[j].col(k).array() > 0.5), Xk[j]);
+      mapidx[j] = partX(X[j], (qZ[j].col(k).array()>0.5), Xk[j]);  // Copy :-(
       Mtot += Xk[j].rows();
 
       // Initial cluster split
@@ -487,8 +516,11 @@ template <class W, class C> bool split (
     if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
     {
       qZ = qZaug;
+      tally[k] = 0;
       return true;
     }
+    else
+      ++tally[k]; // increase this cluster's unsuccessful split tally
   }
 
   // Failed to find splits
@@ -588,6 +620,7 @@ template <class W, class C> double learnmodel (
   // Initialise free energy and other loop variables
   bool   issplit = true;
   double F = numeric_limits<double>::max();
+  vector<int> tally;
 
   // Main loop
   while (issplit == true)
@@ -600,7 +633,7 @@ template <class W, class C> double learnmodel (
       ostrm << '<' << flush;  // Notify start splitting
 
     // Search for best split, augment qZ if found one
-    issplit = split<W,C>(X, SSgroups, SS, F, qZ, sparse, verbose, ostrm);
+    issplit = split<W,C>(X, SSgroups, SS, F, qZ, tally, sparse, verbose, ostrm);
 
     if (verbose == true)
       ostrm << '>' << endl;   // Notify end splitting
