@@ -28,6 +28,8 @@ function GMM = SS2GMM (SS)
 %           The University of Sydney
 %
 % Date:     8/12/2011
+%
+% See also SS2EMM, BMMCLUSTER, GMCCLUSTER
 
     N_k = cell2mat(SS.N_k);
     N   = sum(N_k);

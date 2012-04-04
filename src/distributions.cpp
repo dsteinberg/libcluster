@@ -50,7 +50,7 @@ ArrayXd enumdims (int D)
   if (D > 1)
     l = ArrayXd::LinSpaced(D, 1, D);
   else
-    l = ArrayXd::Ones(1);
+    l.setOnes(1);
 
   return l;
 }
@@ -64,8 +64,8 @@ distributions::StickBreak::StickBreak ()
   : alpha1_p(distributions::ALPHA1PRIOR),
     alpha2_p(distributions::ALPHA2PRIOR),
     Nk(ArrayXd::Zero(1)),
-    alpha1(ArrayXd::Ones(1)*distributions::ALPHA1PRIOR),
-    alpha2(ArrayXd::Ones(1)*distributions::ALPHA2PRIOR),
+    alpha1(ArrayXd::Constant(1, distributions::ALPHA1PRIOR)),
+    alpha2(ArrayXd::Constant(1, distributions::ALPHA2PRIOR)),
     E_logv(ArrayXd::Zero(1)),
     E_lognv(ArrayXd::Zero(1)),
     E_logpi(ArrayXd::Zero(1)),
@@ -174,10 +174,11 @@ double distributions::GDirichlet::fenergy () const
 // Dirichlet weight distribution.
 //
 
+
 distributions::Dirichlet::Dirichlet ()
   : alpha_p(distributions::ALPHA1PRIOR),
     Nk(ArrayXd::Zero(1)),
-    alpha(ArrayXd::Ones(1)*distributions::ALPHA1PRIOR),
+    alpha(ArrayXd::Constant(1, distributions::ALPHA1PRIOR)),
     E_logpi(ArrayXd::Zero(1))
 {}
 
@@ -252,14 +253,15 @@ void distributions::GaussWish::makeSS (
     )
 {
   MatrixXd qZkX = qZk.asDiagonal() * X;
-  x_s  = qZkX.colwise().sum();  // [1xD] row vector
-  xx_s = qZkX.transpose() * X;  // [DxD] matrix
+  x_s = qZkX.colwise().sum();             // [1xD] row vector
+  xx_s.noalias() = qZkX.transpose() * X;  // [DxD] matrix
 }
 
 
-Array4i distributions::GaussWish::dimSS (const Eigen::MatrixXd& X)
+pair<Array2i, Array2i> distributions::GaussWish::dimSS (const MatrixXd& X)
 {
-  return Array4i(1, X.cols(), X.cols(), X.cols());
+  return pair<Array2i, Array2i>(Array2i(1, X.cols()),
+                                Array2i(X.cols(), X.cols()));
 }
 
 void distributions::GaussWish::update (
@@ -280,7 +282,7 @@ void distributions::GaussWish::update (
   RowVectorXd xk = RowVectorXd::Zero(x_s.cols());
   if (N > 0)
     xk = x_s/N;
-  MatrixXd Sk = xx_s - xk.transpose()*x_s;
+  MatrixXd Sk = xx_s - xk.transpose() * x_s;
   RowVectorXd xk_m = xk - this->m_p;               // for iW, (xk - m)
 
   // Update posterior params
@@ -382,9 +384,9 @@ void distributions::NormGamma::makeSS (
 }
 
 
-Array4i distributions::NormGamma::dimSS (const Eigen::MatrixXd& X)
+pair<Array2i, Array2i> distributions::NormGamma::dimSS (const MatrixXd& X)
 {
-  return Array4i(1, X.cols(), 1, X.cols());
+  return pair<Array2i, Array2i>(Array2i(1, X.cols()), Array2i(1, X.cols()));
 }
 
 
@@ -413,7 +415,7 @@ void distributions::NormGamma::update (
   this->beta = this->beta_p + N;
   this->nu   = this->nu_p + N/2;
   this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
-  this->L    = this->L_p + Sk/2 + (this->beta_p * N / (2 * this->beta))
+  this->L.noalias() = this->L_p + Sk/2 + (this->beta_p * N / (2 * this->beta))
                 * (xk - this->m_p).array().square().matrix();
   this->logL = this->L.array().log().sum();
 }
@@ -453,4 +455,76 @@ double distributions::NormGamma::fenergy () const
     + D/2 * (log(this->beta) - log(this->beta_p) - 1 + this->beta_p/this->beta)
     + this->beta_p*this->nu/2*(this->m - this->m_p).array().square().matrix()*iL
     + this->nu_p*(this->logL - this->logL_p) + this->nu*this->L_p*iL;
+}
+
+
+//
+// Normal Gamma parameter distribution.
+//
+
+
+distributions::ExpGamma::ExpGamma (const double obsmag, const unsigned int D)
+  : ClusterDist(obsmag, D),
+    a_p(distributions::APRIOR),
+    b_p(obsmag),
+    a(a_p),
+    ib(RowVectorXd::Constant(D, 1/obsmag)),
+    logb(D*log(b_p))
+{}
+
+
+void distributions::ExpGamma::makeSS (
+    const VectorXd& qZk,
+    const MatrixXd& X,
+    MatrixXd& x_s,
+    MatrixXd& emp
+    )
+{
+  x_s = (qZk.asDiagonal() * X).colwise().sum();
+  emp = MatrixXd::Zero(0,0);
+}
+
+
+pair<Array2i, Array2i> distributions::ExpGamma::dimSS (const MatrixXd& X)
+{
+  return pair<Array2i, Array2i>(Array2i(1, X.cols()), Array2i(0, 0));
+}
+
+
+void distributions::ExpGamma::update (
+      double N,
+      const MatrixXd& x_s,
+      const MatrixXd& emp
+    )
+{
+  if ( (x_s.rows() != 1) || (x_s.cols() != this->D) )
+    throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
+
+  this->a    = this->a_p + N;
+  this->ib   = (this->b_p + x_s.array()).array().inverse().matrix();
+  this->logb = - this->ib.array().log().sum();
+}
+
+
+VectorXd distributions::ExpGamma::Eloglike (const MatrixXd& X) const
+{
+  return this->D * digamma(this->a) - this->logb
+          - (this->a * X * this->ib.transpose()).array();
+}
+
+
+distributions::ArrayXb distributions::ExpGamma::splitobs (
+    const MatrixXd& X
+    ) const
+{
+  ArrayXd XdotL = X * (this->a * this->ib).transpose();
+  return (XdotL > (XdotL.sum()/XdotL.size()));
+}
+
+
+double distributions::ExpGamma::fenergy () const
+{
+ return this->D * ((this->a - this->a_p) * digamma(this->a) - this->a
+     - this->a_p * log(this->b_p) - lgamma(this->a) + lgamma(this->a_p))
+     + this->b_p * this->a * this->ib.sum() + this->a_p * this->logb;
 }

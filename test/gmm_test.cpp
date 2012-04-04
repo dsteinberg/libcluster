@@ -79,7 +79,7 @@ int main()
   vector<SuffStat> SSgroup(2, SuffStat());
   vector<MatrixXd> qZgroup;
   clock_t start = clock();
-  learnGMC (X, qZgroup, SSgroup, SS, true, false, true);
+  learnGMC (X, qZgroup, SSgroup, SS, true, true);
 
 //  vector<MatrixXd> Xt;
 //  Xt.push_back(X1);
@@ -100,7 +100,7 @@ int main()
   SS = SuffStat();
   SSgroup.clear();
   start = clock();
-  learnSGMC (X, qZgroup, SSgroup, SS, true, false, true);
+  learnSGMC (X, qZgroup, SSgroup, SS, true, true);
 
   stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Symmetric GMC Elapsed time = " << stop << " sec." << endl;
@@ -112,7 +112,7 @@ int main()
   MatrixXd qZ;
   SS = SuffStat();
   start = clock();
-  learnVDP(Xcat, qZ, SS, false, true);
+  learnVDP(Xcat, qZ, SS, true);
 
   stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "VDP Elapsed time = " << stop << " sec." << endl;
@@ -122,7 +122,7 @@ int main()
   // GMM
   start = clock();
   SS = SuffStat();
-  learnGMM(Xcat, qZ, SS, false, true);
+  learnBGMM(Xcat, qZ, SS, true);
 
   stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Bayesian GMM Elapsed time = " << stop << " sec." << endl;

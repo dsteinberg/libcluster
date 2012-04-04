@@ -1,3 +1,7 @@
+// TODO
+//  - Neaten up static interfaces.
+//  - Can I make an even more generic suff. stats. interface??
+
 #ifndef DISTRIBUTIONS_H
 #define DISTRIBUTIONS_H
 
@@ -20,10 +24,11 @@ typedef Eigen::Array<bool, Eigen::Dynamic, 1> ArrayXb; //!< Boolean Array
 // Namespace 'symbolic' constants
 //
 
-const double BETAPRIOR   = 1.0;      //!< beta prior value
-const double NUPRIOR     = 1.0;      //!< nu prior value (for diagonal GMM)
-const double ALPHA1PRIOR = 1.0;      //!< alpha1 prior value
-const double ALPHA2PRIOR = 1.0;      //!< alpha2 prior value
+const double BETAPRIOR   = 1.0;      //!< beta prior value (Gaussians)
+const double NUPRIOR     = 1.0;      //!< nu prior value (diagonal Gaussians)
+const double ALPHA1PRIOR = 1.0;      //!< alpha1 prior value (Weights)
+const double ALPHA2PRIOR = 1.0;      //!< alpha2 prior value (Weights)
+const double APRIOR      = 1.0;      //!< a prior value (Exponential)
 
 
 //
@@ -181,16 +186,17 @@ protected:
  *    Return the size of the sufficient statistics, given the observations X:
  *
  *    \code
- *      static Eigen::Array4i dimSS (const Eigen::MatrixXd& X);
+ *      static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
+ *          const Eigen::MatrixXd& X
+ *          );
  *    \endcode
  *
- *    Where the returning array must be of the form:
- *      [
- *        number of rows of SuffStat1,
- *        number of cols of SuffStat1,
- *        number of rows of SuffStat2,
- *        number of cols of SuffStat2
- *      ]
+ *    Where the returning pair must be of the form:
+ *
+ *        pair.first(0)  = number of rows of SuffStat1,
+ *        pair.first(1)  = number of cols of SuffStat1,
+ *        pair.second(0) = number of rows of SuffStat2,
+ *        pair.second(1) = number of cols of SuffStat2
  *
  */
 class ClusterDist
@@ -253,7 +259,7 @@ class GaussWish : public ClusterDist
 {
 public:
 
-  /*! \brief Make an uninformed Gaussian-Wishart prior.
+  /*! \brief Make a Gaussian-Wishart prior.
    *
    *  \param clustwidth makes the covariance prior \f$ clustwidth \times D
    *          \times \mathbf{I}_D \f$.
@@ -268,7 +274,9 @@ public:
       Eigen::MatrixXd& xx_s       //!< [DxD] Matrix sufficient stats.
       );
 
-  static Eigen::Array4i dimSS (const Eigen::MatrixXd& X);
+  static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
+      const Eigen::MatrixXd& X
+      );
 
   void update (
         double N,
@@ -302,6 +310,7 @@ private:
   double N;
 };
 
+
 /*!
  *  \brief Normal-Gamma parameter distribution for diagonal Gaussian clusters.
  */
@@ -309,7 +318,7 @@ class NormGamma : public ClusterDist
 {
 public:
 
-  /*! \brief Make an uninformed Normal-Gamma prior.
+  /*! \brief Make a Normal-Gamma prior.
    *
    *  \param clustwidth makes the covariance prior \f$ clustwidth \times
    *         \mathbf{I}_D \f$.
@@ -324,7 +333,9 @@ public:
       Eigen::MatrixXd& xx_s   //!< [1xD] Row Vector sufficient stat.
       );
 
-  static Eigen::Array4i dimSS (const Eigen::MatrixXd& X);
+  static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
+      const Eigen::MatrixXd& X
+      );
 
   void update (
         double N,
@@ -356,6 +367,60 @@ private:
   double logL;
   double N;
 };
+
+
+/*!
+ *  \brief Exponential-Gamma parameter distribution for Exponential clusters.
+ */
+class ExpGamma : public ClusterDist
+{
+public:
+
+  /*! \brief Make a Gamma prior.
+   *
+   *  \param obsmag is the prior value for b in Gamma(a, b), which works well
+   *                when it is approximately the magnitude of the observation
+   *                dimensions, x_djn.
+   *  \param D is the dimensionality of the data
+   */
+  ExpGamma (const double obsmag, const unsigned int D);
+
+  static void makeSS (
+      const Eigen::VectorXd& qZk,
+      const Eigen::MatrixXd& X,
+      Eigen::MatrixXd& x_s,  //!< [1xD] Row Vector sufficient stat.
+      Eigen::MatrixXd& emp   //!< [0x0] unused sufficient stat.
+      );
+
+  static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
+      const Eigen::MatrixXd& X
+      );
+
+  void update (
+        double N,
+        const Eigen::MatrixXd& x_s,  //!< [1xD] Row Vector sufficient stat.
+        const Eigen::MatrixXd& emp   //!< [0x0] unused sufficient stat.
+      );
+
+  Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
+
+  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+
+  double fenergy () const;
+
+private:
+
+  // Prior hyperparameters
+  double a_p;
+  double b_p;
+
+  // Posterior hyperparameters etc
+  double a;
+  Eigen::RowVectorXd ib;  // inverse b
+  double logb;
+
+};
+
 
 }
 

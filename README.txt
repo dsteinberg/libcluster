@@ -4,7 +4,7 @@ Author: Daniel Steinberg
         Australian Centre for Field Robotics
         The University of Sydney
 
-Date:   23/03/2012
+Date:   04/04/2012
 
 This library implements the following algorithms, classes and functions:
 
@@ -15,12 +15,16 @@ This library implements the following algorithms, classes and functions:
     - The Grouped Mixtures Clustering (GMC) model [3]
 
     - The Symmetric Grouped Mixtures Clustering (S-GMC) model [3]
+    
+    - And more clustering algorithms based on diagonal Gaussian, and 
+      Exponential distributions.
 
-    - Various functions for evaluating means, standard deviations covariances,
+    - Various functions for evaluating means, standard deviations, covariance,
       primary eigenvalues etc of data.
 
     - Various tools, including AUV post-processing pipeline tools.
 
+All algorithms can be run in an incremental fashion.
 
  [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational
      Dirichlet process mixtures, Advances in Neural Information Processing
@@ -37,7 +41,7 @@ INSTALL INSTRUCTIONS (Linux/OS X) ----------------------------------------------
 
 To build libcluster:
 
-1) Make sure you have CMake (2.6 +), Boost (1.4.x) and Eigen 3 installed.
+1) Make sure you have CMake (2.6 +), Boost (1.4.x +) and Eigen 3 installed.
    Preferably in the usual locations:
 
         /usr/local/include/eigen3/ or /usr/include/eigen3
@@ -73,7 +77,7 @@ To build libcluster:
     from the build directory:
 
         cmake ..
-	ccmake ./ (and turn BUILD_PIPELINE_TOOLS  OFF)
+	      ccmake . (and turn BUILD_PIPELINE_TOOLS  OFF)
         make
         sudo make install
 
@@ -118,8 +122,9 @@ To build the Matlab interface:
 
 Notes:
 
- - I have included the script SS2GMM.m to turn the Sufficient Statistics structs
-   (SS) into Gaussian mixture model structs.
+ - I have included the scripts SS2GMM.m and SS2EMM.m to turn the Sufficient 
+   Statistics structure (SS) into Gaussian mixture model and Exponential mixture
+   model structure respectively.
 
  - Either the build will warn you, or running the .m files will fail if your
    compiler is not compatible with Matlab. To fix this with Ubuntu 10.10 and
@@ -167,7 +172,7 @@ Notes:
   lines:
 
 	    SDKROOT='/Developer/SDKs/MacOSX10.X.sdk'
-            MACOSX_DEPLOYMENT_TARGET='10.X'
+      MACOSX_DEPLOYMENT_TARGET='10.X'
 
   To your version of OS X, e.g. 10.7.
 
@@ -194,14 +199,15 @@ What this means:
 
 For best clustering results, I have found the following tips may help:
 
-1)  Look at a histogram of each dimension of your data if possible. Make sure it
-    looks somewhat like a mixture of Gaussians.
+1)  Garbage in = garbage out. Make sure your assumptions about the data are 
+    reasonable for the type of cluster distribution you use. For instance, if  
+    your observations do not resemble a mixture of Gaussians in feature space,
+    then it may not be appropriate to use Gaussian clusters.
 
-2)  Pre-scaling your data may help too. For instance, when you have all of your
-    data, standardising (or whitening) it will help, i.e.
+2)  For Gaussian clusters: standardising or whitening your data may help, i.e.
 
     if X is an NxD matrix of observations you wish to cluster, you may get
-    better results if you use a standardised (whitened) version of it, X*,
+    better results if you use a standardised version of it, X*,
 
     X* = C * ( X - mean(X) ) / std(X)
 
@@ -210,7 +216,12 @@ For best clustering results, I have found the following tips may help:
     
     NOTE: If you use diagonal covariance Gaussians I STRONGLY recommend PCA or 
           ZCA whitening your data first, otherwise you may end up with hundreds
-          of clusters!  
+          of clusters!
+          
+3)  For Exponential clusters: Your observations have to be in the range [0,inf).
+    The clustering solution may also be sensitive to the prior. I find usually 
+    using a prior value that has the approximate magnitude of your data or more
+    leads to better convergence.
 
 COMMAND LINE INTERFACES --------------------------------------------------------
 

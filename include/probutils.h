@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <vector>
 
+
 //
 // Namespaces
 //
@@ -20,6 +21,7 @@
  */
 namespace probutils
 {
+
 
 /*! \brief Calculate the column means of a matrix.
  *

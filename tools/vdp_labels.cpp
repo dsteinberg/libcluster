@@ -177,7 +177,7 @@ int main (int argc, char *argv[])
   SuffStat SS;
   MatrixXd qZ;
   try
-    { learnVDP(X, qZ, SS, false, true, clustwidth); }
+    { learnVDP(X, qZ, SS, true); }
   catch (runtime_error e)
   {
     cerr << "Runtime error: " << e.what() << endl;

@@ -3,6 +3,7 @@
 //
 
 #include <stdexcept>
+#include <omp.h>
 #include "intfctns.h"
 
 
@@ -21,19 +22,19 @@ using namespace libcluster;
 // Group Mixture Models for clustering Mex file entry point
 //
 //  Inputs:
-//      - X, {J x [NjxD double]} cell of matrices of observations, Required
-//      - alg, [integer] the type of algorithm [2=GMC, 3=SGMC], Required
-//      - sparse, [logical] (optional) 1=sparse algorithm, 0=original (default).
-//      - diagcov, [logical] (optional) 1=diagonal cov., 0=full cov. (default).
-//      - verbose, [logical] (optional) 1=verbose output, 0=quiet (default).
-//      - SS, SuffStat struct (optional):
-//          SS.K        = scalar double number of clusters
+//      - X, {J x [NjxD double]} cell of matrices of observations, required.
+//      - SS, SuffStat struct, required:
+//          SS.K        = scalar double number of clusters.
 //          SS.priorval = Prior cluster hyperparameter value.
-//          SS.N_k      = {1xK} array of observation counts
+//          SS.N_k      = {1xK} array of observation counts.
 //          SS.ss1      = {1x[?x?]} array of observation suff. stats. no 1.
 //          SS.ss2      = {1x[?x?]} array of observation suff. stats. no 2.
-//      - SSgroup, {J X SuffStat} cell array of sufficient statistic structures
-//          for each group of data input (optional).
+//      - SSgroup, {J X SuffStat} cell array of sufficient statistic structures.
+//          for each group of data input, required.
+//      - alg, [integer] type of algorithm [2=GMC, 3=SGMC, 4=EGMC], required.
+//      - sparse, [logical] 1=sparse algorithm, 0=original, required.
+//      - verbose, [logical] 1=verbose output, 0=quiet, required.
+//      - nthreads, [integer] number of threads to use for clustering, optional.
 //
 //  Outputs:
 //      - F, [double] final free energy.
@@ -46,159 +47,152 @@ using namespace libcluster;
 //
 void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    // Parse arguments
-    bool *verbptr, *sparsptr, *diagptr;
-    const mxArray *SSptr, *SSgroupptr;
+   
+  // Parse arguments
+  if ( (nrhs != 6) && (nrhs != 7) )
+    mexErrMsgTxt("Wrong number of inputs!");
+  
+  if (
+        mxGetM(prhs[1]) != 1 
+        || mxGetN(prhs[1]) != 1
+        || mxIsStruct(prhs[1]) == false
+     )
+       mexErrMsgTxt("Need a Sufficient Stat. structure!");
+  if (
+        (mxGetM(prhs[2]) > 1
+        && mxGetN(prhs[2]) > 1)
+        || mxIsCell(prhs[2]) == false
+     )
+       mexErrMsgTxt("Need a cell vector of Sufficient Stat. structures!");
+  if (
+        mxGetM(prhs[3]) != 1 
+        || mxGetN(prhs[3]) != 1 
+        || mxIsDouble(prhs[3]) == false
+     )
+       mexErrMsgTxt("algval flag should be one integer element.");
+  if (
+        mxGetM(prhs[4]) != 1 
+        || mxGetN(prhs[4]) != 1 
+        || mxIsLogical(prhs[4]) == false
+     )
+       mexErrMsgTxt("sparse flag should be one logical element.");
+  if (
+        mxGetM(prhs[5]) != 1 
+        || mxGetN(prhs[5]) != 1 
+        || mxIsLogical(prhs[5]) == false
+     )
+       mexErrMsgTxt("verbose flag should be one logical element.");
+ 
+  bool          *verbptr  = (bool*) mxGetPr(prhs[5]), 
+                *sparsptr = (bool*) mxGetPr(prhs[4]);
+  double        *algptr   = (double*) mxGetPr(prhs[3]),
+                *thrptr;
+  const mxArray *SSptr      = prhs[1], 
+                *SSgroupptr = prhs[2];
+                
+  if  (nrhs == 7)
+    if (
+          mxGetM(prhs[6]) != 1 
+          || mxGetN(prhs[6]) != 1 
+          || mxIsDouble(prhs[6]) == false
+       )
+        mexErrMsgTxt("nthreads should be one unsigned integer element.");
+  
+  thrptr = (double*) mxGetPr(prhs[6]);
     
-    switch (nrhs)
-    {
-    case 7:
-        if (
-                (mxGetM(prhs[6]) > 1
-                && mxGetN(prhs[6]) > 1)
-                || mxIsCell(prhs[6]) == false
-           )
-             mexErrMsgTxt("Need a cell vector of Sufficient Stat. structures!");
-        SSgroupptr = prhs[6];
+  // Number of groups and Dimensions
+  int J = mxGetN(prhs[0]) > mxGetM(prhs[0]) 
+          ? mxGetN(prhs[0]) : mxGetM(prhs[0]);
+  int D = mxGetN(mxGetCell(prhs[0], 0));
 
-    case 6:
-        if (
-                mxGetM(prhs[5]) != 1 
-                || mxGetN(prhs[5]) != 1
-                || mxIsStruct(prhs[5]) == false
-           )
-             mexErrMsgTxt("Need a Sufficient Stat. structure!");
-        SSptr = prhs[5];
-    
-    case 5:
-        if (
-                mxGetM(prhs[4]) != 1 
-                || mxGetN(prhs[4]) != 1 
-                || mxIsLogical(prhs[4]) == false
-           )
-             mexErrMsgTxt("verbose flag should be one logical element.");
-        verbptr = (bool*)mxGetPr(prhs[4]);
-    
-    case 4:
-        if (
-                mxGetM(prhs[3]) != 1 
-                || mxGetN(prhs[3]) != 1 
-                || mxIsLogical(prhs[3]) == false
-           )
-            mexErrMsgTxt("diagov should be one logical element.");
-        diagptr = (bool*)mxGetPr(prhs[3]);
-    
-    case 3:
-        if (
-                mxGetM(prhs[2]) != 1 
-                || mxGetN(prhs[2]) != 1 
-                || mxIsLogical(prhs[2]) == false
-           )
-             mexErrMsgTxt("sparse flag should be one logical element.");
-        sparsptr = (bool*)mxGetPr(prhs[2]);
-        
-    case 2:
-        break;
-        
-    default:
-        mexErrMsgTxt("Wrong number of inputs!");
-    }
-    
-    // Number of groups and Dimensions
-    int J = mxGetN(prhs[0]) > mxGetM(prhs[0]) 
-            ? mxGetN(prhs[0]) : mxGetM(prhs[0]);
-    int D = mxGetN(mxGetCell(prhs[0], 0));
-    
-    // Map X matlab cells to vector of eigen matrices. Make qZ.
-    vector<MatrixXd> X, qZ;
-    vector<int> Nj;
-    for (int j = 0; j < J; ++j)
-    {
-        Nj.push_back(mxGetM(mxGetCell(prhs[0], j))); 
-        Map<MatrixXd> Xj(mxGetPr(mxGetCell(prhs[0], j)), Nj[j], D);
-        X.push_back(Xj);
-    }
-    
-    // Make SuffStat objects, qZ matrix and Free energy double
-    double F;
-    SuffStat SS;
-    vector<SuffStat> SSgroup;
-    if (nrhs >= 6)
-    {
-        SS = str2SS(SSptr);
-        SSgroup.resize(J, SuffStat(SS.getprior()));
-    }
-    if (nrhs == 7)
-    {
-        for (int j = 0; j < J; ++j)
-            SSgroup[j] = str2SS(mxGetCell(SSgroupptr, j));
-    }
-    
-    // Call various versions of clustering algorithms depending on the arguments
-    double *algptr = (double*)mxGetPr(prhs[1]);
-    int algval = (int) algptr[0];
-    mexstreambuf mexout;
-    ostream mout(&mexout);
+  // Map X matlab cells to vector of eigen matrices. Make qZ.
+  vector<MatrixXd> X, qZ;
+  vector<int> Nj;
+  for (int j = 0; j < J; ++j)
+  {
+      Nj.push_back(mxGetM(mxGetCell(prhs[0], j))); 
+      Map<MatrixXd> Xj(mxGetPr(mxGetCell(prhs[0], j)), Nj[j], D);
+      X.push_back(Xj);
+  }
 
-    try
+  // Make SuffStat objects, qZ matrix and Free energy double
+  double F;
+  SuffStat SS = str2SS(SSptr);
+  vector<SuffStat> SSgroup;
+
+  for (int j = 0; j < J; ++j)
+    SSgroup.push_back(str2SS(mxGetCell(SSgroupptr, j)));
+
+  // redirect cout
+  mexstreambuf mexout;
+  cout.rdbuf(&mexout);
+  
+  // Call various versions of clustering algorithms depending on the arguments
+  try
+  {
+    switch ((int) algptr[0])
     {
-        if (algval == GMC)
-        {
-          if (nrhs == 2)
-            F = learnGMC(X, qZ, SSgroup, SS, SPARSDEF, DIAGDEF, VERBDEF, mout);
-          else if (nrhs == 3)
-            F = learnGMC(X, qZ, SSgroup, SS, sparsptr[0], DIAGDEF, VERBDEF, 
-                         mout);
-          else if (nrhs == 4)
-            F = learnGMC(X, qZ, SSgroup, SS, sparsptr[0], diagptr[0], VERBDEF, 
-                         mout);
-          else if (nrhs >= 5)
-            F = learnGMC(X, qZ, SSgroup, SS, sparsptr[0], diagptr[0], 
-                         verbptr[0], mout);
-                         
-        }
-        else if (algval == SGMC)
-        {
-          if (nrhs == 2)
-            F = learnSGMC(X, qZ, SSgroup, SS, SPARSDEF, DIAGDEF, VERBDEF, mout);
-          else if (nrhs == 3)
-            F = learnSGMC(X, qZ, SSgroup, SS, sparsptr[0], DIAGDEF, VERBDEF, 
-                         mout);
-          else if (nrhs == 4)
-            F = learnSGMC(X, qZ, SSgroup, SS, sparsptr[0], diagptr[0], VERBDEF, 
-                         mout);
-          else if (nrhs >= 5)
-            F = learnSGMC(X, qZ, SSgroup, SS, sparsptr[0], diagptr[0], 
-                         verbptr[0], mout);
-        }
+      case GMC:
+        if (nrhs == 6)
+          F = learnGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0]);
         else
-            throw logic_error("Wrong algorithm type specified!");
-    }
-    catch (logic_error e) 
-        { mexErrMsgTxt(e.what()); }
-    catch (runtime_error e)
-        { mexErrMsgTxt(e.what()); }
-    
-    // Create outputs  
-    if (nlhs != 4) 
-        mexErrMsgTxt("Wrong number of outputs.");
-    
-    // Free energy
-    plhs[0] = mxCreateDoubleScalar(F);
-    
-    // Copy eigen qZ and wj to mxArray qZ and wj
-    mxArray *qZmx = mxCreateCellMatrix(1, J);
-    mxArray *SSmx  = mxCreateCellMatrix(1, J);
-    
-    for (int j = 0; j < J; ++j)
-    {       
-        mxSetCell(qZmx, j, eig2mat(qZ[j])); // copy qZ
-        mxSetCell(SSmx, j, SS2str(SSgroup[j]));  // copy wj
-    } 
-    
-    plhs[1] = qZmx;
-    plhs[2] = SSmx;
-    
-    // Copy SS to a matlab compatible structure
-    plhs[3] = SS2str(SS);
+          F = learnGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0], 
+                       (unsigned int) thrptr[0]);
+        break;
+                       
+      case SGMC:
+        if (nrhs == 6)
+          F = learnSGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0]);
+        else
+          F = learnSGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0], 
+                        (unsigned int) thrptr[0]);
+        break;
+                                
+      case DGMC:
+        if (nrhs == 6)
+          F = learnDGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0]);
+        else
+          F = learnDGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0], 
+                        (unsigned int) thrptr[0]);
+        break;
+                                
+      case EGMC:
+        if (nrhs == 6)
+          F = learnEGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0]);
+        else
+          F = learnEGMC(X, qZ, SSgroup, SS, sparsptr[0], verbptr[0], 
+                        (unsigned int) thrptr[0]);
+        break;
+              
+      default:
+        throw logic_error("Wrong algorithm type specified!");
+    }  
+  }
+  catch (logic_error e) 
+    { mexErrMsgTxt(e.what()); }
+  catch (runtime_error e)
+    { mexErrMsgTxt(e.what()); }
+
+  // Create outputs  
+  if (nlhs != 4) 
+      mexErrMsgTxt("Wrong number of outputs.");
+
+  // Free energy
+  plhs[0] = mxCreateDoubleScalar(F);
+
+  // Copy eigen qZ and wj to mxArray qZ and wj
+  mxArray *qZmx = mxCreateCellMatrix(1, J);
+  mxArray *SSmx = mxCreateCellMatrix(1, J);
+
+  for (int j = 0; j < J; ++j)
+  {       
+      mxSetCell(qZmx, j, eig2mat(qZ[j]));     // copy qZ
+      mxSetCell(SSmx, j, SS2str(SSgroup[j])); // copy wj
+  } 
+
+  plhs[1] = qZmx;
+  plhs[2] = SSmx;
+
+  // Copy SS to a matlab compatible structure
+  plhs[3] = SS2str(SS);
 }

@@ -10,11 +10,9 @@
 
 
 // Globals and Symbolics
-const bool      SPARSDEF  = false;
-const bool      VERBDEF   = false;
-const bool      DIAGDEF   = false;
 
-enum algs { VDP=0, BGMM=1, GMC=2, SGMC=3 };
+enum single_algs { VDP = 0, BGMM = 1, DGMM = 2, BEMM = 3 };
+enum group_algs  { GMC = 0, SGMC = 1, DGMC = 2, EGMC = 3 };
 
 // Mex stream buffer class, prints using mexPrintf()
 class mexstreambuf : public std::streambuf

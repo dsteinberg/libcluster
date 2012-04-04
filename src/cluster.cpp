@@ -67,8 +67,9 @@ void arrfind (const ArrayXb& expression, ArrayXi& indtrue, ArrayXi& indfalse)
 {
   int N = expression.size(),
       M = expression.count();
-  indtrue  = ArrayXi::Zero(M);
-  indfalse = ArrayXi::Zero(N-M);
+
+  indtrue.setZero(M);
+  indfalse.setZero(N-M);
 
   for (int n = 0, m = 0, l = 0; n < N; ++n)
     expression(n) ? indtrue(m++) = n : indfalse(l++) = n;
@@ -91,7 +92,7 @@ ArrayXi partX (
   ArrayXi pidx, npidx;
   arrfind(Xpart, pidx, npidx);
 
-  Xk = MatrixXd::Zero(M, X.cols());
+  Xk.setZero(M, X.cols());
   for (int m=0; m < M; ++m)           // index copy X to Xk
     Xk.row(m) = X.row(pidx(m));
 
@@ -113,7 +114,6 @@ MatrixXd  augmentqZ (
     )
 {
   int K = qZ.cols(),
-      N = qZ.rows(),
       S = Zsplit.count();
 
   if (Zsplit.size() != map.size())
@@ -122,7 +122,7 @@ MatrixXd  augmentqZ (
   // Create new qZ for all data with split
   MatrixXd qZaug = qZ;    // Copy the existing qZ into the new
   qZaug.conservativeResize(Eigen::NoChange, K+1);
-  qZaug.col(K) = VectorXd::Zero(N);
+  qZaug.col(K).setZero();
 
   ArrayXi sidx, nsidx;
   arrfind(Zsplit, sidx, nsidx);
@@ -197,10 +197,11 @@ template <class C> void updateSSj (
   }
 
   // Sufficient statistics - without observations
-  Array4i dimSS = C::dimSS(Xj);
+  pair<Array2i, Array2i> dimSS = C::dimSS(Xj);
   for (int k = 0; k < nKemp; ++k)
-    SSj.setSS(Kemp(k), 0, MatrixXd::Zero(dimSS(0), dimSS(1)),
-              MatrixXd::Zero(dimSS(2), dimSS(3)));
+    SSj.setSS(Kemp(k), 0,
+              MatrixXd::Zero(dimSS.first(0), dimSS.first(1)),
+              MatrixXd::Zero(dimSS.second(0), dimSS.second(1)));
 
   #pragma omp critical
   SS.addSS(SSj); // Add new group SS contribution
@@ -279,7 +280,7 @@ template <class W, class C> double vbexpectationj (
 
   // Empty Cluster Responsabilities
   for (int k = 0; k < nKemp; ++k)
-    qZj.col(Kemp(k)) = VectorXd::Zero(Nj);
+    qZj.col(Kemp(k)).setZero();
 
   return -logZzj.sum();
 }
@@ -336,8 +337,7 @@ template <class W, class C> double vbem (
     libcluster::SuffStat& SS,   // Sufficient stats of whole model
     const int maxit = -1,       // Max VBEM iterations (-1 = no max, default)
     const bool sparse = false,  // Do sparse updates to groups (default false)
-    const bool verbose = false, // Verbose output (default false)
-    ostream& ostrm = cout       // Stream to print notification (cout default)
+    const bool verbose = false  // Verbose output (default false)
     )
 {
   int J = X.size(),
@@ -381,7 +381,7 @@ template <class W, class C> double vbem (
       throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
-      ostrm << '-' << flush;
+      cout << '-' << flush;
   }
   while ( (abs((Fold-F)/Fold) > CONVERGE) && ( (i++ < maxit) || (maxit < 0) ) );
 
@@ -408,8 +408,7 @@ template <class W, class C> bool split (
     vector<MatrixXd>& qZ,                    // Probabilities qZ
     vector<int>& tally,                      // Count of unsuccessful splits
     const bool sparse,                       // Do sparse updates to groups
-    const bool verbose,                      // Verbose output
-    ostream& ostrm                           // Stream to print notification
+    const bool verbose                       // Verbose output
     )
 {
   unsigned int J = X.size(),
@@ -461,6 +460,8 @@ template <class W, class C> bool split (
   {
     int k = i->k;
 
+    ++tally[k]; // increase this cluster's unsuccessful split tally by default
+
     // Don't waste time with clusters that can't really be split min (2:2)
     if (SS.getN_k(k) < 4)
       continue;
@@ -477,7 +478,7 @@ template <class W, class C> bool split (
 
       // Initial cluster split
       ArrayXb splitk = csplit[k].splitobs(Xk[j]);
-      qZref[j] = MatrixXd::Zero(Xk[j].rows(), 2);
+      qZref[j].setZero(Xk[j].rows(), 2);
       qZref[j].col(0) = (splitk == true).cast<double>();  // Init qZ for split
       qZref[j].col(1) = (splitk == false).cast<double>();
 
@@ -493,6 +494,7 @@ template <class W, class C> bool split (
     libcluster::SuffStat SSref(SS.getprior());
     vector<libcluster::SuffStat> SSgref(J, libcluster::SuffStat(SS.getprior()));
     vbem<W,C>(Xk, qZref, SSgref, SSref, SPLITITER, sparse);
+
     if (anyempty(SSref) == true) // One cluster only
       continue;
 
@@ -505,22 +507,21 @@ template <class W, class C> bool split (
     libcluster::SuffStat SSaug = SS;                              // Copy :-(
     vector<libcluster::SuffStat> SSj_aug = SSj;                   // Copy :-(
     double Fsplit = vbem<W,C>(X, qZaug, SSj_aug, SSaug, 1, sparse);
+
     if (anyempty(SSaug) == true) // One cluster only
       continue;
 
     // Only notify here of split candidates
     if (verbose == true)
-      ostrm << '=' << flush;
+      cout << '=' << flush;
 
     // Test whether this cluster split is a keeper
     if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
     {
       qZ = qZaug;
-      tally[k] = 0;
+      tally[k] = 0;   // Reset tally if successfully split
       return true;
     }
-    else
-      ++tally[k]; // increase this cluster's unsuccessful split tally
   }
 
   // Failed to find splits
@@ -529,7 +530,7 @@ template <class W, class C> bool split (
 
 
 /*  Bootstrap the clustering models. I.e. make sure we have reasonable starting
- *    assignments, qZ depending on whether there are previous suff. stats.
+ *    assignments, qZ, depending on whether there are previous suff. stats.
  *
  *    mutable: group sufficient stats if they need to be initialised
  *    mutable: qZ for a good starting position for VBEM
@@ -587,11 +588,9 @@ template <class W, class C> void bootstrap (
       vbexpectationj<W,C>(X[j], wdists[j], cdists, qZ[j], false);
     }
   }
-  else  // This is an entirely new model to learn, make one cluster
-  {
+  else  // This is an entirely new model to learn, start with one cluster
     for (unsigned int j = 0; j < J; ++j)
-      qZ[j] = MatrixXd::Ones(X[j].rows(), 1);
-  }
+      qZ[j].setOnes(X[j].rows(), 1);
 }
 
 
@@ -604,17 +603,21 @@ template <class W, class C> void bootstrap (
  *  throws: invalid_argument from other functions.
  *  throws: runtime_error if free energy increases.
  */
-template <class W, class C> double learnmodel (
-    const vector<MatrixXd>& X,  // Observations
-    vector<MatrixXd>& qZ,       // Observations to model mixture assignments
+template <class W, class C> double modelselect (
+    const vector<MatrixXd>& X,   // Observations
+    vector<MatrixXd>& qZ,        // Observations to model mixture assignments
     vector<libcluster::SuffStat>& SSgroups, // Sufficient stats of groups
-    libcluster::SuffStat& SS,   // Sufficient stats
-    const bool sparse,          // Do sparse updates to groups
-    const bool verbose,         // Verbose output
-    ostream& ostrm              // Stream to print notification
+    libcluster::SuffStat& SS,    // Sufficient stats
+    const bool sparse,           // Do sparse updates to groups
+    const bool verbose,          // Verbose output
+    const unsigned int nthreads  // Number of threads for OpenMP to use
     )
 {  
-  // Bootstrap qZ, cdists and wdists
+  if (nthreads < 1)
+    throw invalid_argument("Must specify at least one thread for execution!");
+  omp_set_num_threads(nthreads);
+
+  // Bootstrap qZ, and sufficient statistics
   bootstrap<W,C>(X, SS, SSgroups, qZ);
 
   // Initialise free energy and other loop variables
@@ -626,25 +629,25 @@ template <class W, class C> double learnmodel (
   while (issplit == true)
   {
     // VBEM for all groups (throws runtime_error & invalid_argument)
-    F = vbem<W,C>(X, qZ, SSgroups, SS, -1, sparse, verbose, ostrm);
+    F = vbem<W,C>(X, qZ, SSgroups, SS, -1, sparse, verbose);
 
     // Start cluster splitting
     if (verbose == true)
-      ostrm << '<' << flush;  // Notify start splitting
+      cout << '<' << flush;  // Notify start splitting
 
     // Search for best split, augment qZ if found one
-    issplit = split<W,C>(X, SSgroups, SS, F, qZ, tally, sparse, verbose, ostrm);
+    issplit = split<W,C>(X, SSgroups, SS, F, qZ, tally, sparse, verbose);
 
     if (verbose == true)
-      ostrm << '>' << endl;   // Notify end splitting
+      cout << '>' << endl;   // Notify end splitting
   }
 
   // Print finished notification if verbose
   if (verbose == true)
   {
-    ostrm << "Finished!" << endl;
-    ostrm << "Number of clusters = " << SS.getK() << endl;
-    ostrm << "Free energy = " << F << endl;
+    cout << "Finished!" << endl;
+    cout << "Number of clusters = " << SS.getK() << endl;
+    cout << "Free energy = " << F << endl;
   }
 
   return F;
@@ -659,27 +662,21 @@ double libcluster::learnVDP (
     const MatrixXd& X,
     MatrixXd& qZ,
     SuffStat& SS,
-    const bool diagcov,
     const bool verbose,
-    ostream& ostrm
+    const unsigned int nthreads
     )
 {
   if (verbose == true)
-    ostrm << "Learning VDP..." << endl; // Print start
+    cout << "Learning VDP..." << endl; // Print start
 
-  // Make temporary vectors of data to use with learnmodel()
+  // Make temporary vectors of data to use with modelselect()
   vector<MatrixXd> vecX(1, X);          // copy :-(
   vector<MatrixXd> vecqZ;
   vector<SuffStat> SSgroup(1, SuffStat(SS.getprior()));
 
   // Perform model learning and selection
-  double F;
-  if (diagcov == false)
-    F = learnmodel<StickBreak, GaussWish>(vecX, vecqZ, SSgroup, SS, false,
-                                         verbose, ostrm);
-  else
-    F = learnmodel<StickBreak, NormGamma>(vecX, vecqZ, SSgroup, SS, false,
-                                         verbose, ostrm);
+  double F = modelselect<StickBreak, GaussWish>(vecX, vecqZ, SSgroup, SS, false,
+                                                verbose, nthreads);
 
   // Return final Free energy and qZ
   qZ = vecqZ[0];                        // copy :-(
@@ -687,31 +684,80 @@ double libcluster::learnVDP (
 }
 
 
-double libcluster::learnGMM (
+double libcluster::learnBGMM (
     const MatrixXd& X,
     MatrixXd& qZ,
     SuffStat& SS,
-    const bool diagcov,
     const bool verbose,
-    ostream& ostrm
+    const unsigned int nthreads
     )
 {
   if (verbose == true)
-    ostrm << "Learning Bayesian GMM..." << endl; // Print start
+    cout << "Learning Bayesian GMM..." << endl; // Print start
 
-  // Make temporary vectors of data to use with learnmodel()
+  // Make temporary vectors of data to use with modelselect()
   vector<MatrixXd> vecX(1, X);          // copy :-(
   vector<MatrixXd> vecqZ;
   vector<libcluster::SuffStat> SSgroup(1, SuffStat(SS.getprior()));
 
   // Perform model learning and selection
-  double F;
-  if (diagcov == false)
-    F = learnmodel<Dirichlet, GaussWish>(vecX, vecqZ, SSgroup, SS, false,
-                                         verbose, ostrm);
-  else
-    F = learnmodel<Dirichlet, NormGamma>(vecX, vecqZ, SSgroup, SS, false,
-                                         verbose, ostrm);
+  double F = modelselect<Dirichlet, GaussWish>(vecX, vecqZ, SSgroup, SS, false,
+                                               verbose, nthreads);
+
+  // Return final Free energy and qZ
+  qZ = vecqZ[0];                          // copy :-(
+  return F;
+}
+
+
+double libcluster::learnDGMM (
+    const MatrixXd& X,
+    MatrixXd& qZ,
+    SuffStat& SS,
+    const bool verbose,
+    const unsigned int nthreads
+    )
+{
+  if (verbose == true)
+    cout << "Learning Bayesian diagonal GMM..." << endl; // Print start
+
+  // Make temporary vectors of data to use with modelselect()
+  vector<MatrixXd> vecX(1, X);          // copy :-(
+  vector<MatrixXd> vecqZ;
+  vector<libcluster::SuffStat> SSgroup(1, SuffStat(SS.getprior()));
+
+  // Perform model learning and selection
+  double F = modelselect<Dirichlet, NormGamma>(vecX, vecqZ, SSgroup, SS, false,
+                                               verbose, nthreads);
+
+  // Return final Free energy and qZ
+  qZ = vecqZ[0];                          // copy :-(
+  return F;
+}
+
+
+double libcluster::learnBEMM (
+    const MatrixXd& X,
+    MatrixXd& qZ,
+    SuffStat& SS,
+    const bool verbose,
+    const unsigned int nthreads
+    )
+{
+  if ((X.array() < 0).any() == true)
+    throw invalid_argument("X has to be in the range [0, inf)!");
+
+  if (verbose == true)
+    cout << "Learning Bayesian EMM..." << endl; // Print start
+
+  // Make temporary vectors of data to use with modelselect()
+  vector<MatrixXd> vecX(1, X);          // copy :-(
+  vector<MatrixXd> vecqZ;
+  vector<libcluster::SuffStat> SSgroup(1, SuffStat(SS.getprior()));
+
+  // Perform model learning and selection
+  double F = modelselect<Dirichlet, ExpGamma>(vecX, vecqZ, SSgroup, SS, false,
+                                              verbose, nthreads);
 
   // Return final Free energy and qZ
   qZ = vecqZ[0];                          // copy :-(
@@ -725,24 +771,18 @@ double libcluster::learnGMC (
     vector<libcluster::SuffStat>& SSgroups,
     libcluster::SuffStat& SS,
     const bool sparse,
-    const bool diagcov,
     const bool verbose,
-    ostream& ostrm
+    const unsigned int nthreads
     )
 {
+  string spnote = (sparse == true) ? "(sparse) " : "";
+
   // Model selection and Variational Bayes learning
   if (verbose == true)
-    ostrm << "Learning GMC..." << endl;
+    cout << "Learning " << spnote << "GMC..." << endl;
 
-  double F;
-  if (diagcov == false)
-    F = learnmodel<GDirichlet, GaussWish>(X, qZ, SSgroups, SS, sparse, verbose,
-                                          ostrm);
-  else
-    F = learnmodel<GDirichlet, NormGamma>(X, qZ, SSgroups, SS, sparse, verbose,
-                                               ostrm);
-
-  return F;
+  return modelselect<GDirichlet, GaussWish>(X, qZ, SSgroups, SS, sparse,
+                                            verbose, nthreads);
 }
 
 
@@ -752,22 +792,63 @@ double libcluster::learnSGMC (
     vector<libcluster::SuffStat>& SSgroups,
     libcluster::SuffStat& SS,
     const bool sparse,
-    const bool diagcov,
     const bool verbose,
-    ostream& ostrm
+    const unsigned int nthreads
     )
 {
+  string spnote = (sparse == true) ? "(sparse) " : "";
+
   // Model selection and Variational Bayes learning
   if (verbose == true)
-    ostrm << "Learning Symmetric GMC..." << endl;
+    cout << "Learning " << spnote << "Symmetric GMC..." << endl;
 
-  double F;
-  if (diagcov == false)
-    F = learnmodel<Dirichlet, GaussWish>(X, qZ, SSgroups, SS, sparse, verbose,
-                                          ostrm);
-  else
-    F = learnmodel<Dirichlet, NormGamma>(X, qZ, SSgroups, SS, sparse, verbose,
-                                               ostrm);
+  return modelselect<Dirichlet, GaussWish>(X, qZ, SSgroups, SS, sparse, verbose,
+                                           nthreads);
+}
 
-  return F;
+
+double libcluster::learnDGMC (
+    const vector<MatrixXd>& X,
+    vector<MatrixXd>& qZ,
+    vector<libcluster::SuffStat>& SSgroups,
+    libcluster::SuffStat& SS,
+    const bool sparse,
+    const bool verbose,
+    const unsigned int nthreads
+    )
+{
+  string spnote = (sparse == true) ? "(sparse) " : "";
+
+  // Model selection and Variational Bayes learning
+  if (verbose == true)
+    cout << "Learning " << spnote << "Diagonal GMC..." << endl;
+
+  return modelselect<GDirichlet, NormGamma>(X, qZ, SSgroups, SS, sparse,
+                                            verbose, nthreads);
+}
+
+
+double libcluster::learnEGMC (
+    const vector<MatrixXd>& X,
+    vector<MatrixXd>& qZ,
+    vector<libcluster::SuffStat>& SSgroups,
+    libcluster::SuffStat& SS,
+    const bool sparse,
+    const bool verbose,
+    const unsigned int nthreads
+    )
+{
+  string spnote = (sparse == true) ? "(sparse) " : "";
+
+  // Check for negative inputs
+  for (unsigned int j = 0; j < X.size(); ++j)
+    if ((X[j].array() < 0).any() == true)
+      throw invalid_argument("X has to be in the range [0, inf)!");
+
+  // Model selection and Variational Bayes learning
+  if (verbose == true)
+    cout << "Learning " << spnote << "Exponential GMC..." << endl;
+
+  return modelselect<GDirichlet, ExpGamma>(X, qZ, SSgroups, SS, sparse, verbose,
+                                           nthreads);
 }

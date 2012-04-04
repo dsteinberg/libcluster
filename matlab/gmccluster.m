@@ -1,35 +1,21 @@
-function [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagcov, ...
-                                                verbose, SSorprior, SSgroup)
-% GMCCLUSTER Groups of Mixtures Clustering model for Gaussian mixture models.  
-% This is an interface for a C++ library that implements the GMC. 
+function [qZ, SSgroup, SS, F] = gmccluster (X, SS, SSgroup, options)
+% GMCCLUSTER Groups of Mixtures Clustering model for Bayesian mixture models.  
+%   This is an interface for a C++ library (libcluster) that implements various 
+%   Bayesian Group-Mixture Models such as the GMC and SGMC [1] amongst others.
 %
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg)
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse)
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagov)
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagov, verbose)
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagov, verbose, 
-%                                       clustwidth)
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagov, verbose, SS)
-%   [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagov, verbose, SS, 
-%                                       SSgroup)
+%   [qZ, SSgroup, SS, F] = gmccluster (X)
+%   [qZ, SSgroup, SS, F] = gmccluster (X, SS)
+%   [qZ, SSgroup, SS, F] = gmccluster (X, SS, SSgroup)
+%   [qZ, SSgroup, SS, F] = gmccluster (X, SS, SSgroup, options)
+%   [qZ, SSgroup, SS, F] = gmccluster (X, [], [], options)
+%   [qZ, SSgroup, SS, F] = gmccluster (X, SS, [], options)
 %   
 % Inputs:
+%
 %   - X {Jx[NjxD]} cell array of observation/feature matrices. Nj is the number 
-%       of elements in each group, j, D is the number of dimensions. 
-%   - Alg is the algorithm to use, valid options are:
-%       * 'GDIR' Groups of Mixtures Clustering model with a Generalised
-%                Dirichlet prior on the group weights.
-%       * 'SDIR' Groups of Mixtures Clustering model with a Symmetric Dirichlet 
-%                prior on the group weights.
-%   - sparse true = use sparse version of GMC (faster, slightly less accurate), 
-%            false = use original, dense, GMC (default).
-%   - diagcov true = use diagonal covariance, false = full covariance. This is 
-%             optional, false is default.
-%   - verbose true = print verbose output, 0 = no output. This is optional, 
-%             default is 0.
-%   - clustwidth is the prior notion of the width of the clusters. This is 
-%                optional, and the default value is 1e-5 which is mostly data-
-%                driven.
+%       of elements in each group, j, D is the number of dimensions. This must 
+%       be in the range [0, inf) for the BEMM algorithm.
+%
 %   - SS is a sufficient statistics structure for the model. It has fields:
 %       .K        the number of clusters for which there are suff. stats.
 %       .D        the dimensionality of the suff. stats.
@@ -37,8 +23,30 @@ function [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagcov, ...
 %       .N_k      {1xK} the number of observations in each cluster.
 %       .ss1      {Kx[?x?]} array of observation suff. stats. no 1.
 %       .ss2      {Kx[?x?]} array of observation suff. stats. no 2.
-%   - SSgroup {J X SS} cell array of group sufficient statistic structures 
-%             (optional).
+%
+%   - SSgroup {J X SS} cell array of group sufficient statistic structures.
+%
+%   - options specifies various algorithm options, they are:
+%     * options.alg is the algorithm to use, valid options are:
+%
+%       + 'GMC'  Groups of Mixtures Clustering model with a Generalised
+%                Dirichlet prior on the group weights (default).
+%       + 'SGMC' Groups of Mixtures Clustering model with a Symmetric 
+%                Dirichlet prior on the group weights.
+%       + 'DGMC' Groups of Mixtures Clustering model with diagonal covariance 
+%                and Generalised Dirichlet prior on the group weights.
+%       + 'EGMC' Groups of Mixtures Clustering model with Exponential cluster
+%                distributions (and generalised Dirichlet weights).
+%
+%     * options.sparse true = use sparse version of GMC (faster, less accurate), 
+%                      false = use original, dense, GMC (default).
+%     * options.verbose true = print verbose output, 0 = no output (default). 
+%     * options.prior is the prior notion of the "shape" of the clusters. For 
+%                     Gaussians this is the width of the clusters, for  
+%                     Exponentials this is the  approximate magnitude of the 
+%                     observations etc. The default value is 1e-5.
+%     * options.nthreads is the number of threads to use. This is automatically 
+%                        determined unless specified here.
 %
 % Returns (all are optional):
 %   - qZ {Jx[NjxK]} probability of each observation belonging to each cluster.
@@ -49,19 +57,21 @@ function [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagcov, ...
 %
 % Notes:
 %   - I find that standardising or whitening all of the dimensions of X before 
-%     clustering improves results. 
+%     clustering with the Gaussian models improves results.
+%   - The 'EGMC' algorithm is very sensitive to the prior, if in doubt, start it
+%     with a value similar in magnitude as the data or greater.
 %
 % Author:   Daniel Steinberg
 %           Australian Centre for Field Robotics
 %           The University of Sydney
 %
-% Date:     13/12/2011
+% Date:     4/04/2012
 %
 % References:
 %   [1] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Clustering Groups 
 %       of Related Visual Datasets," unpublished, 2011.
 %
-% See also GMMCLUSTER, SS2GMM
+% See also BMMCLUSTER, SS2GMM, SS2EMM
 
     % Check for a cell array
     if ~iscell(X), error('X must be a cell array!'); end
@@ -71,65 +81,80 @@ function [qZ, SSgroup, SS, F] = gmccluster (X, Alg, sparse, diagcov, ...
       error( 'X must be double precision' );
     end
     
-    % Parse Alg argument
-    switch lower(Alg)
-        case 'gdir'
-            algval = 2;
-        case 'sdir',
-            algval = 3;
-        otherwise
-            error('Unknown algorithm specified!');
+    % Parse the options structure
+    if nargin < 4,
+      options = struct([]);
+    end
+    if isfield(options, 'sparse') == false,
+      options.sparse = false;
+    end
+    if isfield(options, 'verbose') == false,
+      options.verbose = false;
+    end
+    if isfield(options, 'prior') == false,
+      options.prior = 1e-5;
+    end
+    if isfield(options, 'alg') == false,
+      options.alg = 'gmc';
     end
     
-    % Run the suitable version of groupcluster_mex depending on the arguments
-    switch nargin
-        case 2,
-            
-            [F qZ SSgroup SS] = clustergroup_mex(X, algval);
-            
-        case 3,
-            
-            [F qZ SSgroup SS] = clustergroup_mex(X, algval, logical(sparse));
-
-        case 4,
-            [F qZ SSgroup SS] = clustergroup_mex(X, algval, logical(sparse), ...
-                                    logical(diagcov));            
-        case 5,
-            
-            [F qZ SSgroup SS] = clustergroup_mex(X, algval, logical(sparse), ...
-                                    logical(diagcov), logical(verbose));
-                                
-        case 6,
-        
-            if ~isstruct(SSorprior)
-                SS.priorval = SSorprior;
-                SS.K = 0;
-                SS.D = size(X{1}, 2);
-                SS.F = 0;
-                SS.N_k = {};
-                SS.ss1 = {};
-                SS.ss2 = {};
-            else
-                SS = SSorprior;
-            end
-
-            [F qZ SSgroup SS] = clustergroup_mex(X, algval, logical(sparse), ...
-                          logical(diagcov), logical(verbose), SS);         
-                                
-        case 7,
-        
-            if ~iscell(SSgroup),
-                error('SSgroup must be a cell array!');
-            elseif any(size(X) ~= size(SSgroup)),
-                error('X and SSgroup must have the same no. of cell elements');
-            end
+  % Parse algorithm option
+  switch lower(options.alg)
+    case 'gmc'
+        algval = 0;
+    case 'sgmc',
+        algval = 1;
+    case 'dgmc',
+        algval = 2;
+    case 'egmc',
+        algval = 3;
+    otherwise
+        error('Unknown algorithm specified!');
+  end
+  
+  % Instantiate empty Suff stats if required
+  if nargin < 2, SS = []; end
+  if nargin < 3, SSgroup = []; end
     
-            [F qZ SSgroup SS] = clustergroup_mex(X, algval, logical(sparse), ...
-                        logical(diagcov), logical(verbose), SSorprior, SSgroup);
-        
-        otherwise
-            
-            error('Invalid number of input arguments.');
+  % Create an empty template SS structure if needed.
+  if (isempty(SS) == true) || (isempty(SSgroup) == true),
+    SStmp.priorval = options.prior;
+    SStmp.K = 0;
+    SStmp.D = size(X{1}, 2);
+    SStmp.F = 0;
+    SStmp.N_k = {};
+    SStmp.ss1 = {};
+    SStmp.ss2 = {};
+  end
+  
+  % Check Model sufficient statistics
+  if isempty(SS) == true,
+  
+    if isempty(SSgroup) == false,
+      error('SS cannot be empty when being used with a populated SSgroup!');
     end
+  
+    SS = SStmp;
+  end 
+  
+  % Check Group sufficient statistics  
+  J = length(X); 
+  if isempty(SSgroup) == true,
+    
+    SSgroup = cell(J, 1);
+    for j = 1:J, SSgroup{j} = SStmp; end
+    
+  elseif any(size(X) ~= size(SSgroup)),
+    error('X and SSgroup must have the same no. of cell elements');    
+  end
+
+  % Run the suitable version of clustergroup_mex depending on the arguments
+  if isfield(options, 'nthreads') == false,
+    [F qZ SSgroup SS] = clustergroup_mex(X, SS, SSgroup, algval, ...
+                             logical(options.sparse), logical(options.verbose));
+  else
+    [F qZ SSgroup SS] = clustergroup_mex(X, SS, SSgroup, algval, ...
+           logical(options.sparse), logical(options.verbose), options.nthreads);
+  end
     
 end
