@@ -33,7 +33,9 @@ RowVectorXd probutils::mean (const MatrixXd& X)
 
 RowVectorXd probutils::mean (const vector<MatrixXd>& X)
 {
-  int J = X.size(), D = X[0].cols(), N = 0;
+  const int J = X.size(),
+            D = X[0].cols();
+  int N = 0;
   RowVectorXd mean = RowVectorXd::Zero(D);
 
   for (int j = 0; j < J; ++j)
@@ -68,9 +70,12 @@ MatrixXd probutils::cov (const MatrixXd& X)
 
 MatrixXd probutils::cov (const vector<MatrixXd>& X)
 {
-  int J = X.size(), D = X[0].cols(), N = 0;
-  RowVectorXd mean = probutils::mean(X);
-  MatrixXd cov = MatrixXd::Zero(D, D), X_mu;
+  const int J = X.size(),
+            D = X[0].cols();
+  int N = 0;
+  const RowVectorXd mean = probutils::mean(X);
+  MatrixXd cov = MatrixXd::Zero(D, D),
+           X_mu;
 
   for (int j = 0; j < J; ++j)
   {
@@ -115,11 +120,10 @@ VectorXd probutils::mahaldist (
 
 VectorXd probutils::logsumexp (const MatrixXd& X)
 {
-  VectorXd mx = X.rowwise().maxCoeff(); // Get max of each row
-  ArrayXd se(X.rows());
+  const VectorXd mx = X.rowwise().maxCoeff(); // Get max of each row
 
   // Perform the sum(exp(x - mx)) part
-  se = ((X.colwise() - mx).array().exp()).rowwise().sum();
+  ArrayXd se = ((X.colwise() - mx).array().exp()).rowwise().sum();
 
   // return total log(sum(exp(x))) - hoping for return value optimisation
   return (se.log()).matrix() + mx;
@@ -180,13 +184,13 @@ double probutils::logdet (const MatrixXd& A)
 
 MatrixXd probutils::mxdigamma (const MatrixXd& X)
 {
-  int I = X.rows();
-  int J = X.cols();
-  MatrixXd result(I,J);
+  const int I = X.rows(),
+            J = X.cols();
+  MatrixXd result(I, J);
 
-  for (int i=0; i < I; ++i)
-    for (int j=0; j < J; ++j)
-      result(i,j) = boost::math::digamma(X(i,j));
+  for (int i = 0; i < I; ++i)
+    for (int j = 0; j < J; ++j)
+      result(i,j) = boost::math::digamma(X(i, j));
 
   return result;
 }
@@ -194,13 +198,13 @@ MatrixXd probutils::mxdigamma (const MatrixXd& X)
 
 MatrixXd probutils::mxlgamma (const MatrixXd& X)
 {
-  int I = X.rows();
-  int J = X.cols();
-  MatrixXd result(I,J);
+  const int I = X.rows(),
+            J = X.cols();
+  MatrixXd result(I, J);
 
-  for (int i=0; i < I; ++i)
-    for (int j=0; j < J; ++j)
-      result(i,j) = boost::math::lgamma(X(i,j));
+  for (int i = 0; i < I; ++i)
+    for (int j = 0; j < J; ++j)
+      result(i, j) = boost::math::lgamma(X(i, j));
 
   return result;
 }
