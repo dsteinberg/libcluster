@@ -209,7 +209,7 @@ public:
    *  \param suffstat2 sufficient statistic 2, made by makeSS()
    */
   virtual void update (
-      double N,
+      const double N,
       const Eigen::MatrixXd& suffstat1,
       const Eigen::MatrixXd& suffstat2
       ) = 0;
@@ -279,7 +279,7 @@ public:
       );
 
   void update (
-        double N,
+        const double N,
         const Eigen::MatrixXd& x_s, //!< [1xD] Row Vector sufficient stat.
         const Eigen::MatrixXd& xx_s //!< [DxD] Matrix sufficient stats.
       );
@@ -338,7 +338,7 @@ public:
       );
 
   void update (
-        double N,
+        const double N,
         const Eigen::MatrixXd& x_s, //!< [1xD] Row Vector sufficient stat.
         const Eigen::MatrixXd& xx_s //!< [1xD] Row Vector sufficient stat.
       );
@@ -397,7 +397,7 @@ public:
       );
 
   void update (
-        double N,
+        const double N,
         const Eigen::MatrixXd& x_s,  //!< [1xD] Row Vector sufficient stat.
         const Eigen::MatrixXd& emp   //!< [0x0] unused sufficient stat.
       );

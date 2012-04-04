@@ -91,14 +91,15 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 *SSgroupptr = prhs[2];
                 
   if  (nrhs == 7)
+  {
     if (
           mxGetM(prhs[6]) != 1 
           || mxGetN(prhs[6]) != 1 
           || mxIsDouble(prhs[6]) == false
        )
         mexErrMsgTxt("nthreads should be one unsigned integer element.");
-  
-  thrptr = (double*) mxGetPr(prhs[6]);
+    thrptr = (double*) mxGetPr(prhs[6]);
+  }
     
   // Number of groups and Dimensions
   int J = mxGetN(prhs[0]) > mxGetM(prhs[0]) 
@@ -125,6 +126,8 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // redirect cout
   mexstreambuf mexout;
+  streambuf *coutbak; 
+  coutbak = cout.rdbuf();
   cout.rdbuf(&mexout);
   
   // Call various versions of clustering algorithms depending on the arguments
@@ -172,6 +175,9 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     { mexErrMsgTxt(e.what()); }
   catch (runtime_error e)
     { mexErrMsgTxt(e.what()); }
+
+  // Restore cout
+  cout.rdbuf(coutbak);
 
   // Create outputs  
   if (nlhs != 4) 

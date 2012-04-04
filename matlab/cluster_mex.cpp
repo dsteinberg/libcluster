@@ -39,6 +39,7 @@ using namespace libcluster;
 //
 void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  
   // Parse arguments
   if ( (nrhs != 4) && (nrhs != 5) )
     mexErrMsgTxt("Wrong number of inputs!");
@@ -67,15 +68,16 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           *thrptr;
   const mxArray *SSptr = prhs[1];
   
-  if (nrhs == 5)  
+  if (nrhs == 5)
+  { 
     if (
           mxGetM(prhs[4]) != 1 
           || mxGetN(prhs[4]) != 1
           || mxIsDouble(prhs[4]) == false
        )
          mexErrMsgTxt("nthreads should be one unsigned integer element.");
-         
-  thrptr = (double*) mxGetPr(prhs[4]);
+    thrptr = (double*) mxGetPr(prhs[4]);
+  }
   
   // Map X matlab matrix to eigen matrix
   Map<MatrixXd> X(mxGetPr(prhs[0]), mxGetM(prhs[0]), mxGetN(prhs[0]));
@@ -86,12 +88,15 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double F;
   
   // redirect cout
-  mexstreambuf mexout; 
+  mexstreambuf mexout;
+  streambuf *coutbak; 
+  coutbak = cout.rdbuf();
   cout.rdbuf(&mexout);
   
   // Call various versions of clustering algorithms depending on the arguments
   try
   {   
+  
     switch ((int) algptr[0])
     {
       case VDP:
@@ -130,6 +135,9 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     { mexErrMsgTxt(e.what()); }
   catch (runtime_error e) 
     { mexErrMsgTxt(e.what()); }
+  
+  // Restore cout
+  cout.rdbuf(coutbak);
   
   // Create outputs  
   if (nlhs != 3) 

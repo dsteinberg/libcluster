@@ -65,8 +65,8 @@ bool inline splitcomp (const SplitOrder& i, const SplitOrder& j)
  */
 void arrfind (const ArrayXb& expression, ArrayXi& indtrue, ArrayXi& indfalse)
 {
-  int N = expression.size(),
-      M = expression.count();
+  const int N = expression.size(),
+            M = expression.count();
 
   indtrue.setZero(M);
   indfalse.setZero(N-M);
@@ -87,7 +87,7 @@ ArrayXi partX (
     MatrixXd& Xk          // MxD matrix of obs. beloning to new partition
     )
 {
-  int M = Xpart.count();
+  const int M = Xpart.count();
 
   ArrayXi pidx, npidx;
   arrfind(Xpart, pidx, npidx);
@@ -113,8 +113,8 @@ MatrixXd  augmentqZ (
     const MatrixXd& qZ     // [NxK] observation assignment probability matrix.
     )
 {
-  int K = qZ.cols(),
-      S = Zsplit.count();
+  const int K = qZ.cols(),
+            S = Zsplit.count();
 
   if (Zsplit.size() != map.size())
     throw invalid_argument("map and split must be the same size!");
@@ -144,7 +144,7 @@ MatrixXd  augmentqZ (
  */
 bool anyempty (const libcluster::SuffStat& SS)
 {
-  int K = SS.getK();
+  const int K = SS.getK();
 
   for (int k = 0; k < K; ++k)
     if (SS.getN_k(k) <= 1)
@@ -171,15 +171,15 @@ template <class C> void updateSSj (
     const bool sparse           // Do sparse updates to groups
     )
 {
-  unsigned int K = qZj.cols();
+  const unsigned int K = qZj.cols();
 
   #pragma omp critical
   SS.subSS(SSj);                      // get rid of old group SS contribution
 
-  ArrayXd Njk = qZj.colwise().sum();  // count obs. in this group
-  ArrayXi Kful = ArrayXi::Zero(1),    // Initialise and set K = 1 defaults
+  const ArrayXd Njk = qZj.colwise().sum();  // count obs. in this group
+  ArrayXi Kful = ArrayXi::Zero(1),          // Initialise and set K = 1 defaults
           Kemp = ArrayXi::Zero(0);
-  MatrixXd SS1, SS2;                  // Suff. Stats
+  MatrixXd SS1, SS2;                        // Suff. Stats
 
   // Find empty clusters if sparse
   if ( (sparse == false) && (K > 1) )
@@ -187,7 +187,8 @@ template <class C> void updateSSj (
   else if (sparse == true)
     arrfind((Njk >= ZEROCUTOFF), Kful, Kemp);
 
-  int nKful = Kful.size(), nKemp = Kemp.size();
+  const int nKful = Kful.size(),
+            nKemp = Kemp.size();
 
   // Sufficient statistics - with observations
   for (int k = 0; k < nKful; ++k)
@@ -197,7 +198,7 @@ template <class C> void updateSSj (
   }
 
   // Sufficient statistics - without observations
-  pair<Array2i, Array2i> dimSS = C::dimSS(Xj);
+  const pair<Array2i, Array2i> dimSS = C::dimSS(Xj);
   for (int k = 0; k < nKemp; ++k)
     SSj.setSS(Kemp(k), 0,
               MatrixXd::Zero(dimSS.first(0), dimSS.first(1)),
@@ -217,7 +218,7 @@ template <class W> void vbmaximisationj (
     W& wdistj                        // Weight parameter distributions
     )
 {
-  unsigned int K = SSj.getK();
+  const unsigned int K = SSj.getK();
 
   ArrayXd Njk = ArrayXd::Zero(K);
 
@@ -244,11 +245,11 @@ template <class W, class C> double vbexpectationj (
     const bool sparse           // Do sparse updates to groups
     )
 {
-  int K  = cdists.size(),
-      Nj = Xj.rows();
+  const int K  = cdists.size(),
+            Nj = Xj.rows();
 
   // Get log marginal weight likelihoods
-  ArrayXd E_logZ = wdistj.Eloglike();
+  const ArrayXd E_logZ = wdistj.Eloglike();
 
   // Initialise and set K = 1 defaults for cluster counts
   ArrayXi Kful = ArrayXi::Zero(1), Kemp = ArrayXi::Zero(0);
@@ -259,8 +260,8 @@ template <class W, class C> double vbexpectationj (
   else if (sparse == true)
     arrfind((wdistj.getNk() >= ZEROCUTOFF), Kful, Kemp);
 
-  int nKful = Kful.size(),
-      nKemp = Kemp.size();
+  const int nKful = Kful.size(),
+            nKemp = Kemp.size();
 
   // Find Expectations of log joint observation probs -- allow sparse evaluation
   MatrixXd logqZj(Nj, nKful);
@@ -269,7 +270,7 @@ template <class W, class C> double vbexpectationj (
     logqZj.col(k) = E_logZ(Kful(k)) + cdists[Kful(k)].Eloglike(Xj).array();
 
   // Log normalisation constant of log observation likelihoods
-  VectorXd logZzj = logsumexp(logqZj);
+  const VectorXd logZzj = logsumexp(logqZj);
 
   // Make sure qZ is the right size, this is a nop if it is
   qZj.resize(Nj, K);
@@ -300,8 +301,8 @@ template <class W, class C> double fenergy (
     libcluster::SuffStat& SS            // Model Sufficient statistics
     )
 {
-  int K = cdists.size(),
-      J = wdists.size();
+  const int K = cdists.size(),
+            J = wdists.size();
 
   // Free energy of the weight parameter distributions
   for (int j = 0; j < J; ++j)
@@ -340,8 +341,8 @@ template <class W, class C> double vbem (
     const bool verbose = false  // Verbose output (default false)
     )
 {
-  int J = X.size(),
-      K = qZ[0].cols();
+  const int J = X.size(),
+            K = qZ[0].cols();
 
   // Construct the parameters
   vector<W> wdists(X.size(), W());
@@ -356,7 +357,7 @@ template <class W, class C> double vbem (
     Fold = F;
 
     // Update Suff Stats and VBM for weights
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(guided)
     for (int j = 0; j < J; ++j)
     {
       updateSSj<C>(X[j], qZ[j], SSj[j], SS, sparse);
@@ -364,12 +365,12 @@ template <class W, class C> double vbem (
     }
 
     // VBM for clusters
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(guided)
     for (int k=0; k < K; ++k)
       cdists[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
 
     // VBE
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(guided)
     for (int j = 0; j < J; ++j)
       Fxz[j] = vbexpectationj<W,C>(X[j], wdists[j], cdists, qZ[j], sparse);
 
@@ -411,8 +412,8 @@ template <class W, class C> bool split (
     const bool verbose                       // Verbose output
     )
 {
-  unsigned int J = X.size(),
-               K = SS.getK();
+  const unsigned int J = X.size(),
+                     K = SS.getK();
 
   // Split order chooser and cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
@@ -420,7 +421,7 @@ template <class W, class C> bool split (
   vector<C> csplit(K, C(SS.getprior(), X[0].cols()));
 
   // Get cluster parameters and their free energy
-  #pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(guided)
   for (unsigned int k = 0; k < K; ++k)
   {
     csplit[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
@@ -430,7 +431,7 @@ template <class W, class C> bool split (
   }
 
   // Get cluster likelihoods
-  #pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(guided)
   for (unsigned int j = 0; j < J; ++j)
   {
     // Get cluster weights
@@ -458,7 +459,7 @@ template <class W, class C> bool split (
   // Loop through each potential cluster in order and split it
   for (vector<SplitOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
   {
-    int k = i->k;
+    const int k = i->k;
 
     ++tally[k]; // increase this cluster's unsuccessful split tally by default
 
@@ -469,7 +470,7 @@ template <class W, class C> bool split (
     // Now split observations and qZ.
     int scount = 0, Mtot = 0;
 
-    #pragma omp parallel for schedule(dynamic) reduction(+ : Mtot, scount)
+    #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
     for (unsigned int j = 0; j < J; ++j)
     {
       // Make COPY of the observations with only relevant data points, p > 0.5
@@ -499,7 +500,7 @@ template <class W, class C> bool split (
       continue;
 
     // Map the refined splits back to original whole-data problem
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
       qZaug[j] = augmentqZ(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
 
@@ -544,8 +545,8 @@ template <class W, class C> void bootstrap (
   vector<MatrixXd>& qZ                // Obs. to model mixture assignments
   )
 {
-  unsigned int K = (SS.getK() < 1) ? 1 : SS.getK(),
-               J = X.size();
+  const unsigned int K = (SS.getK() < 1) ? 1 : SS.getK(),
+                     J = X.size();
 
   // Create or check the group sufficient stats
   if (SSj.size() == 0)

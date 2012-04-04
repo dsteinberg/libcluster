@@ -43,7 +43,7 @@ bool inline paircomp (
  *
  *  returns: 1:D or if D = 1, return 1.
  */
-ArrayXd enumdims (int D)
+ArrayXd enumdims (const int D)
 {
   ArrayXd l;
 
@@ -79,7 +79,7 @@ distributions::StickBreak::StickBreak ()
 
 void distributions::StickBreak::update (const ArrayXd& Nk)
 {
-  int K = Nk.size();
+  const int K = Nk.size();
 
   // Destructively resize members to be the same size as Nk, no-op if same
   this->alpha1.resize(K);
@@ -102,7 +102,8 @@ void distributions::StickBreak::update (const ArrayXd& Nk)
   sort(this->ordvec.begin(), this->ordvec.end(), paircomp);
 
   // Now do order dependent updates
-  double N = Nk.sum(), cumNk = 0, cumE_lognv = 0, psisum;
+  const double N = Nk.sum();
+  double cumNk = 0, cumE_lognv = 0;
   for (int idx = 0, k; idx < K; ++idx)
   {
     k = this->ordvec[idx].first;
@@ -112,7 +113,7 @@ void distributions::StickBreak::update (const ArrayXd& Nk)
     this->alpha2(k) = this->alpha2_p + (N - cumNk);
 
     // Expected stick lengths
-    psisum = digamma(this->alpha1(k) + this->alpha2(k));
+    double psisum = digamma(this->alpha1(k) + this->alpha2(k));
     this->E_logv(k)  = digamma(this->alpha1(k)) - psisum;
     this->E_lognv(k) = digamma(this->alpha2(k)) - psisum;
 
@@ -125,7 +126,7 @@ void distributions::StickBreak::update (const ArrayXd& Nk)
 
 double distributions::StickBreak::fenergy () const
 {
-  int K = this->alpha1.size();
+  const int K = this->alpha1.size();
 
   return K * this->F_p + (mxlgamma(this->alpha1 + this->alpha2).array()
           - mxlgamma(this->alpha1).array() - mxlgamma(this->alpha2).array()
@@ -142,7 +143,7 @@ void distributions::GDirichlet::update (const ArrayXd& Nk)
 {
   // Call base class (stick breaking) update
   this->StickBreak::update(Nk);
-  int smallk = (this->ordvec.end() - 1)->first; // Get smallest & last cluster
+  const int smallk = (this->ordvec.end() - 1)->first; // Get smallest cluster
 
   // Set last stick lengths to 1 ( log(0) = 1 ) and adjust log marginal
   this->E_logpi(smallk) = this->E_logpi(smallk) - this->E_logv(smallk);
@@ -153,7 +154,7 @@ void distributions::GDirichlet::update (const ArrayXd& Nk)
 
 double distributions::GDirichlet::fenergy () const
 {
-  int K = this->ordvec.size();
+  const int K = this->ordvec.size();
 
   // GDir only has K-1 parameters, so we don't calculate the last F contrib.
   double Fpi = 0;
@@ -185,7 +186,7 @@ distributions::Dirichlet::Dirichlet ()
 
 void distributions::Dirichlet::update (const ArrayXd& Nk)
 {
-  int K = Nk.size();
+  const int K = Nk.size();
 
   // Destructively resize members to be the same size as Nk, no-op if same
   this->alpha.resize(K);
@@ -202,7 +203,7 @@ void distributions::Dirichlet::update (const ArrayXd& Nk)
 
 double distributions::Dirichlet::fenergy () const
 {
-  int K = this->alpha.size();
+  const int K = this->alpha.size();
 
   return lgamma(this->alpha.sum()) - (this->alpha_p-1) * this->E_logpi.sum()
       + ((this->alpha-1) * this->E_logpi - mxlgamma(this->alpha).array()).sum()
@@ -265,7 +266,7 @@ pair<Array2i, Array2i> distributions::GaussWish::dimSS (const MatrixXd& X)
 }
 
 void distributions::GaussWish::update (
-      double N,
+      const double N,
       const MatrixXd& x_s,
       const MatrixXd& xx_s
     )
@@ -333,7 +334,7 @@ distributions::ArrayXb distributions::GaussWish::splitobs (
 
 double distributions::GaussWish::fenergy () const
 {
-  ArrayXd l = enumdims(this->D);
+  const ArrayXd l = enumdims(this->D);
   double sumpsi = mxdigamma((this->nu + 1 - l).matrix() / 2).sum();
 
   return this->F_p + (this->D * (this->beta_p/this->beta - 1 - this->nu
@@ -391,7 +392,7 @@ pair<Array2i, Array2i> distributions::NormGamma::dimSS (const MatrixXd& X)
 
 
 void distributions::NormGamma::update (
-      double N,
+      const double N,
       const MatrixXd& x_s,
       const MatrixXd& xx_s
     )
@@ -448,7 +449,7 @@ distributions::ArrayXb distributions::NormGamma::splitobs (
 
 double distributions::NormGamma::fenergy () const
 {
-  VectorXd iL = this->L.array().inverse().matrix().transpose();
+  const VectorXd iL = this->L.array().inverse().matrix().transpose();
 
   return D*(lgamma(this->nu_p) - lgamma(this->nu)
     + this->N*digamma(this->nu)/2 - this->nu)
@@ -492,7 +493,7 @@ pair<Array2i, Array2i> distributions::ExpGamma::dimSS (const MatrixXd& X)
 
 
 void distributions::ExpGamma::update (
-      double N,
+      const double N,
       const MatrixXd& x_s,
       const MatrixXd& emp
     )

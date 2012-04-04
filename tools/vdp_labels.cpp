@@ -51,6 +51,7 @@ using namespace probutils;
 //
 
 const int FEATDIMS = 7 + (2*Image_Feats::LAB_LENGTH) + Image_Feats::LBP_LENGTH;
+const int NTHREADS = 1;
 const double CLUSTWIDTH = 0.01;
 const double SCALEFACTOR = 10;   // scaling for features.
 
@@ -112,6 +113,7 @@ int main (int argc, char *argv[])
 
   // Read config file for prior cluster width setting
   Config_File cfgfile(config_fname);
+  int nthreads = cfgfile.get_int("NUMBER_OF_THREADS", NTHREADS);
   double clustwidth = cfgfile.get_double("PRIOR_CLUSTER_WIDTH", CLUSTWIDTH);
 
   // Read in the image features
@@ -177,7 +179,7 @@ int main (int argc, char *argv[])
   SuffStat SS;
   MatrixXd qZ;
   try
-    { learnVDP(X, qZ, SS, true); }
+    { learnVDP(X, qZ, SS, true, nthreads); }
   catch (runtime_error e)
   {
     cerr << "Runtime error: " << e.what() << endl;
