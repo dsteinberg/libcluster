@@ -176,10 +176,15 @@ int main (int argc, char *argv[])
     X.row(i) = SCALEFACTOR * (X.row(i) - meanX).array() / stdevX.array();
 
   // Cluster features
-  SuffStat SS;
+  SuffStat SS(clustwidth);
   MatrixXd qZ;
   try
-    { learnVDP(X, qZ, SS, true, nthreads); }
+  {  
+    //clock_t start = clock();
+    learnVDP(X, qZ, SS, true, nthreads);
+    //double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
+    //cout << "VDP Elapsed time = " << stop << " sec." << endl;
+  }
   catch (runtime_error e)
   {
     cerr << "Runtime error: " << e.what() << endl;

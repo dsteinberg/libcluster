@@ -317,7 +317,7 @@ VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
 }
 
 
-distributions::ArrayXb distributions::GaussWish::splitobs (
+ArrayXb distributions::GaussWish::splitobs (
     const MatrixXd& X
     ) const
 {
@@ -434,7 +434,7 @@ VectorXd distributions::NormGamma::Eloglike (const MatrixXd& X) const
 }
 
 
-distributions::ArrayXb distributions::NormGamma::splitobs (
+ArrayXb distributions::NormGamma::splitobs (
     const MatrixXd& X
     ) const
 {
@@ -514,7 +514,7 @@ VectorXd distributions::ExpGamma::Eloglike (const MatrixXd& X) const
 }
 
 
-distributions::ArrayXb distributions::ExpGamma::splitobs (
+ArrayXb distributions::ExpGamma::splitobs (
     const MatrixXd& X
     ) const
 {

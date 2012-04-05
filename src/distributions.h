@@ -8,17 +8,11 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <stdexcept>
+#include "probutils.h"
 
 /*! Namespace that implements weight and cluster distributions. */
 namespace distributions
 {
-
-//
-// Useful Typedefs
-//
-
-typedef Eigen::Array<bool, Eigen::Dynamic, 1> ArrayXb; //!< Boolean Array
-
 
 //
 // Namespace 'symbolic' constants
@@ -231,7 +225,7 @@ public:
    *  \note this needs to consistently split observations between multiple
    *        subsequent calls, but can change after each update().
    */
-  virtual ArrayXb splitobs (const Eigen::MatrixXd& X) const = 0;
+  virtual probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const = 0;
 
   /*! \brief virtual destructor.
    */
@@ -286,7 +280,7 @@ public:
 
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
 
-  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+  probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const;
 
   double fenergy () const;
 
@@ -345,7 +339,7 @@ public:
 
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
 
-  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+  probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const;
 
   double fenergy () const;
 
@@ -404,7 +398,7 @@ public:
 
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
 
-  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+  probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const;
 
   double fenergy () const;
 
