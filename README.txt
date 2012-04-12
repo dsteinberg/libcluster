@@ -4,7 +4,7 @@ Author: Daniel Steinberg
         Australian Centre for Field Robotics
         The University of Sydney
 
-Date:   04/04/2012
+Date:   12/04/2012
 
 This library implements the following algorithms, classes and functions:
 
@@ -37,12 +37,22 @@ All algorithms can be run in an incremental fashion.
      Related Visual Datasets," unpublished, 2011.
 
 
+DEPENDENCIES -------------------------------------------------------------------
+
+- Eigen version 3
+- Boost version 1.4.x or greater
+- For building the AUV pipeline tools (optional):
+  + libplankton
+  + auv_data_tools
+  + seabed_slam_file_io.hpp
+
+
 INSTALL INSTRUCTIONS (Linux/OS X) ----------------------------------------------
 
 To build libcluster:
 
-1) Make sure you have CMake (2.6 +), Boost (1.4.x +) and Eigen 3 installed.
-   Preferably in the usual locations:
+1) Make sure you have CMake installed, and Eigen and Boost preferably in the 
+   usual locations:
 
         /usr/local/include/eigen3/ or /usr/include/eigen3
         /usr/local/include/boost or /usr/include/boost
@@ -58,7 +68,7 @@ To build libcluster:
     mkdir build
     cd build
 
-4a) To build libcluster INCLUDING the AUV pipeline tools, run the following from
+4) To build libcluster INCLUDING the AUV pipeline tools, run the following from
     the build directory:
 
         cmake ..
@@ -69,24 +79,35 @@ To build libcluster:
         libcluster.h    /usr/local/include
         probutils.h     /usr/local/include
         libcluster.*    /usr/local/lib          (* this is either .dylib or .so)
-
-   The AUV pipeline tools are (requires BUILD_PIPELINE_TOOLS to be on):
         vdp_label       /usr/local/bin       (config options in vdp_cluster.cfg)
-
-4b) To build libcluster EXCLUDING the AUV pipeline tools, run the following
-    from the build directory:
-
-        cmake ..
-	      ccmake . (and turn BUILD_PIPELINE_TOOLS  OFF)
-        make
-        sudo make install
+        
+   To build without the AUV pipeline tools, see the notes below.
 
 5) Use the doxyfile in {where you checked out the source}/doc to make the
    documentation with doxygen:
 
         doxygen Doxyfile
 
-Notes:
+NOTE:
+ - There are few options you can change using ccmake (or the cmake gui), these 
+   include:
+   
+   BUILD_GREEDY_SPLIT (toggle ON or OFF, default OFF)
+      This uses the greedy cluster split heuristic instead of the exhaustive
+      heuristic. It is MUCH faster, but does give different results. I have yet
+      to determine whether this is actually worse than the exhaustive method.
+      
+   BUILD_PIPELINE_TOOLS (toggle ON or OFF, default ON)
+      This builds the AUV pipeline tools - which at this stage is basically just
+      an interface for the VDP clustering algorithm. This has EXTRA 
+      dependencies.
+      
+   CMAKE_INSTALL_PREFIX (default /usr/local)
+      The default prefix for installing the library and binaries.
+      
+   EIGEN_INCLUDE_DIRS (default /usr/include/eigen3)
+      Where to look for the Eigen matrix library.  
+    
  - On linux you may have to run "sudo ldconfig" before the system can find
    libcluster.so.
 
@@ -185,7 +206,7 @@ this:
    Learning MODEL X...
    --------<=>
    ---<==>
-   --------<=>
+   --------x<=>
    --------------<====>
    Finished!
    Number of clusters = 4
@@ -196,8 +217,16 @@ What this means:
    '<' cluster splitting has started (model selection)
    '=' found a valid candidate split
    '>' chosen candidate split and testing for inclusion into model
+   'x' clusters have been deleted because they became devoid of observations
 
 For best clustering results, I have found the following tips may help:
+
+0)  If clustering runs REALLY slowly then it may be because of hyper-threading.
+    OpenMP will by default use as many cores available to it as possible, this 
+    includes virtual hyper-threading cores. Unfortunately this nearly always
+    results in large slow-downs, so try only allowing these functions to use
+    a number of threads less than or equal to the number of PHYSICAL cores on 
+    your machine.
 
 1)  Garbage in = garbage out. Make sure your assumptions about the data are 
     reasonable for the type of cluster distribution you use. For instance, if  
@@ -209,10 +238,21 @@ For best clustering results, I have found the following tips may help:
     if X is an NxD matrix of observations you wish to cluster, you may get
     better results if you use a standardised version of it, X*,
 
-    X* = C * ( X - mean(X) ) / std(X)
+      X_s = C * ( X - mean(X) ) / std(X)
 
     where C is some constant (optional) and the mean and std are for each 
     column of X.
+    
+    You may obtain even better results by using PCA or ZCA whitening on X:
+    
+      [U, S, V] = svd(cov(X));
+    
+      X_w = X * U * diag(1./sqrt(diag(S))) * U';   % ZCA Whitening
+      
+    Such that cov(X_w) = I_D.
+    
+    Also, to get some automatic scaling you can multiply the prior by the 
+    PRINCIPAL eigenvector of cov(X) (or cov(X_s), cov(X_w)).
     
     NOTE: If you use diagonal covariance Gaussians I STRONGLY recommend PCA or 
           ZCA whitening your data first, otherwise you may end up with hundreds
@@ -222,6 +262,7 @@ For best clustering results, I have found the following tips may help:
     The clustering solution may also be sensitive to the prior. I find usually 
     using a prior value that has the approximate magnitude of your data or more
     leads to better convergence.
+
 
 COMMAND LINE INTERFACES --------------------------------------------------------
 
@@ -236,10 +277,4 @@ The command line interface is:
     $ vdp_cluster {source}/test/scott25.data  cresults.dat
 
 So far this just reads text files of the type in {source}/test and outputs other
-text files. I haven't invested too much effort in, since we need to still figure
-out a way to store the feature files.
-
-
-NOTES/TODO ---------------------------------------------------------------------
-
-1) Finalise the command line interfaces for the VDP and GMC.
+text files.

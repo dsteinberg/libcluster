@@ -30,7 +30,7 @@ const double pi = constants::pi<double>(); // Boost high precision pi
  *
  *  returns: true if i.second > j.second.
  */
-bool inline paircomp (
+bool inline obscomp (
     const std::pair<int,double>& i, // the first pair to compare.
     const std::pair<int,double>& j  // the second pair to compare.
     )
@@ -99,7 +99,7 @@ void distributions::StickBreak::update (const ArrayXd& Nk)
     this->ordvec[k].first  = k;
     this->ordvec[k].second = Nk(k);
   }
-  sort(this->ordvec.begin(), this->ordvec.end(), paircomp);
+  sort(this->ordvec.begin(), this->ordvec.end(), obscomp);
 
   // Now do order dependent updates
   const double N = Nk.sum();

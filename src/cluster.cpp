@@ -1,4 +1,6 @@
 // TODO:
+//  - There may be a bug in split() if it encounteres empty clusters, it does
+//    not display the '='.
 //  - Get rid of the copying in the learnVDP and learnGMM functions.
 //  - Some copying still in split()
 
@@ -35,7 +37,7 @@ const double ZEROCUTOFF  = 0.1;         // Obs. count cut off sparse updates
 /* Triplet that contains the information for choosing a good cluster split
  *  ordering.
  */
-struct SplitOrder
+struct GreedOrder
 {
   int k;      // Cluster number/index
   int tally;  // Number of times a cluster has failed to split
@@ -43,11 +45,11 @@ struct SplitOrder
 };
 
 
-/* Compares two SplitOrder triplets and returns which is more optimal to split.
+/* Compares two GreedOrder triplets and returns which is more optimal to split.
  *  Precendence is given to less split fail tally, and then to more free energy
  *  contribution.
  */
-bool inline splitcomp (const SplitOrder& i, const SplitOrder& j)
+bool inline greedcomp (const GreedOrder& i, const GreedOrder& j)
 {
   if (i.tally == j.tally)       // If the tally is the same, use the greater Fk
     return i.Fk > j.Fk;
@@ -58,7 +60,8 @@ bool inline splitcomp (const SplitOrder& i, const SplitOrder& j)
 }
 
 
-/* Find the indices of the ones and zeros in a binary array.
+/* Find the indices of the ones and zeros in a binary array in the order they
+ *  appear.
  *
  *  mutable: indtrue the indices of the true values in the array "expression"
  *  mutable: indfalse the indices of the false values in the array "expression"
@@ -275,7 +278,7 @@ template <class W, class C> double vbexpectationj (
   // Make sure qZ is the right size, this is a nop if it is
   qZj.resize(Nj, K);
 
-  // Compute Responsibilities -- again allow sparse evaluation
+  // Normalise and Compute Responsibilities -- again allow sparse evaluation
   for (int k = 0; k < nKful; ++k)
     qZj.col(Kful(k)) = ((logqZj.col(k) - logZzj).array().exp()).matrix();
 
@@ -390,10 +393,173 @@ template <class W, class C> double vbem (
 }
 
 
-/*  Find a mixture split that lowers model free energy, or return false.
- *    An attempt is made at looking for good, untried, split candidates first,
- *    as soon as a split canditate is found that lowers model F, it is returned.
- *    This may not be the "best" split, but it is certainly faster.
+/*  Find and remove all empty clusters. This is now necessary if we don't do an
+ *    exhaustive search for the BEST cluster to split.
+ *
+ *    returns: true if any clusters have been deleted, false if all are kept.
+ *    mutable: qZ may have columns deleted if there are empty clusters found.
+ *    mutable: SSj if there are empty clusters found.
+ *    mutable: SS if there are empty clusters found.
+ */
+bool clean (
+    vector<MatrixXd>& qZ,              // Probabilities qZ
+    vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
+    libcluster::SuffStat& SS           // Sufficient stats
+    )
+{
+  const int K = SS.getK(),
+            J = qZ.size();
+  ArrayXb kempty(K);
+
+  // Look for empty sufficient statistics
+  for (int k = 0; k < K; ++k)
+    kempty(k) = SS.getN_k(k) < 1;
+
+  // If everything is not empty, return false
+  if ((kempty == false).all())
+    return false;
+
+  // Find location of empty and full clusters
+  ArrayXi eidx, fidx;
+  arrfind(kempty, eidx, fidx);
+
+  // Delete empty cluster suff. stats.
+  for (int i = eidx.size() - 1; i >= 0; --i)
+  {
+    SS.delk(eidx(i));
+    for (int j = 0; j < J; ++j)
+      SSj[j].delk(eidx(i));
+  }
+
+  // Delete empty cluster indicators by copying only full indicators
+  const int newK = fidx.size();
+  vector<MatrixXd> newqZ(J);
+
+  for (int j = 0; j < J; ++j)
+  {
+    newqZ[j].setZero(qZ[j].rows(), newK);
+    for (int k = 0; k < newK; ++k)
+      newqZ[j].col(k) = qZ[j].col(fidx(k));
+  }
+
+  qZ = newqZ;
+
+  return true;
+}
+
+
+/*  Search in an exhaustive fashion for a mixture split that lowers model free
+ *    energy the most. If no splits are found which lower Free Energy, then
+ *    false is returned, and qZ is not modified.
+ *
+ *    returns: true if a split was found, false if no splits can be found
+ *    mutable: qZ is augmented with a new split if one is found, otherwise left
+ *    throws: invalid_argument rethrown from other functions
+ *    throws: runtime_error from its internal VBEM calls
+ */
+#ifndef GREEDY_SPLIT
+template <class W, class C> bool split_ex (
+    const vector<MatrixXd>& X,               // Observations
+    const vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
+    const libcluster::SuffStat& SS,          // Sufficient stats
+    const double F,                          // Current model free energy
+    vector<MatrixXd>& qZ,                    // Probabilities qZ
+    const bool sparse,                       // Do sparse updates to groups
+    const bool verbose                       // Verbose output
+    )
+{
+  const unsigned int J = X.size(),
+                     K = SS.getK();
+
+  // Pre allocate big objects for loops (this makes a runtime difference)
+  double Fbest = numeric_limits<double>::infinity();
+  vector<ArrayXi> mapidx(J, ArrayXi());
+  vector<MatrixXd> qZref(J,MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd()),
+                   qZbest;
+  C csplit(SS.getprior(), X[0].cols());
+
+  // Loop through each potential cluster in order and split it
+  for (unsigned int k = 0; k < K; ++k)
+  {
+    // Don't waste time with clusters that can't really be split min (2:2)
+    if (SS.getN_k(k) < 4)
+      continue;
+
+    // Now split observations and qZ.
+    int scount = 0, Mtot = 0;
+    csplit.update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
+
+    #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
+    for (unsigned int j = 0; j < J; ++j)
+    {
+      // Make COPY of the observations with only relevant data points, p > 0.5
+      mapidx[j] = partX(X[j], (qZ[j].col(k).array()>0.5), Xk[j]);  // Copy :-(
+      Mtot += Xk[j].rows();
+
+      // Initial cluster split
+      ArrayXb splitk = csplit.splitobs(Xk[j]);
+      qZref[j].setZero(Xk[j].rows(), 2);
+      qZref[j].col(0) = (splitk == true).cast<double>();  // Init qZ for split
+      qZref[j].col(1) = (splitk == false).cast<double>();
+
+      // keep a track of number of splits
+      scount += splitk.count();
+    }
+
+    // Don't waste time with clusters that haven't been split sufficiently
+    if ( (scount < 2) || (scount > (Mtot-2)) )
+      continue;
+
+    // Refine the split
+    libcluster::SuffStat SSref(SS.getprior());
+    vector<libcluster::SuffStat> SSgref(J, libcluster::SuffStat(SS.getprior()));
+    vbem<W,C>(Xk, qZref, SSgref, SSref, SPLITITER, sparse);
+
+    if (anyempty(SSref) == true) // One cluster only
+      continue;
+
+    // Map the refined splits back to original whole-data problem
+    #pragma omp parallel for schedule(guided)
+    for (unsigned int j = 0; j < J; ++j)
+      qZaug[j] = augmentqZ(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
+
+    // Calculate free energy of this split with ALL data (and refine a bit)
+    libcluster::SuffStat SSaug = SS;                              // Copy :-(
+    vector<libcluster::SuffStat> SSj_aug = SSj;                   // Copy :-(
+    double Fsplit = vbem<W,C>(X, qZaug, SSj_aug, SSaug, 1, sparse);
+
+    if (anyempty(SSaug) == true) // One cluster only
+      continue;
+
+    // Only notify here of split candidates
+    if (verbose == true)
+      cout << '=' << flush;
+
+    // Record best splits so far
+    if (Fsplit < Fbest)
+    {
+      qZbest = qZaug;
+      Fbest  = Fsplit;
+    }
+  }
+
+  // See if this split actually improves the model
+  if ( (Fbest < F) && (abs((F-Fbest)/F) > CONVERGE) )
+  {
+    qZ = qZbest;
+    return true;
+  }
+  else
+    return false;
+}
+#endif
+
+
+/*  Search in a greedy fashion for a mixture split that lowers model free
+ *    energy, or return false. An attempt is made at looking for good, untried,
+ *    split candidates first, as soon as a split canditate is found that lowers
+ *    model F, it is returned. This may not be the "best" split, but it is
+ *    certainly faster than an exhaustive search for the "best" split.
  *
  *    returns: true if a split was found, false if no splits can be found
  *    mutable: qZ is augmented with a new split if one is found, otherwise left
@@ -401,7 +567,8 @@ template <class W, class C> double vbem (
  *    throws: invalid_argument rethrown from other functions
  *    throws: runtime_error from its internal VBEM calls
  */
-template <class W, class C> bool split (
+#ifdef GREEDY_SPLIT
+template <class W, class C> bool split_gr (
     const vector<MatrixXd>& X,               // Observations
     const vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
     const libcluster::SuffStat& SS,          // Sufficient stats
@@ -417,7 +584,7 @@ template <class W, class C> bool split (
 
   // Split order chooser and cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
-  vector<SplitOrder> ord(K);
+  vector<GreedOrder> ord(K);
   vector<C> csplit(K, C(SS.getprior(), X[0].cols()));
 
   // Get cluster parameters and their free energy
@@ -450,14 +617,14 @@ template <class W, class C> bool split (
   }
 
   // Sort clusters by split tally, then free energy contributions
-  sort(ord.begin(), ord.end(), splitcomp);
+  sort(ord.begin(), ord.end(), greedcomp);
 
   // Pre allocate big objects for loops (this makes a runtime difference)
   vector<ArrayXi> mapidx(J, ArrayXi());
   vector<MatrixXd> qZref(J,MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd());
 
   // Loop through each potential cluster in order and split it
-  for (vector<SplitOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
+  for (vector<GreedOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
   {
     const int k = i->k;
 
@@ -528,6 +695,7 @@ template <class W, class C> bool split (
   // Failed to find splits
   return false;
 }
+#endif
 
 
 /*  Bootstrap the clustering models. I.e. make sure we have reasonable starting
@@ -624,7 +792,10 @@ template <class W, class C> double modelselect (
   // Initialise free energy and other loop variables
   bool   issplit = true;
   double F = numeric_limits<double>::max();
+
+  #ifdef GREEDY_SPLIT
   vector<int> tally;
+  #endif
 
   // Main loop
   while (issplit == true)
@@ -632,12 +803,22 @@ template <class W, class C> double modelselect (
     // VBEM for all groups (throws runtime_error & invalid_argument)
     F = vbem<W,C>(X, qZ, SSgroups, SS, -1, sparse, verbose);
 
+    // Remove any emtpy clusters
+    bool remk = clean(qZ, SSgroups, SS);
+
+    if ( (verbose == true) && (remk == true) )
+      cout << 'x' << flush;
+
     // Start cluster splitting
     if (verbose == true)
-      cout << '<' << flush;  // Notify start splitting
+      cout << '<' << flush;  // Notify start splitting    
 
     // Search for best split, augment qZ if found one
-    issplit = split<W,C>(X, SSgroups, SS, F, qZ, tally, sparse, verbose);
+    #ifdef GREEDY_SPLIT
+    issplit = split_gr<W,C>(X, SSgroups, SS, F, qZ, tally, sparse, verbose);
+    #else
+    issplit = split_ex<W,C>(X, SSgroups, SS, F, qZ, sparse, verbose);
+    #endif
 
     if (verbose == true)
       cout << '>' << endl;   // Notify end splitting

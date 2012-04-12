@@ -79,7 +79,7 @@ void libcluster::SuffStat::setSS (
 }
 
 
-double libcluster::SuffStat::getN_k (unsigned int k) const
+double libcluster::SuffStat::getN_k (const unsigned int k) const
 {
   if (k > this->K)
     throw invalid_argument("Index k is greater than number of suff. stats.");
@@ -88,7 +88,7 @@ double libcluster::SuffStat::getN_k (unsigned int k) const
 }
 
 
-const MatrixXd& libcluster::SuffStat::getSS1 (unsigned int k) const
+const MatrixXd& libcluster::SuffStat::getSS1 (const unsigned int k) const
 {
   if (k > this->K)
     throw invalid_argument("Index k is greater than number of suff. stats.");
@@ -97,7 +97,7 @@ const MatrixXd& libcluster::SuffStat::getSS1 (unsigned int k) const
 }
 
 
-const MatrixXd& libcluster::SuffStat::getSS2 (unsigned int k) const
+const MatrixXd& libcluster::SuffStat::getSS2 (const unsigned int k) const
 {
   if (k > this->K)
     throw invalid_argument("Index k is greater than number of suff. stats.");
@@ -160,6 +160,17 @@ void libcluster::SuffStat::subF(const SuffStat &SS)
   this->F -= SS.F;
 }
 
+
+void libcluster::SuffStat::delk(const unsigned int k)
+{
+  if (k >= K)
+    throw invalid_argument("Specified index is out of range!");
+
+  this->N_k.erase(this->N_k.begin() + k);
+  this->SS1.erase(this->SS1.begin() + k);
+  this->SS2.erase(this->SS2.begin() + k);
+  --this->K;
+}
 
 //
 // Private Member Functions

@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 2.6)
 #--------------------------------#
 
 include(${PROJECT_SOURCE_DIR}/FindBoost1.cmake REQUIRED)
-include(${PROJECT_SOURCE_DIR}/../CMakeUtils/FindEigen3.cmake REQUIRED)
+include(${PROJECT_SOURCE_DIR}/FindEigen3.cmake REQUIRED)
 include(FindOpenMP)
 
 #--------------------------------#
@@ -21,6 +21,10 @@ endif(INSOURCE)
 #--------------------------------#
 # Compiler environment Setup     #
 #--------------------------------#
+
+# Some compilation options (changeable from ccmake)
+option(BUILD_PIPELINE_TOOLS "Build clustering tools for the AUV pipeline" on)
+option(BUILD_GREEDY_SPLIT "Use the greedy (fast) cluster split heuristic" off)
 
 # Locations for source code
 set(LIB_SOURCE_DIR   ${PROJECT_SOURCE_DIR}/src)
@@ -51,8 +55,10 @@ if(NOT AUVLIB_PREFIX)
    set(AUVLIB_PREFIX /usr/local/)
 endif(NOT AUVLIB_PREFIX)
 
-# Some options
-option(BUILD_PIPELINE_TOOLS "Build clustering tools for the AUV pipeline" on)
+# If we want to use the greedy splitting heuristic, define it here
+if(BUILD_GREEDY_SPLIT)
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGREEDY_SPLIT" )
+endif(BUILD_GREEDY_SPLIT)
 
 #--------------------------------#
 # Library Build Instructions     #

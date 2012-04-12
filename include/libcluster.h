@@ -145,7 +145,7 @@ public:
    *  \returns the observations count.
    *  \throws invalid_argument if k < 0 or k >= K.
    */
-  double getN_k (unsigned int k) const;
+  double getN_k (const unsigned int k) const;
 
   /*! \brief Get the first sufficient statistic corresponding to a particular
    *         cluster
@@ -153,7 +153,7 @@ public:
    *  \returns the first suff. stat. from cluster k.
    *  \throws invalid_argument if k < 0 or k >= K.
    */
-  const Eigen::MatrixXd& getSS1 (unsigned int k) const;
+  const Eigen::MatrixXd& getSS1 (const unsigned int k) const;
 
   /*! \brief Get the second sufficient statistic corresponding to a particular
    *         cluster
@@ -161,7 +161,7 @@ public:
    *  \returns the second suff. stat. from cluster k.
    *  \throws invalid_argument if k < 0 or k >= K.
    */
-  const Eigen::MatrixXd& getSS2 (unsigned int k) const;
+  const Eigen::MatrixXd& getSS2 (const unsigned int k) const;
 
   /*! \brief Add other sufficient statistics to these sufficient statistics.
    *  \param SS another sufficient statistic object to add to this one.
@@ -187,6 +187,11 @@ public:
    *  \throws invalid_argument if incompatible sufficient statists are detected.
    */
   void subF (const SuffStat& SS);
+
+  /*! \brief Remove cluster k, indexed from 0.
+   *  \throws invalid_argument if k is out of range.
+   */
+  void delk (const unsigned int k);
 
   /*! \brief Virtual destructor to ensure derived classes clean up properly */
   virtual ~SuffStat () {}
