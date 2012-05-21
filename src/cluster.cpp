@@ -1,4 +1,6 @@
 // TODO:
+//  - Do i need to store free energy in the SS struct? or can I build it from
+//    the SS themeselves??
 //  - There may be a bug in split() if it encounteres empty clusters, it does
 //    not display the '='.
 //  - Get rid of the copying in the learnVDP and learnGMM functions.

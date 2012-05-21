@@ -86,16 +86,16 @@ function [qZ, SSgroup, SS, F] = gmccluster (X, SS, SSgroup, options)
       options = struct([]);
     end
     if isfield(options, 'sparse') == false,
-      options.sparse = false;
+      options(1).sparse = false;
     end
     if isfield(options, 'verbose') == false,
-      options.verbose = false;
+      options(1).verbose = false;
     end
     if isfield(options, 'prior') == false,
-      options.prior = 1e-5;
+      options(1).prior = 1e-5;
     end
     if isfield(options, 'alg') == false,
-      options.alg = 'gmc';
+      options(1).alg = 'gmc';
     end
     
   % Parse algorithm option
@@ -151,10 +151,10 @@ function [qZ, SSgroup, SS, F] = gmccluster (X, SS, SSgroup, options)
   % Run the suitable version of clustergroup_mex depending on the arguments
   if isfield(options, 'nthreads') == false,
     [F qZ SSgroup SS] = clustergroup_mex(X, SS, SSgroup, algval, ...
-                             logical(options.sparse), logical(options.verbose));
+                        logical(options.sparse), logical(options.verbose));
   else
     [F qZ SSgroup SS] = clustergroup_mex(X, SS, SSgroup, algval, ...
-           logical(options.sparse), logical(options.verbose), options.nthreads);
+      logical(options.sparse), logical(options.verbose), options.nthreads);
   end
     
 end

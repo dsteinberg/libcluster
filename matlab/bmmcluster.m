@@ -88,13 +88,13 @@ function [Z, qZ, SS, F] = bmmcluster (X, SS, options)
     options = struct([]);
   end
   if isfield(options, 'verbose') == false
-    options.verbose = false;
+    options(1).verbose = false;
   end
   if isfield(options, 'prior') == false
-    options.prior = 1e-5;
+    options(1).prior = 1e-5;
   end
   if isfield(options, 'alg') == false
-    options.alg = 'vdp';
+    options(1).alg = 'vdp';
   end
   
   % Parse Alg argument
