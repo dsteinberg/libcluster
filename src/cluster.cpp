@@ -19,16 +19,6 @@ using namespace distributions;
 
 
 //
-// Some local 'symbolic' constants
-//
-
-const int    SPLITITER   = 20;          // Max number of iter. for split VBEM
-const double CONVERGE    = 1.0e-5;      // Convergence threshold
-const double FENGYDEL    = CONVERGE/10; // Allowance for +ve F.E. steps
-const double ZEROCUTOFF  = 0.1;         // Obs. count cut off sparse updates
-
-
-//
 // Private Helper structures and functions
 //
 
@@ -164,7 +154,7 @@ bool anyempty (const libcluster::SuffStat& SS)
  *  mutable: the group sufficient stats.
  *  mutable: the model sufficient stats.
  */
-template <class C> void updateSSj (
+template <class C> void updateSS (
     const MatrixXd& Xj,         // Observations in group j
     const MatrixXd& qZj,        // Observations to group mixture assignments
     libcluster::SuffStat& SSj,  // Sufficient stats of group j
@@ -186,7 +176,7 @@ template <class C> void updateSSj (
   if ( (sparse == false) && (K > 1) )
     Kful = ArrayXi::LinSpaced(Sequential, K, 0, K-1);
   else if (sparse == true)
-    arrfind((Njk >= ZEROCUTOFF), Kful, Kemp);
+    arrfind((Njk >= libcluster::ZEROCUTOFF), Kful, Kemp);
 
   const int nKful = Kful.size(),
             nKemp = Kemp.size();
@@ -238,7 +228,7 @@ template <class W> void vbmaximisationj (
  *  returns: The complete-data (X,Z) free energy E[log p(X,Z)/q(Z)] for group j.
  *  throws: invalid_argument rethrown from other functions.
  */
-template <class W, class C> double vbexpectationj (
+template <class W, class C> double vbexpectation (
     const MatrixXd& Xj,         // Observations in group J
     const W& wdistj,            // Group Weight parameter distribution
     const vector<C>& cdists,    // Cluster parameter distributions
@@ -259,7 +249,7 @@ template <class W, class C> double vbexpectationj (
   if ( (sparse == false) && (K > 1) )
     Kful = ArrayXi::LinSpaced(Sequential, K, 0, K-1);
   else if (sparse == true)
-    arrfind((wdistj.getNk() >= ZEROCUTOFF), Kful, Kemp);
+    arrfind((wdistj.getNk() >= libcluster::ZEROCUTOFF), Kful, Kemp);
 
   const int nKful = Kful.size(),
             nKemp = Kemp.size();
@@ -346,7 +336,7 @@ template <class W, class C> double vbem (
             K = qZ[0].cols();
 
   // Construct the parameters
-  vector<W> wdists(X.size(), W());
+  vector<W> wdists(J, W());
   vector<C> cdists(K, C(SS.getprior(), X[0].cols()));
 
   double F = numeric_limits<double>::max(), Fold;
@@ -361,7 +351,7 @@ template <class W, class C> double vbem (
     #pragma omp parallel for schedule(guided)
     for (int j = 0; j < J; ++j)
     {
-      updateSSj<C>(X[j], qZ[j], SSj[j], SS, sparse);
+      updateSS<C>(X[j], qZ[j], SSj[j], SS, sparse);
       vbmaximisationj<W>(SSj[j], wdists[j]);
     }
 
@@ -373,19 +363,20 @@ template <class W, class C> double vbem (
     // VBE
     #pragma omp parallel for schedule(guided)
     for (int j = 0; j < J; ++j)
-      Fxz[j] = vbexpectationj<W,C>(X[j], wdists[j], cdists, qZ[j], sparse);
+      Fxz[j] = vbexpectation<W,C>(X[j], wdists[j], cdists, qZ[j], sparse);
 
     // Calculate free energy of model
     F = fenergy<W,C>(wdists, cdists, Fxz, SSj, SS);
 
     // Check bad free energy step
-    if ((F-Fold)/abs(Fold) > FENGYDEL)
+    if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
       throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
       cout << '-' << flush;
   }
-  while ( (abs((Fold-F)/Fold) > CONVERGE) && ( (i++ < maxit) || (maxit < 0) ) );
+  while ( (abs((Fold-F)/Fold) > libcluster::CONVERGE)
+          && ( (i++ < maxit) || (maxit < 0) ) );
 
   return F;
 }
@@ -659,7 +650,7 @@ template <class W, class C> bool split_gr (
     // Refine the split
     libcluster::SuffStat SSref(SS.getprior());
     vector<libcluster::SuffStat> SSgref(J, libcluster::SuffStat(SS.getprior()));
-    vbem<W,C>(Xk, qZref, SSgref, SSref, SPLITITER, sparse);
+    vbem<W,C>(Xk, qZref, SSgref, SSref, libcluster::SPLITITER, sparse);
 
     if (anyempty(SSref) == true) // One cluster only
       continue;
@@ -682,7 +673,7 @@ template <class W, class C> bool split_gr (
       cout << '=' << flush;
 
     // Test whether this cluster split is a keeper
-    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
+    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > libcluster::CONVERGE) )
     {
       qZ = qZaug;
       tally[k] = 0;   // Reset tally if successfully split
@@ -752,7 +743,7 @@ template <class W, class C> void bootstrap (
       else                  // otherwise just use the model weights
         wdists[j].update(Nk);
 
-      vbexpectationj<W,C>(X[j], wdists[j], cdists, qZ[j], false);
+      vbexpectation<W,C>(X[j], wdists[j], cdists, qZ[j], false);
     }
   }
   else  // This is an entirely new model to learn, start with one cluster
@@ -779,7 +770,7 @@ template <class W, class C> double modelselect (
     const bool verbose,          // Verbose output
     const unsigned int nthreads  // Number of threads for OpenMP to use
     )
-{  
+{
   if (nthreads < 1)
     throw invalid_argument("Must specify at least one thread for execution!");
   omp_set_num_threads(nthreads);
@@ -809,7 +800,7 @@ template <class W, class C> double modelselect (
 
     // Start cluster splitting
     if (verbose == true)
-      cout << '<' << flush;  // Notify start splitting    
+      cout << '<' << flush;  // Notify start splitting
 
     // Search for best split, augment qZ if found one
     #ifdef GREEDY_SPLIT

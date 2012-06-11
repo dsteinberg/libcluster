@@ -75,6 +75,7 @@ add_library(cluster SHARED
   ${LIB_SOURCE_DIR}/distributions.cpp
   ${LIB_SOURCE_DIR}/suffstat.cpp
   ${LIB_SOURCE_DIR}/cluster.cpp
+  ${LIB_SOURCE_DIR}/ctopic.cpp
   ${LIB_SOURCE_DIR}/probutils.cpp
 )
 
