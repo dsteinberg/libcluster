@@ -312,7 +312,7 @@ template <class W, class C> double fenergy (
 }
 
 
-/* Batch Variational Bayes EM for all group mixtures.
+/* Variational Bayes EM for all group mixtures.
  *
  *  returns: Free energy of the whole model.
  *  mutable: variational posterior approximations to p(Z|X).

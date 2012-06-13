@@ -76,7 +76,7 @@ namespace libcluster
 // Namespace constants (use as argument defaults)
 //
 
-const double PRIORVAL = 1e-5;           //!< Default prior hyperparameter value
+const double PRIORVAL    = 1e-5;        //!< Default prior hyperparameter value
 const int    SPLITITER   = 20;          //!< Max number of iter. for split VBEM
 const double CONVERGE    = 1.0e-5;      //!< Convergence threshold
 const double FENGYDEL    = CONVERGE/10; //!< Allowance for +ve F.E. steps
@@ -587,6 +587,18 @@ double learnEGMC (
     const unsigned int nthreads = omp_get_max_threads()
     );
 
-}
 
+//
+// Topic models for Clustering (ctopic.cpp)
+//
+
+double learnTOP (
+    const std::vector<Eigen::MatrixXd>& X,
+    Eigen::MatrixXd& qY,
+    std::vector<Eigen::MatrixXd>& qZ,
+    const unsigned int T,
+    const bool verbose = false
+    );
+
+}
 #endif // LIBCLUSTER_H

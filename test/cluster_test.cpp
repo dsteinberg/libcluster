@@ -70,25 +70,18 @@ int main()
 {
 
   // Populate test data from testdata.h
-  MatrixXd X1, X2, Xcat;
+  MatrixXd Xcat;
   vector<MatrixXd> X;
-  makedata(X1, X2, Xcat, X);
+  makedata(Xcat, X);
+
+  const int J = X.size();
 
   // GMC
   SuffStat SS;
-  vector<SuffStat> SSgroup(2, SuffStat());
+  vector<SuffStat> SSgroup(J, SuffStat());
   vector<MatrixXd> qZgroup;
   clock_t start = clock();
   learnGMC (X, qZgroup, SSgroup, SS, true, true);
-
-//  vector<MatrixXd> Xt;
-//  Xt.push_back(X1);
-//  vector<SuffStat> SSgroup1;
-//  learnGMC (Xt, qZgroup, SSgroup1, SS, true, false, true);
-
-//  Xt[0] = X2;
-//  vector<SuffStat> SSgroup2;
-//  learnGMC (Xt, qZgroup, SSgroup2, SS, true, false, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "GMC Elapsed time = " << stop << " sec." << endl;
