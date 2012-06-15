@@ -41,11 +41,19 @@ clustergroup_cmp = sprintf( ...
     compiler, flags, eigendir, include, clusterdylib ...
     );
 
+% Create compile string for topic
+topic_cmp = sprintf( ...
+    'mex %s %s -I%s -I%s topic_mex.cpp intfctns.cpp %s', ...
+    compiler, flags, eigendir, include, clusterdylib ...
+    );
+
 % Compile!
 fprintf('Compiling cluster...\n')
 eval(cluster_cmp);
 fprintf('Compiling clustergroup...\n')
 eval(clustergroup_cmp);
+fprintf('Compiling topic...\n')
+eval(topic_cmp);
 fprintf('Finished!\n')
 
 %% Install and add to path
@@ -66,6 +74,9 @@ if strcmp(ansstr,'y') || strcmp(ansstr,'Y'),
         
     eval(sprintf('!cp clustergroup_mex.%s %s', mexext, instpath));
     eval(sprintf('!cp gmccluster.m %s', instpath));
+    
+    eval(sprintf('!cp topic_mex.%s %s', mexext, instpath));
+    eval(sprintf('!cp tcmcluster.m %s', instpath));
     
     eval(sprintf('!cp  SS2GMM.m %s', instpath));
     eval(sprintf('!cp  SS2EMM.m %s', instpath));

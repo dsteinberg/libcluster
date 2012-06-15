@@ -31,7 +31,8 @@ using namespace libcluster;
 //          SS.ss2      = {1x[?x?]} array of observation suff. stats. no 2.
 //      - SSgroup, {J X SuffStat} cell array of sufficient statistic structures.
 //          for each group of data input, required.
-//      - alg, [integer] type of algorithm [2=GMC, 3=SGMC, 4=EGMC], required.
+//      - alg, [integer] type of algorithm [GMC=0, SGMC=1, DGMC=2, EGMC=3 ], 
+//          required.
 //      - sparse, [logical] 1=sparse algorithm, 0=original, required.
 //      - verbose, [logical] 1=verbose output, 0=quiet, required.
 //      - nthreads, [integer] number of threads to use for clustering, optional.
@@ -40,7 +41,6 @@ using namespace libcluster;
 //      - F, [double] final free energy.
 //      - qZ, {J x [NjxK double]} probability of observation n belonging to a
 //        group cluster.
-//      - wj, {J x [1xK double]} weights of group clusters.
 //      - SSgroup, {J X SuffStat} cell array of sufficient statistic structures
 //          for each group of data input.
 //      - SS, SuffStat struct for all of the data in the model.
@@ -106,8 +106,8 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           ? mxGetN(prhs[0]) : mxGetM(prhs[0]);
   int D = mxGetN(mxGetCell(prhs[0], 0));
 
-  // Map X matlab cells to vector of eigen matrices. Make qZ.
-  vector<MatrixXd> X, qZ;
+  // Map X matlab cells to vector of eigen matrices.
+  vector<MatrixXd> X;
   vector<int> Nj;
   for (int j = 0; j < J; ++j)
   {
@@ -120,6 +120,7 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double F;
   SuffStat SS = str2SS(SSptr);
   vector<SuffStat> SSgroup;
+  vector<MatrixXd> qZ;
 
   for (int j = 0; j < J; ++j)
     SSgroup.push_back(str2SS(mxGetCell(SSgroupptr, j)));
@@ -186,14 +187,14 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Free energy
   plhs[0] = mxCreateDoubleScalar(F);
 
-  // Copy eigen qZ and wj to mxArray qZ and wj
+  // Copy eigen qZ and SSgroups to mxArray qZ and SSgroups
   mxArray *qZmx = mxCreateCellMatrix(1, J);
   mxArray *SSmx = mxCreateCellMatrix(1, J);
 
   for (int j = 0; j < J; ++j)
   {       
       mxSetCell(qZmx, j, eig2mat(qZ[j]));     // copy qZ
-      mxSetCell(SSmx, j, SS2str(SSgroup[j])); // copy wj
+      mxSetCell(SSmx, j, SS2str(SSgroup[j])); // copy SSgroups
   } 
 
   plhs[1] = qZmx;

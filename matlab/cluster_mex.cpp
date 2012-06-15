@@ -28,7 +28,8 @@ using namespace libcluster;
 //          SS.N_k      = {1xK} array of observation counts.
 //          SS.ss1      = {1x[?x?]} array of observation suff. stats. no 1.
 //          SS.ss2      = {1x[?x?]} array of observation suff. stats. no 2.
-//      - alg, [integer] the type of algorithm [0=VDP, 1=Bayesian SS], required.
+//      - alg, [integer] the type of algorithm [VDP=0, BGMM=1, DGMM=2, BEMM=3], 
+//          required.
 //      - verbose, [logical] 1=verbose output, 0=quiet, required.
 //      - nthreads, [integer] number of threads to use for clustering, optional.
 //

@@ -6,6 +6,7 @@
 #include "libcluster.h"
 #include "probutils.h"
 #include "distributions.h"
+#include "comutils.h"
 
 
 //
@@ -16,133 +17,7 @@ using namespace std;
 using namespace Eigen;
 using namespace probutils;
 using namespace distributions;
-
-
-//
-// Private Helper structures and functions
-//
-
-/* Triplet that contains the information for choosing a good cluster split
- *  ordering.
- */
-struct GreedOrder
-{
-  int k;      // Cluster number/index
-  int tally;  // Number of times a cluster has failed to split
-  double Fk;  // The clusters approximate free energy contribution
-};
-
-
-/* Compares two GreedOrder triplets and returns which is more optimal to split.
- *  Precendence is given to less split fail tally, and then to more free energy
- *  contribution.
- */
-bool inline greedcomp (const GreedOrder& i, const GreedOrder& j)
-{
-  if (i.tally == j.tally)       // If the tally is the same, use the greater Fk
-    return i.Fk > j.Fk;
-  else if (i.tally < j.tally)   // Otherwise prefer the lower tally
-    return true;
-  else
-    return false;
-}
-
-
-/* Find the indices of the ones and zeros in a binary array in the order they
- *  appear.
- *
- *  mutable: indtrue the indices of the true values in the array "expression"
- *  mutable: indfalse the indices of the false values in the array "expression"
- */
-void arrfind (const ArrayXb& expression, ArrayXi& indtrue, ArrayXi& indfalse)
-{
-  const int N = expression.size(),
-            M = expression.count();
-
-  indtrue.setZero(M);
-  indfalse.setZero(N-M);
-
-  for (int n = 0, m = 0, l = 0; n < N; ++n)
-    expression(n) ? indtrue(m++) = n : indfalse(l++) = n;
-}
-
-
-/* Partition the observations, X according to a logical array.
- *
- *  mutable: Xk, MxD matrix of observations that have a correspoding 1 in Xpart.
- *  returns: an Mx1 array of the locations of Xk in X.
- */
-ArrayXi partX (
-    const MatrixXd& X,    // NxD matrix of observations.
-    const ArrayXb& Xpart, // Nx1 indicator vector to partition X by.
-    MatrixXd& Xk          // MxD matrix of obs. beloning to new partition
-    )
-{
-  const int M = Xpart.count();
-
-  ArrayXi pidx, npidx;
-  arrfind(Xpart, pidx, npidx);
-
-  Xk.setZero(M, X.cols());
-  for (int m=0; m < M; ++m)           // index copy X to Xk
-    Xk.row(m) = X.row(pidx(m));
-
-  return pidx;
-}
-
-
-/* Augment the assignment matrix, qZ with the split cluster entry.
- *
- * The new cluster assignments are put in the K+1 th column in the return matrix
- *  returns: The new observation assignments, [Nx(K+1)].
- *  throws: std::invalid_argument if map.size() != Zsplit.size().
- */
-MatrixXd  augmentqZ (
-    const double k,        // The cluster to split (i.e. which column of qZ)
-    const ArrayXi& map,    // Mapping from array of partitioned obs to qZ
-    const ArrayXb& Zsplit, // Boolean array of assignments.
-    const MatrixXd& qZ     // [NxK] observation assignment probability matrix.
-    )
-{
-  const int K = qZ.cols(),
-            S = Zsplit.count();
-
-  if (Zsplit.size() != map.size())
-    throw invalid_argument("map and split must be the same size!");
-
-  // Create new qZ for all data with split
-  MatrixXd qZaug = qZ;    // Copy the existing qZ into the new
-  qZaug.conservativeResize(Eigen::NoChange, K+1);
-  qZaug.col(K).setZero();
-
-  ArrayXi sidx, nsidx;
-  arrfind(Zsplit, sidx, nsidx);
-
-  // Copy split cluster assignments (augment qZ effectively)
-  for (int s = 0; s < S; ++s)
-  {
-    qZaug(map(sidx(s)), K) = qZ(map(sidx(s)), k); // Add new cluster onto end
-    qZaug(map(sidx(s)), k) = 0;
-  }
-
-  return qZaug;
-}
-
-
-/* Check if any sufficient statistics are empty.
- *
- *  returns: True if any of the sufficient statistics are empty
- */
-bool anyempty (const libcluster::SuffStat& SS)
-{
-  const int K = SS.getK();
-
-  for (int k = 0; k < K; ++k)
-    if (SS.getN_k(k) <= 1)
-      return true;
-
-  return false;
-}
+using namespace comutils;
 
 
 //
@@ -780,7 +655,7 @@ template <class W, class C> double modelselect (
 
   // Initialise free energy and other loop variables
   bool   issplit = true;
-  double F = numeric_limits<double>::max();
+  double F;
 
   #ifdef GREEDY_SPLIT
   vector<int> tally;

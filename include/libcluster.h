@@ -592,10 +592,13 @@ double learnEGMC (
 // Topic models for Clustering (ctopic.cpp)
 //
 
-double learnTOP (
+double learnTCM (
     const std::vector<Eigen::MatrixXd>& X,
     Eigen::MatrixXd& qY,
     std::vector<Eigen::MatrixXd>& qZ,
+    std::vector<libcluster::SuffStat>& SSdocs, // Sufficient stats of documents
+    libcluster::SuffStat& SS,                  // Sufficient stats
+    Eigen::MatrixXd &classparams,              // Document class parameters
     const unsigned int T,
     const bool verbose = false
     );

@@ -13,6 +13,7 @@
 
 enum single_algs { VDP = 0, BGMM = 1, DGMM = 2, BEMM = 3 };
 enum group_algs  { GMC = 0, SGMC = 1, DGMC = 2, EGMC = 3 };
+enum topic_algs  { TCM = 0 };
 
 // Mex stream buffer class, prints using mexPrintf()
 class mexstreambuf : public std::streambuf

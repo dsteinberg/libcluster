@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include "probutils.h"
 
+
 /*! Namespace that implements weight and cluster distributions. */
 namespace distributions
 {
