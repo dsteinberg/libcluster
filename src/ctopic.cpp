@@ -30,8 +30,8 @@ using namespace comutils;
 // Private Constants
 //
 
-const int VBE_ITER = 3;  // Number of times to iterate between the VBE steps
-const int EF_ITER  = 5;  // Number of VB iters. for expected F.E. when splitting
+const int VBE_ITER = 1;  // Number of times to iterate between the VBE steps
+const int EF_ITER  = 1;  // Number of VB iters. for expected F.E. when splitting
 
 
 //
@@ -74,7 +74,7 @@ template <class C> ArrayXd updateSS (
 /*
  *
  */
-template <class W, class L> double vbeY (
+template <class W, class L> ArrayXd vbeY (
     const MatrixXd& Nik,        // [JxK]
     const W& wdists,
     const vector<L>& ldists,
@@ -94,12 +94,12 @@ template <class W, class L> double vbeY (
     logqY.col(t) = E_logY(t) + (Nik * ldists[t].Eloglike().matrix()).array();
 
   // Log normalisation constant of log observation likelihoods
-  const VectorXd logZy = logsumexp(logqY);
+  VectorXd logZy = logsumexp(logqY);
 
   // Normalise and Compute Responsibilities
   qY = (logqY.colwise() - logZy).array().exp().matrix();
 
-  return -logZy.sum();
+  return -logZy;
 }
 
 
@@ -147,8 +147,10 @@ template <class W, class L, class C> double fenergy (
     const W& wdists,
     const vector<L>& ldists,
     const vector<C>& cdists,
-    const double Fy,
-    const vector<double>& Fz
+    const ArrayXd& Fy,
+    const ArrayXd& Fz,
+    vector<libcluster::SuffStat>& SSi,  // Document sufficient statistics
+    libcluster::SuffStat& SS            // Model Sufficient statistics
     )
 {
   const int T = ldists.size(),
@@ -168,12 +170,15 @@ template <class W, class L, class C> double fenergy (
   for (int k = 0; k < K; ++k)
     Fc += cdists[k].fenergy();
 
-  // Cluster observation log-likelihood
-  double Fzall = 0;
+  // Free energy of the documents likelihoods
   for (int i = 0; i < I; ++i)
-    Fzall += Fz[i];
+  {
+    SS.subF(SSi[i]);  // Remove old documents F contribution
+    SSi[i].setF(/*Fy(i) +*/ Fz(i));
+    SS.addF(SSi[i]);  // Add in the new documents F contribution
+  }
 
-  return Fw + Fl + Fc + Fy + Fzall;
+  return /*Fw +*/ Fl + Fc + SS.getF();
 }
 
 
@@ -207,8 +212,8 @@ template <class W, class L, class C> double vbem (
   vector<L> ldists(T, L());
   vector<C> cdists(K, C(SS.getprior(), X[0].cols()));
 
-  double F = numeric_limits<double>::max(), Fold, Fy;
-  vector<double> Fz(I);
+  double F = numeric_limits<double>::max(), Fold;
+  ArrayXd Fz(I), Fy(I);
   MatrixXd Nik(I,K);
   int it = 0;
 
@@ -216,12 +221,12 @@ template <class W, class L, class C> double vbem (
   {
     Fold = F;
 
+    // VBM for class weights
+    wdists.update(qY.colwise().sum());
+
     // Calculate some sufficient statistics
     for (int i = 0; i < I; ++i)
       Nik.row(i) = updateSS<C>(X[i], qZ[i], SSi[i], SS);
-
-    // VBM for class weights
-    wdists.update(qY.colwise().sum());
 
     // VBM for class parameters
     for (int t = 0; t < T; ++t)
@@ -234,18 +239,21 @@ template <class W, class L, class C> double vbem (
     // VBE iterations, need to iterate between Z and Y for best results
     for (int e = 0; e < VBE_ITER; ++e)
     {
-
       // VBE for class indicators
       Fy = vbeY<W,L>(Nik, wdists, ldists, qY);
 
       // VBE for cluster indicators
       for (int i = 0; i < I; ++i)
-        Fz[i] = vbeZ<L,C>(X[i], qY.row(i), ldists, cdists, qZ[i]);
-
+        Fz(i) = vbeZ<L,C>(X[i], qY.row(i), ldists, cdists, qZ[i]);
     }
 
     // Calculate free energy of model
-    F = fenergy<W,L,C>(wdists, ldists, cdists, Fy, Fz);
+    F = fenergy<W,L,C>(wdists, ldists, cdists, Fy, Fz, SSi, SS);
+
+    cout << "F = " << F
+         << ", Fy = " << Fy.sum()
+         << ", Fz = " << Fz.sum()
+         << ", Fw = " << wdists.fenergy() << endl;
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
@@ -435,8 +443,12 @@ template <class W, class L, class C> double modelselect (
 {
   const unsigned int I = X.size();
 
+  // Some input argument checking
   if (T > I)
     throw invalid_argument("T must be <= I, the number of documents in X!");
+
+  if (SSdocs.size() != X.size())
+    throw invalid_argument("SSdocs and X must be the same size!");
 
   // Randomly initialise qY
   {
@@ -444,6 +456,7 @@ template <class W, class L, class C> double modelselect (
     ArrayXd norm = randm.rowwise().sum();
     qY = (randm.log().colwise() - norm.log()).exp();
   }
+//  qY.setOnes(I,1);
 
   qZ.resize(I);
   for (unsigned int i = 0; i < I; ++i)

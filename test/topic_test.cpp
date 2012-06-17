@@ -101,5 +101,7 @@ int main()
   cout << endl << "Cluster parameters:";
   printGMM(SS);
 
+//  cout << endl << qY << endl;
+
   return 0;
 }
