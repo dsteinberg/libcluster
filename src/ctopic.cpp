@@ -31,8 +31,6 @@ using namespace comutils;
 //
 
 const int VBE_ITER = 1;  // Number of times to iterate between the VBE steps
-const int EF_ITER  = 1;  // Number of VB iters. for expected F.E. when splitting
-
 
 //
 //  Private Functions
@@ -75,10 +73,10 @@ template <class C> ArrayXd updateSS (
  *
  */
 template <class W, class L> ArrayXd vbeY (
-    const MatrixXd& Nik,        // [JxK]
+    const MatrixXd& Nik,        // [IxK] sum_n q(z_in = k)
     const W& wdists,
     const vector<L>& ldists,
-    MatrixXd& qY                // [JxT]
+    MatrixXd& qY                // [IxT]
     )
 {
   const int T = ldists.size(),
@@ -89,9 +87,13 @@ template <class W, class L> ArrayXd vbeY (
 
   // Find Expectations of log joint observation probs
   MatrixXd logqY(I, T);
+  ArrayXXd qZiPi = ArrayXXd::Zero(I,T);
 
   for (int t = 0; t < T; ++t)
-    logqY.col(t) = E_logY(t) + (Nik * ldists[t].Eloglike().matrix()).array();
+  {
+    qZiPi.col(t) = Nik * ldists[t].Eloglike().matrix();
+    logqY.col(t) = E_logY(t) + qZiPi.col(t);
+  }
 
   // Log normalisation constant of log observation likelihoods
   VectorXd logZy = logsumexp(logqY);
@@ -99,7 +101,7 @@ template <class W, class L> ArrayXd vbeY (
   // Normalise and Compute Responsibilities
   qY = (logqY.colwise() - logZy).array().exp().matrix();
 
-  return -logZy;
+  return (qY.array() * qZiPi).rowwise().sum() - logZy.array();
 }
 
 
@@ -174,11 +176,11 @@ template <class W, class L, class C> double fenergy (
   for (int i = 0; i < I; ++i)
   {
     SS.subF(SSi[i]);  // Remove old documents F contribution
-    SSi[i].setF(/*Fy(i) +*/ Fz(i));
+    SSi[i].setF(Fy(i) + Fz(i));
     SS.addF(SSi[i]);  // Add in the new documents F contribution
   }
 
-  return /*Fw +*/ Fl + Fc + SS.getF();
+  return Fw + Fl + Fc + SS.getF();
 }
 
 
@@ -250,15 +252,9 @@ template <class W, class L, class C> double vbem (
     // Calculate free energy of model
     F = fenergy<W,L,C>(wdists, ldists, cdists, Fy, Fz, SSi, SS);
 
-    cout << "F = " << F
-         << ", Fy = " << Fy.sum()
-         << ", Fz = " << Fz.sum()
-         << ", Fw = " << wdists.fenergy() << endl;
-
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
       cout << '(' << (F-Fold)/abs(Fold) << ')';
-//      throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
       cout << '-' << flush;
@@ -291,8 +287,8 @@ template <class W, class L, class C> bool split_gr (
     const vector<MatrixXd>& X,               // Observations
     const vector<libcluster::SuffStat>& SSi, // Sufficient stats of groups
     const libcluster::SuffStat& SS,          // Sufficient stats
-    const MatrixXd& qY,                      // Class Probabilities qY
     const double F,                          // Current model free energy
+    MatrixXd& qY,                            // Class Probabilities qY
     vector<MatrixXd>& qZ,                    // Cluster Probabilities qZ
     vector<int>& tally,                      // Count of unsuccessful splits
     const bool verbose                       // Verbose output
@@ -397,8 +393,7 @@ template <class W, class L, class C> bool split_gr (
     MatrixXd qYaug = qY;                                          // Copy :-(
     libcluster::SuffStat SSaug = SS;                              // Copy :-(
     vector<libcluster::SuffStat> SSiaug = SSi;                    // Copy :-(
-    double Fsplit = vbem<W,L,C>(X, qZaug, qYaug, SSiaug, SSaug, classparams,
-                                EF_ITER);
+    double Fsplit = vbem<W,L,C>(X, qZaug, qYaug, SSiaug, SSaug, classparams, 1);
 
     if (anyempty(SSaug) == true) // One cluster only
       continue;
@@ -410,6 +405,7 @@ template <class W, class L, class C> bool split_gr (
     // Test whether this cluster split is a keeper
     if ( (Fsplit < F) && (abs((F-Fsplit)/F) > libcluster::CONVERGE) )
     {
+      qY = qYaug;
       qZ = qZaug;
       tally[k] = 0;   // Reset tally if successfully split
       return true;
@@ -477,11 +473,20 @@ template <class W, class L, class C> double modelselect (
       cout << '<' << flush;  // Notify start splitting
 
     // Search for best split, augment qZ if found one
-    issplit = split_gr<W,L,C>(X, SSdocs, SS, qY, F, qZ, tally, verbose);
+    issplit = split_gr<W,L,C>(X, SSdocs, SS, F, qY, qZ, tally, verbose);
 
     if (verbose == true)
       cout << '>' << endl;   // Notify end splitting
   }
+
+  // Hard assign qY
+//  for (unsigned int i = 0; i < I; ++i)
+//  {
+//    int t;
+//    qY.row(i).maxCoeff(&t);
+//    qY.row(i).setZero();
+//    qY(i,t) = 1;
+//  }
 
   // Print finished notification if verbose
   if (verbose == true)
@@ -518,6 +523,6 @@ double libcluster::learnTCM (
     cout << "Learning " << "TCM..." << endl;
 
   // Model selection and Variational Bayes learning
-  return modelselect<Dirichlet, Dirichlet, GaussWish>(X, qY, qZ, SSdocs, SS,
+  return modelselect<Dirichlet, Dirichlet, NormGamma>(X, qY, qZ, SSdocs, SS,
                                                       classparams, T, verbose);
 }
