@@ -25,6 +25,9 @@ function [qY, qZ, SSdocs, SS, clparams, F] = tcmcluster (X, T, SS, SSdocs, optio
 %
 %   - SSdocs {I X SS} cell array of document sufficient statistic structures.
 %
+%   - T [integer] truncation level of classes, i.e. max number of classes to 
+%          find.
+%
 %   - options specifies various algorithm options, they are:
 %     * options.alg is the algorithm to use, valid options are:
 %
@@ -68,10 +71,8 @@ function [qY, qZ, SSdocs, SS, clparams, F] = tcmcluster (X, T, SS, SSdocs, optio
 %
 % See also GMCCLUSTER, BMMCLUSTER, SS2GMM, SS2EMM
 
-    % Check for a valid truncation level
-    if T < 0,
-      error('T must be greater than or equal to zero!');
-    end
+    % Check for valid truncation levels
+    if T < 0, error('T must be greater than or equal to zero!'); end
 
     % Check for a cell array
     if ~iscell(X), error('X must be a cell array!'); end
@@ -145,7 +146,7 @@ function [qY, qZ, SSdocs, SS, clparams, F] = tcmcluster (X, T, SS, SSdocs, optio
   % Run the suitable version of topic_mex depending on the arguments
   if isfield(options, 'nthreads') == false,
     [F qY qZ SSdocs SS clparams] = topic_mex(X, SS, SSdocs, T, algval, ...
-                        logical(options.sparse), logical(options.verbose));
+                             logical(options.sparse), logical(options.verbose));
   else
     [F qY qZ SSdocs SS clparams] = topic_mex(X, SS, SSdocs, T, algval, ...
            logical(options.sparse), logical(options.verbose), options.nthreads);

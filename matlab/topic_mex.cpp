@@ -33,7 +33,7 @@ using namespace libcluster;
 //          for each document of data input, required.
 //      - T, [integer] truncation level of classes, i.e. max number of classes 
 //          to find
-//      - alg, [integer] type of algorithm [5=TCM], required.
+//      - alg, [integer] type of algorithm [0=TCM], required.
 //      - sparse, [logical] 1=sparse algorithm, 0=original, required.
 //      - verbose, [logical] 1=verbose output, 0=quiet, required.
 //      - nthreads, [integer] number of threads to use for clustering, optional.

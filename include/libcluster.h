@@ -600,6 +600,7 @@ double learnTCM (
     libcluster::SuffStat& SS,                  // Sufficient stats
     Eigen::MatrixXd &classparams,              // Document class parameters
     const unsigned int T,
+//    const unsigned int K,        // Truncation level for number of clusters
     const bool verbose = false
     );
 

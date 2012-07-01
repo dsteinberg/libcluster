@@ -1,5 +1,6 @@
 // TODO:
 //  - Make a bootstrap function for starting from a previous Suff. stats.
+//  - REMOVE EMPTY clusters!
 //  - Make a sparse flag for the clusters and classes?
 //  - Neaten up the split_gr() function.
 //  - Add in an optional split_ex() function.
@@ -434,6 +435,7 @@ template <class W, class L, class C> double modelselect (
     libcluster::SuffStat& SS,    // Sufficient stats
     MatrixXd& classparams,       // Document class parameters
     const unsigned int T,        // Truncation level for number of classes
+//    const unsigned int K,        // Truncation level for number of clusters
     const bool verbose           // Verbose output
     )
 {
@@ -454,6 +456,7 @@ template <class W, class L, class C> double modelselect (
   }
 //  qY.setOnes(I,1);
 
+  // Initialise qZ
   qZ.resize(I);
   for (unsigned int i = 0; i < I; ++i)
     qZ[i] = MatrixXd::Ones(X[i].rows(), 1);
@@ -478,15 +481,6 @@ template <class W, class L, class C> double modelselect (
     if (verbose == true)
       cout << '>' << endl;   // Notify end splitting
   }
-
-  // Hard assign qY
-//  for (unsigned int i = 0; i < I; ++i)
-//  {
-//    int t;
-//    qY.row(i).maxCoeff(&t);
-//    qY.row(i).setZero();
-//    qY(i,t) = 1;
-//  }
 
   // Print finished notification if verbose
   if (verbose == true)
@@ -514,15 +508,21 @@ double libcluster::learnTCM (
     libcluster::SuffStat& SS,
     MatrixXd& classparams,
     const unsigned int T,
+//    const unsigned int K,
     const bool verbose
     )
 {
+
+  // Check for negative inputs
+//  for (unsigned int i = 0; i < X.size(); ++i)
+//    if ((X[i].array() < 0).any() == true)
+//      throw invalid_argument("X has to be in the range [0, inf)!");
 
   // Model selection and Variational Bayes learning
   if (verbose == true)
     cout << "Learning " << "TCM..." << endl;
 
   // Model selection and Variational Bayes learning
-  return modelselect<Dirichlet, Dirichlet, NormGamma>(X, qY, qZ, SSdocs, SS,
+  return modelselect<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ, SSdocs, SS,
                                                       classparams, T, verbose);
 }
