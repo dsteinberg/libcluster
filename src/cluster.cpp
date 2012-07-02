@@ -257,61 +257,6 @@ template <class W, class C> double vbem (
 }
 
 
-/*  Find and remove all empty clusters. This is now necessary if we don't do an
- *    exhaustive search for the BEST cluster to split.
- *
- *    returns: true if any clusters have been deleted, false if all are kept.
- *    mutable: qZ may have columns deleted if there are empty clusters found.
- *    mutable: SSj if there are empty clusters found.
- *    mutable: SS if there are empty clusters found.
- */
-bool clean (
-    vector<MatrixXd>& qZ,              // Probabilities qZ
-    vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
-    libcluster::SuffStat& SS           // Sufficient stats
-    )
-{
-  const int K = SS.getK(),
-            J = qZ.size();
-  ArrayXb kempty(K);
-
-  // Look for empty sufficient statistics
-  for (int k = 0; k < K; ++k)
-    kempty(k) = SS.getN_k(k) < 1;
-
-  // If everything is not empty, return false
-  if ((kempty == false).all())
-    return false;
-
-  // Find location of empty and full clusters
-  ArrayXi eidx, fidx;
-  arrfind(kempty, eidx, fidx);
-
-  // Delete empty cluster suff. stats.
-  for (int i = eidx.size() - 1; i >= 0; --i)
-  {
-    SS.delk(eidx(i));
-    for (int j = 0; j < J; ++j)
-      SSj[j].delk(eidx(i));
-  }
-
-  // Delete empty cluster indicators by copying only full indicators
-  const int newK = fidx.size();
-  vector<MatrixXd> newqZ(J);
-
-  for (int j = 0; j < J; ++j)
-  {
-    newqZ[j].setZero(qZ[j].rows(), newK);
-    for (int k = 0; k < newK; ++k)
-      newqZ[j].col(k) = qZ[j].col(fidx(k));
-  }
-
-  qZ = newqZ;
-
-  return true;
-}
-
-
 /*  Search in an exhaustive fashion for a mixture split that lowers model free
  *    energy the most. If no splits are found which lower Free Energy, then
  *    false is returned, and qZ is not modified.
@@ -667,8 +612,8 @@ template <class W, class C> double modelselect (
     // VBEM for all groups (throws runtime_error & invalid_argument)
     F = vbem<W,C>(X, qZ, SSgroups, SS, -1, sparse, verbose);
 
-    // Remove any emtpy clusters
-    bool remk = clean(qZ, SSgroups, SS);
+    // Remove any empty clusters
+    bool remk = prune_clusters(qZ, SSgroups, SS);
 
     if ( (verbose == true) && (remk == true) )
       cout << 'x' << flush;
@@ -703,6 +648,7 @@ template <class W, class C> double modelselect (
 //
 // Public Functions
 //
+
 
 double libcluster::learnVDP (
     const MatrixXd& X,

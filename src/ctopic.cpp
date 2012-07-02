@@ -1,11 +1,9 @@
 // TODO:
 //  - Make a bootstrap function for starting from a previous Suff. stats.
-//  - REMOVE EMPTY clusters!
 //  - Make a sparse flag for the clusters and classes?
 //  - Neaten up the split_gr() function.
 //  - Add in an optional split_ex() function.
 //  - Parallelise
-//  - Find a better way of outputting the class parameters.
 //  - is there a way to re-use updateSS() and split() between this and
 //    cluster.cpp?
 
@@ -417,10 +415,36 @@ template <class W, class L, class C> bool split_gr (
   return false;
 }
 
+/* TODO
+ *
+ */
+bool prune_classes (MatrixXd& qY)
+{
+
+  // Find empty classes, count them
+  ArrayXi Ypop, Yemp;
+  arrfind(qY.colwise().sum().array() > libcluster::ZEROCUTOFF, Ypop, Yemp);
+  const unsigned int Tpop = Ypop.size();
+
+  // No empty classes
+  if (Tpop == qY.cols())
+    return false;
+
+  // Now copy only populated columns to new qY matrix
+  MatrixXd qYnew = MatrixXd::Zero(qY.rows(), Tpop);
+  for (unsigned int t = 0; t < Tpop; ++t)
+    qYnew.col(t) = qY.col(Ypop(t));
+
+  // Copy back to qY, return true
+  qY = qYnew;
+  return true;
+}
+
 
 /* The model selection algorithm
  *
  *  returns: Free energy of the final model
+ *  mutable: qY the probabilistic document to class assignments
  *  mutable: qZ the probabilistic observation to cluster assignments
  *  mutable: the document sufficient stats.
  *  mutable: the model sufficient stats.
@@ -435,7 +459,6 @@ template <class W, class L, class C> double modelselect (
     libcluster::SuffStat& SS,    // Sufficient stats
     MatrixXd& classparams,       // Document class parameters
     const unsigned int T,        // Truncation level for number of classes
-//    const unsigned int K,        // Truncation level for number of clusters
     const bool verbose           // Verbose output
     )
 {
@@ -454,7 +477,6 @@ template <class W, class L, class C> double modelselect (
     ArrayXd norm = randm.rowwise().sum();
     qY = (randm.log().colwise() - norm.log()).exp();
   }
-//  qY.setOnes(I,1);
 
   // Initialise qZ
   qZ.resize(I);
@@ -469,9 +491,22 @@ template <class W, class L, class C> double modelselect (
   // Main loop
   while (issplit == true)
   {
+    // Variational Bayes
     F = vbem<W,L,C>(X, qZ, qY, SSdocs, SS, classparams, -1, verbose);
 
-    // Start cluster splitting
+    // Remove any empty clusters
+    bool remk = prune_clusters(qZ, SSdocs, SS);
+
+    if ( (verbose == true) && (remk == true) )
+      cout << 'x' << flush;
+
+    // Remove any empty classes
+    bool remc = prune_classes(qY);
+
+    if ( (verbose == true) && (remc == true) )
+      cout << '*' << flush;
+
+    // Model search heuristics
     if (verbose == true)
       cout << '<' << flush;  // Notify start splitting
 
@@ -479,14 +514,14 @@ template <class W, class L, class C> double modelselect (
     issplit = split_gr<W,L,C>(X, SSdocs, SS, F, qY, qZ, tally, verbose);
 
     if (verbose == true)
-      cout << '>' << endl;   // Notify end splitting
+      cout << '>' << endl;   // Notify end search
   }
 
   // Print finished notification if verbose
   if (verbose == true)
   {
     cout << "Finished!" << endl;
-    cout << "Number of classes = " << (qY.colwise().sum().array() >= 1).count();
+    cout << "Number of classes = " << qY.cols();
     cout << ", and clusters = " << SS.getK() << endl;
     cout << "Free energy = " << F << endl;
   }
@@ -508,15 +543,9 @@ double libcluster::learnTCM (
     libcluster::SuffStat& SS,
     MatrixXd& classparams,
     const unsigned int T,
-//    const unsigned int K,
     const bool verbose
     )
 {
-
-  // Check for negative inputs
-//  for (unsigned int i = 0; i < X.size(); ++i)
-//    if ((X[i].array() < 0).any() == true)
-//      throw invalid_argument("X has to be in the range [0, inf)!");
 
   // Model selection and Variational Bayes learning
   if (verbose == true)
