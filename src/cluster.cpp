@@ -193,8 +193,7 @@ template <class W, class C> double fenergy (
  *  mutable: variational posterior approximations to p(Z|X).
  *  mutable: the group sufficient stats.
  *  mutable: the model sufficient stats.
- *  throws: invalid_argument rethrown from other functions or if cdists.size()
- *          does not match qZ[j].cols().
+ *  throws: invalid_argument rethrown from other functions.
  *  throws: runtime_error if there is a negative free energy.
  */
 template <class W, class C> double vbem (

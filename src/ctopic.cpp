@@ -26,12 +26,6 @@ using namespace comutils;
 
 
 //
-// Private Constants
-//
-
-const int VBE_ITER = 1;  // Number of times to iterate between the VBE steps
-
-//
 //  Private Functions
 //
 
@@ -68,7 +62,7 @@ template <class C> ArrayXd updateSS (
 }
 
 
-/*
+/* TODO
  *
  */
 template <class W, class L> ArrayXd vbeY (
@@ -104,7 +98,7 @@ template <class W, class L> ArrayXd vbeY (
 }
 
 
-/*
+/* TODO
  *
  */
 template <class L, class C> double vbeZ (
@@ -141,7 +135,7 @@ template <class L, class C> double vbeZ (
 }
 
 
-/*
+/* TODO
  *
  */
 template <class W, class L, class C> double fenergy (
@@ -186,11 +180,11 @@ template <class W, class L, class C> double fenergy (
 /* Variational Bayes EM for all document mixtures.
  *
  *  returns: Free energy of the whole model.
- *  mutable: variational posterior approximations to p(Z|X).
+ *  mutable: the cluster indicators, qZ
+ *  mutable: the class indicators, qY
  *  mutable: the document sufficient stats.
  *  mutable: the model sufficient stats.
- *  throws: invalid_argument rethrown from other functions or if cdists.size()
- *          does not match qZ[i].cols().
+ *  throws: invalid_argument rethrown from other functions.
  *  throws: runtime_error if there is a negative free energy.
  */
 template <class W, class L, class C> double vbem (
@@ -199,7 +193,6 @@ template <class W, class L, class C> double vbem (
     MatrixXd& qY,               // Indicator to label assignments [IxT]
     vector<libcluster::SuffStat>& SSi, // Sufficient stats of each document
     libcluster::SuffStat& SS,   // Sufficient stats of whole model
-    MatrixXd& classparams,      // Document class parameters
     const int maxit = -1,       // Max VBEM iterations (-1 = no max, default)
     const bool verbose = false  // Verbose output (default false)
     )
@@ -237,34 +230,25 @@ template <class W, class L, class C> double vbem (
     for (int k = 0; k < K; ++k)
       cdists[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
 
-    // VBE iterations, need to iterate between Z and Y for best results
-    for (int e = 0; e < VBE_ITER; ++e)
-    {
-      // VBE for class indicators
-      Fy = vbeY<W,L>(Nik, wdists, ldists, qY);
+    // VBE for class indicators
+    Fy = vbeY<W,L>(Nik, wdists, ldists, qY);
 
-      // VBE for cluster indicators
-      for (int i = 0; i < I; ++i)
-        Fz(i) = vbeZ<L,C>(X[i], qY.row(i), ldists, cdists, qZ[i]);
-    }
+    // VBE for cluster indicators
+    for (int i = 0; i < I; ++i)
+      Fz(i) = vbeZ<L,C>(X[i], qY.row(i), ldists, cdists, qZ[i]);
 
     // Calculate free energy of model
     F = fenergy<W,L,C>(wdists, ldists, cdists, Fy, Fz, SSi, SS);
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
-      cout << '(' << (F-Fold)/abs(Fold) << ')';
+      throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
       cout << '-' << flush;
   }
   while ( (abs((Fold-F)/Fold) > libcluster::CONVERGE)
           && ( (it++ < maxit) || (maxit < 0) ) );
-
-  // Get the document glass parameters
-  classparams.setZero(T,K);
-  for (int t = 0; t < T; ++t)
-    classparams.row(t) = ldists[t].Eloglike().transpose().exp();
 
   return F;
 }
@@ -334,7 +318,6 @@ template <class W, class L, class C> bool split_gr (
   sort(ord.begin(), ord.end(), greedcomp);
 
   // Pre allocate big objects for loops (this makes a runtime difference)
-  MatrixXd classparams;
   vector<ArrayXi> mapidx(I, ArrayXi());
   vector<MatrixXd> qZref(I,MatrixXd()), qZaug(I,MatrixXd()), Xk(I,MatrixXd());
 
@@ -377,8 +360,7 @@ template <class W, class L, class C> bool split_gr (
     MatrixXd qYref = MatrixXd::Ones(I,1);
     libcluster::SuffStat SSref(SS.getprior());
     vector<libcluster::SuffStat> SSiref(I, libcluster::SuffStat(SS.getprior()));
-    vbem<W,L,C>(Xk, qZref, qYref, SSiref, SSref, classparams,
-                libcluster::SPLITITER);
+    vbem<W,L,C>(Xk, qZref, qYref, SSiref, SSref, libcluster::SPLITITER);
 
     if (anyempty(SSref) == true) // One cluster only
       continue;
@@ -392,7 +374,7 @@ template <class W, class L, class C> bool split_gr (
     MatrixXd qYaug = qY;                                          // Copy :-(
     libcluster::SuffStat SSaug = SS;                              // Copy :-(
     vector<libcluster::SuffStat> SSiaug = SSi;                    // Copy :-(
-    double Fsplit = vbem<W,L,C>(X, qZaug, qYaug, SSiaug, SSaug, classparams, 1);
+    double Fsplit = vbem<W,L,C>(X, qZaug, qYaug, SSiaug, SSaug, 1);
 
     if (anyempty(SSaug) == true) // One cluster only
       continue;
@@ -414,6 +396,7 @@ template <class W, class L, class C> bool split_gr (
   // Failed to find splits
   return false;
 }
+
 
 /* TODO
  *
@@ -457,7 +440,6 @@ template <class W, class L, class C> double modelselect (
     vector<MatrixXd>& qZ,        // Observations to cluster assignments
     vector<libcluster::SuffStat>& SSdocs, // Sufficient stats of documents
     libcluster::SuffStat& SS,    // Sufficient stats
-    MatrixXd& classparams,       // Document class parameters
     const unsigned int T,        // Truncation level for number of classes
     const bool verbose           // Verbose output
     )
@@ -492,7 +474,7 @@ template <class W, class L, class C> double modelselect (
   while (issplit == true)
   {
     // Variational Bayes
-    F = vbem<W,L,C>(X, qZ, qY, SSdocs, SS, classparams, -1, verbose);
+    F = vbem<W,L,C>(X, qZ, qY, SSdocs, SS, -1, verbose);
 
     // Remove any empty clusters
     bool remk = prune_clusters(qZ, SSdocs, SS);
@@ -546,12 +528,30 @@ double libcluster::learnTCM (
     const bool verbose
     )
 {
-
   // Model selection and Variational Bayes learning
   if (verbose == true)
     cout << "Learning " << "TCM..." << endl;
 
   // Model selection and Variational Bayes learning
-  return modelselect<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ, SSdocs, SS,
-                                                      classparams, T, verbose);
+  double F = modelselect<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ, SSdocs,
+                                                           SS, T, verbose);
+
+  // Get the document class parameters
+  int T_tr = qY.cols(), K = SS.getK(), I = X.size();
+  MatrixXd Nik(I, K);
+  Dirichlet ldists;
+  classparams.setZero(T_tr, K);
+
+  // Document multinomial counts
+  for (int i = 0; i < I; ++i)
+    Nik.row(i) = qZ[i].colwise().sum();
+
+  // Create class parameters
+  for (int t = 0; t < T_tr; ++t)
+  {
+    ldists.update(qY.col(t).transpose()*Nik);  // Weighted multinomials.
+    classparams.row(t) = ldists.Eloglike().transpose().exp();
+  }
+
+  return F;
 }

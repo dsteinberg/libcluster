@@ -113,7 +113,7 @@ void distributions::StickBreak::update (const ArrayXd& Nk)
     this->alpha2(k) = this->alpha2_p + (N - cumNk);
 
     // Expected stick lengths
-    double psisum = digamma(this->alpha1(k) + this->alpha2(k));
+    double psisum    = digamma(this->alpha1(k) + this->alpha2(k));
     this->E_logv(k)  = digamma(this->alpha1(k)) - psisum;
     this->E_lognv(k) = digamma(this->alpha2(k)) - psisum;
 
@@ -291,8 +291,9 @@ void distributions::GaussWish::update (
   this->nu   = this->nu_p + N;
   this->beta = this->beta_p + N;
   this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
-  this->iW.noalias() = this->iW_p + Sk
-               + (this->beta_p*N/this->beta) * xk_m.transpose() * xk_m;
+  this->iW   = this->iW_p + Sk
+                + (this->beta_p*N/this->beta) * xk_m.transpose() * xk_m;
+
   try
     { this->logdW = -logdet(this->iW); }
   catch (invalid_argument e)
@@ -307,8 +308,8 @@ VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
   double sumpsi = mxdigamma((this->nu+1-enumdims(this->D)).matrix()/2).sum();
   try
   {
-    E_logX.noalias() = 0.5 * (sumpsi + this->logdW - this->D*(1/this->beta
-      + log(pi)) - this->nu * mahaldist(X, this->m, this->iW).array()).matrix();
+    E_logX = 0.5 * (sumpsi + this->logdW - this->D * (1/this->beta + log(pi))
+                 - this->nu * mahaldist(X, this->m, this->iW).array()).matrix();
   }
   catch (invalid_argument e)
     { throw(string("Calculating Gaussian likelihood: ").append(e.what())); }
@@ -416,8 +417,12 @@ void distributions::NormGamma::update (
   this->beta = this->beta_p + N;
   this->nu   = this->nu_p + N/2;
   this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
-  this->L.noalias() = this->L_p + Sk/2 + (this->beta_p * N / (2 * this->beta))
+  this->L    = this->L_p + Sk/2 + (this->beta_p * N / (2 * this->beta))
                 * (xk - this->m_p).array().square().matrix();
+
+  if ((this->L.array() <= 0).any())
+    throw invalid_argument(string("Calc log(L): Variance is zero or less!"));
+
   this->logL = this->L.array().log().sum();
 }
 
