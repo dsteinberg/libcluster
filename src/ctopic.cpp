@@ -76,7 +76,7 @@ template <class W, class L> ArrayXd vbeY (
             I = Nik.rows();
 
   // Get log marginal weight likelihoods
-  const ArrayXd E_logY = wdists.Eloglike();
+  const ArrayXd E_logY = wdists.Elogweight();
 
   // Find Expectations of log joint observation probs
   MatrixXd logqY(I, T);
@@ -84,7 +84,7 @@ template <class W, class L> ArrayXd vbeY (
 
   for (int t = 0; t < T; ++t)
   {
-    qZiPi.col(t) = Nik * ldists[t].Eloglike().matrix();
+    qZiPi.col(t) = Nik * ldists[t].Elogweight().matrix();
     logqY.col(t) = E_logY(t) + qZiPi.col(t);
   }
 
@@ -117,7 +117,7 @@ template <class L, class C> double vbeZ (
   ArrayXd E_logZt = ArrayXd::Zero(K);
 
   for (int t = 0; t < T; ++t)
-    E_logZt += qYi(t) * ldists[t].Eloglike();
+    E_logZt += qYi(t) * ldists[t].Elogweight();
 
   // Find Expectations of log joint observation probs
   MatrixXd logqZi(Ni, K);
@@ -302,7 +302,7 @@ template <class W, class L, class C> bool split_gr (
     // Get GLOBAL cluster weights
     L wsplit;
     wsplit.update(qZ[i].colwise().sum());
-    ArrayXd logpi = wsplit.Eloglike();
+    ArrayXd logpi = wsplit.Elogweight();
 
     // Add in cluster log-likelihood, weighted by responsability
     for (unsigned int k = 0; k < K; ++k)
@@ -550,7 +550,7 @@ double libcluster::learnTCM (
   for (int t = 0; t < T_tr; ++t)
   {
     ldists.update(qY.col(t).transpose()*Nik);  // Weighted multinomials.
-    classparams.row(t) = ldists.Eloglike().transpose().exp();
+    classparams.row(t) = ldists.Elogweight().transpose().exp();
   }
 
   return F;

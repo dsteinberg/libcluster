@@ -115,7 +115,7 @@ template <class W, class C> double vbexpectation (
             Nj = Xj.rows();
 
   // Get log marginal weight likelihoods
-  const ArrayXd E_logZ = wdistj.Eloglike();
+  const ArrayXd E_logZ = wdistj.Elogweight();
 
   // Initialise and set K = 1 defaults for cluster counts
   ArrayXi Kful = ArrayXi::Zero(1), Kemp = ArrayXi::Zero(0);
@@ -412,7 +412,7 @@ template <class W, class C> bool split_gr (
     // Get cluster weights
     W wsplit;
     wsplit.update(qZ[j].colwise().sum());
-    ArrayXd logpi = wsplit.Eloglike();
+    ArrayXd logpi = wsplit.Elogweight();
 
     // Add in cluster log-likelihood, weighted by responsability
     for (unsigned int k = 0; k < K; ++k)

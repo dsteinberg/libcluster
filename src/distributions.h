@@ -1,4 +1,5 @@
 // TODO
+//  - Change weightdist Eloglike to something else more descriptive???
 //  - Neaten up static interfaces.
 //  - Can I make an even more generic suff. stats. interface??
 
@@ -44,10 +45,10 @@ public:
    */
   virtual void update (const Eigen::ArrayXd& Nk) = 0;
 
-  /*! \brief Evaluate the log marginal likelihood of the labels.
+  /*! \brief Evaluate the expectation of the log label weights in the mixtures.
    *  \returns An array of likelihoods for the labels given the weights
    */
-  virtual const Eigen::ArrayXd& Eloglike () const = 0;
+  virtual const Eigen::ArrayXd& Elogweight () const = 0;
 
   /*! \brief Get the number of observations in each cluster.
    *  \returns An array the number of observations in each cluster.
@@ -76,7 +77,7 @@ public:
 
   void update (const Eigen::ArrayXd& Nk);
 
-  const Eigen::ArrayXd& Eloglike () const { return this->E_logpi; }
+  const Eigen::ArrayXd& Elogweight () const { return this->E_logpi; }
 
   const Eigen::ArrayXd& getNk () const { return this->Nk; }
 
@@ -129,7 +130,7 @@ public:
 
   void update (const Eigen::ArrayXd& Nk);
 
-  const Eigen::ArrayXd& Eloglike () const { return this->E_logpi; }
+  const Eigen::ArrayXd& Elogweight () const { return this->E_logpi; }
 
   const Eigen::ArrayXd& getNk () const { return this->Nk; }
 
