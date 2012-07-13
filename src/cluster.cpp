@@ -21,8 +21,9 @@ using namespace comutils;
 
 
 //
-// Private Algorithm Functions
+// Variational Bayes Private Functions
 //
+
 
 /* Update the group and model sufficient statistics based on assignments qZj.
  *
@@ -254,6 +255,11 @@ template <class W, class C> double vbem (
 
   return F;
 }
+
+
+//
+//  Model Selection and Heuristics Private Functions
+//
 
 
 /*  Search in an exhaustive fashion for a mixture split that lowers model free
@@ -612,9 +618,9 @@ template <class W, class C> double modelselect (
     F = vbem<W,C>(X, qZ, SSgroups, SS, -1, sparse, verbose);
 
     // Remove any empty clusters
-    bool remk = prune_clusters(qZ, SSgroups, SS);
+    bool isremk = prune_clusters(qZ, SSgroups, SS);
 
-    if ( (verbose == true) && (remk == true) )
+    if ( (verbose == true) && (isremk == true) )
       cout << 'x' << flush;
 
     // Start cluster splitting

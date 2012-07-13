@@ -26,7 +26,7 @@ using namespace comutils;
 
 
 //
-//  Private Functions
+//  Variational Bayes Private Functions
 //
 
 
@@ -120,7 +120,7 @@ template <class L, class C> double vbeZ (
     E_logZt += qYi(t) * ldists[t].Elogweight();
 
   // Find Expectations of log joint observation probs
-  MatrixXd logqZi(Ni, K);
+  MatrixXd logqZi = MatrixXd::Zero(Ni, K);
 
   for (int k = 0; k < K; ++k)
     logqZi.col(k) = E_logZt(k) + cdists[k].Eloglike(Xi).array();
@@ -242,16 +242,22 @@ template <class W, class L, class C> double vbem (
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
-      throw runtime_error("Free energy increase!");
+      cout << '(' << (F-Fold)/abs(Fold) << "), it = " << it << flush;
+//      throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
       cout << '-' << flush;
   }
   while ( (abs((Fold-F)/Fold) > libcluster::CONVERGE)
-          && ( (it++ < maxit) || (maxit < 0) ) );
+          && ( (++it < maxit) || (maxit < 0) ) );
 
   return F;
 }
+
+
+//
+//  Model Selection and Heuristics Private Functions
+//
 
 
 /*  Search in a greedy fashion for a mixture split that lowers model free
@@ -401,6 +407,36 @@ template <class W, class L, class C> bool split_gr (
 /* TODO
  *
  */
+template<class L> MatrixXd get_classparams (
+    const MatrixXd& qY,
+    const vector<MatrixXd>& qZ
+    )
+{
+  const int T = qY.cols(),
+            K = qZ[0].cols(),
+            I = qZ.size();
+
+  MatrixXd Nik(I, K), classparams(T, K);
+  L ldists;
+
+  // Document multinomial counts
+  for (int i = 0; i < I; ++i)
+    Nik.row(i) = qZ[i].colwise().sum();
+
+  // Create class parameters
+  for (int t = 0; t < T; ++t)
+  {
+    ldists.update(qY.col(t).transpose()*Nik);  // Weighted multinomials.
+    classparams.row(t) = ldists.Elogweight().transpose().exp();
+  }
+
+  return classparams;
+}
+
+
+/* TODO
+ *
+ */
 bool prune_classes (MatrixXd& qY)
 {
 
@@ -453,6 +489,9 @@ template <class W, class L, class C> double modelselect (
   if (SSdocs.size() != X.size())
     throw invalid_argument("SSdocs and X must be the same size!");
 
+  // TODO
+  // bootstrap()
+
   // Randomly initialise qY
   {
     ArrayXXd randm = (ArrayXXd::Random(I, T)).abs();
@@ -466,8 +505,8 @@ template <class W, class L, class C> double modelselect (
     qZ[i] = MatrixXd::Ones(X[i].rows(), 1);
 
   // Initialise free energy and other loop variables
-  bool   issplit = true;
-  double F;
+  bool issplit = true;
+  double F = 0;
   vector<int> tally;
 
   // Main loop
@@ -477,26 +516,26 @@ template <class W, class L, class C> double modelselect (
     F = vbem<W,L,C>(X, qZ, qY, SSdocs, SS, -1, verbose);
 
     // Remove any empty clusters
-    bool remk = prune_clusters(qZ, SSdocs, SS);
+    bool isremk = prune_clusters(qZ, SSdocs, SS);
 
-    if ( (verbose == true) && (remk == true) )
+    if ( (verbose == true) && (isremk == true) )
       cout << 'x' << flush;
 
     // Remove any empty classes
-    bool remc = prune_classes(qY);
+    bool isremc = prune_classes(qY);
 
-    if ( (verbose == true) && (remc == true) )
+    if ( (verbose == true) && (isremc == true) )
       cout << '*' << flush;
 
-    // Model search heuristics
+    // Start model search heuristics
     if (verbose == true)
-      cout << '<' << flush;  // Notify start splitting
+      cout << '<' << flush;     // Notify start search
 
     // Search for best split, augment qZ if found one
     issplit = split_gr<W,L,C>(X, SSdocs, SS, F, qY, qZ, tally, verbose);
 
     if (verbose == true)
-      cout << '>' << endl;   // Notify end search
+      cout << '>' << endl;     // Notify end search
   }
 
   // Print finished notification if verbose
@@ -537,21 +576,84 @@ double libcluster::learnTCM (
                                                            SS, T, verbose);
 
   // Get the document class parameters
-  int T_tr = qY.cols(), K = SS.getK(), I = X.size();
-  MatrixXd Nik(I, K);
-  Dirichlet ldists;
-  classparams.setZero(T_tr, K);
-
-  // Document multinomial counts
-  for (int i = 0; i < I; ++i)
-    Nik.row(i) = qZ[i].colwise().sum();
-
-  // Create class parameters
-  for (int t = 0; t < T_tr; ++t)
-  {
-    ldists.update(qY.col(t).transpose()*Nik);  // Weighted multinomials.
-    classparams.row(t) = ldists.Elogweight().transpose().exp();
-  }
+  classparams = get_classparams<Dirichlet>(qY, qZ);
 
   return F;
 }
+
+
+/* TODO
+ *
+ */
+//template<class L> bool merge_classes (
+////template<class W, class L, class C> bool merge_classes (
+////    const vector<MatrixXd>& X,               // Observations
+////    const vector<libcluster::SuffStat>& SSi, // Sufficient stats of groups
+////    const libcluster::SuffStat& SS,          // Sufficient stats
+////    const double F,                          // Current model free energy
+//    const vector<MatrixXd>& qZ,             // Cluster Probabilities qZ
+//    MatrixXd& qY                            // Class Probabilities qY
+//    )
+//{
+//  const int T = qY.cols(),
+//            I = qZ.size();
+
+//  // Get the class parameters
+//  MatrixXd classparams = get_classparams<L>(qY, qZ);
+
+//  // Normalise class parameters for similarity
+//  for (int t = 0; t < T; ++t)
+//    classparams.row(t) = classparams.row(t) / classparams.row(t).norm();
+
+//  // Find class similarity (using upper triangular matrix, no diags)
+//  MatrixXd sim = MatrixXd::Zero(T, T);
+//  sim.triangularView<Upper>() = classparams * classparams.transpose();
+//  sim.diagonal() = VectorXd::Zero(T);
+
+//  // Find two most similar classes to merge
+//  int i,j;
+//  double mxcoef = sim.maxCoeff(&i, &j);
+
+//  if (mxcoef >= 0.9)
+//  {
+//    // Merge cols i and j of qY
+//    MatrixXd qYnew = MatrixXd::Zero(I, T-1);
+//    for (int t = 0, s = 0; t < T; ++t)
+//    {
+//      if (t != j)
+//      {
+//        if (t != i)
+//          qYnew.col(s) = qY.col(t);
+//        else
+//          qYnew.col(s) = qY.col(i) + qY.col(j);
+//        ++s;
+//      }
+//    }
+
+//    qY = qYnew;
+//    return true;
+//  }
+//  else     // Failed to find merges
+//    return false;
+
+
+//  // Test Merge for Free Energy improvment
+//  vector<MatrixXd> qZnew = qZ;                // copy :-(
+//  libcluster::SuffStat SSnew = SS;            // Copy :-(
+//  vector<libcluster::SuffStat> SSinew = SSi;  // Copy :-(
+//  double Fmerge = vbem<W,L,C>(X, qZnew, qYnew, SSinew, SSnew, 1);
+
+//  cout << i << ',' << j << '|' << Fmerge << ',' << F << flush;
+
+//  // Test whether this class merge is a keeper
+//  if (Fmerge < F)
+//  {
+//    qY = qYnew;
+//    qZ = qZnew;
+//    return true;
+//  }
+
+//  // Failed to find merges
+//  return false;
+//}
+

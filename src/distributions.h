@@ -1,5 +1,4 @@
 // TODO
-//  - Change weightdist Eloglike to something else more descriptive???
 //  - Neaten up static interfaces.
 //  - Can I make an even more generic suff. stats. interface??
 
@@ -38,7 +37,7 @@ class WeightDist
 {
 public:
 
-  // WeightDist(), required inherited contructor template
+  // WeightDist(), required inherited constructor template
 
   /*! \brief Update the distribution.
    *  \param Nk an array of observations counts.

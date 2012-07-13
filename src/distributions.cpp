@@ -175,7 +175,6 @@ double distributions::GDirichlet::fenergy () const
 // Dirichlet weight distribution.
 //
 
-
 distributions::Dirichlet::Dirichlet ()
   : alpha_p(distributions::ALPHA1PRIOR),
     Nk(ArrayXd::Zero(1)),
