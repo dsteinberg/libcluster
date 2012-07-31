@@ -86,10 +86,6 @@ void makedata (
           -10.4774,    8.7309,
           -11.9568,   12.1385;
 
-//  -10.9899,   10.3160,
-//   -8.8022,   11.4065,
-//  -10.5927,   10.4011,
-
   X.push_back(Eigen::MatrixXd(10,2));
   X[6]  << -9.5793,   10.5411,
            -9.5993,    8.4591,
@@ -167,13 +163,6 @@ void makedata (
   for (int j=0; j < J; ++j)
     Xcat.block(j*10, 0, 10, 2) = X[j];
 
-  // Concatenate X1 and X2
-//  Xcat.block(0, 0, X1.rows(), X1.cols()) = X1;
-//  Xcat.block(X1.rows(), 0, X2.rows(), X2.cols()) = X2;
-
-  // Make grouped data
-//  X.push_back(X1);
-//  X.push_back(X2);
 }
 
 #endif // TESTDATA_H

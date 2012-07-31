@@ -96,9 +96,9 @@ bool comutils::anyempty (const SuffStat& SS)
 
 
 bool comutils::prune_clusters (
-    vector<MatrixXd>& qZ,              // Probabilities qZ
-    vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
-    libcluster::SuffStat& SS           // Sufficient stats
+    vMatrixXd& qZ,         // Probabilities qZ
+    vSuffStat& SSj,        // Sufficient stats of groups
+    SuffStat& SS           // Sufficient stats
     )
 {
   const int K = SS.getK(),
@@ -127,7 +127,7 @@ bool comutils::prune_clusters (
 
   // Delete empty cluster indicators by copying only full indicators
   const int newK = fidx.size();
-  vector<MatrixXd> newqZ(J);
+  vMatrixXd newqZ(J);
 
   for (int j = 0; j < J; ++j)
   {

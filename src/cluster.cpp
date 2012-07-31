@@ -18,6 +18,7 @@ using namespace Eigen;
 using namespace probutils;
 using namespace distributions;
 using namespace comutils;
+using namespace libcluster;
 
 
 //
@@ -31,11 +32,11 @@ using namespace comutils;
  *  mutable: the model sufficient stats.
  */
 template <class C> void updateSS (
-    const MatrixXd& Xj,         // Observations in group j
-    const MatrixXd& qZj,        // Observations to group mixture assignments
-    libcluster::SuffStat& SSj,  // Sufficient stats of group j
-    libcluster::SuffStat& SS,   // Sufficient stats of whole model
-    const bool sparse           // Do sparse updates to groups
+    const MatrixXd& Xj,   // Observations in group j
+    const MatrixXd& qZj,  // Observations to group mixture assignments
+    SuffStat& SSj,        // Sufficient stats of group j
+    SuffStat& SS,         // Sufficient stats of whole model
+    const bool sparse     // Do sparse updates to groups
     )
 {
   const unsigned int K = qZj.cols();
@@ -52,7 +53,7 @@ template <class C> void updateSS (
   if ( (sparse == false) && (K > 1) )
     Kful = ArrayXi::LinSpaced(Sequential, K, 0, K-1);
   else if (sparse == true)
-    arrfind((Njk >= libcluster::ZEROCUTOFF), Kful, Kemp);
+    arrfind((Njk >= ZEROCUTOFF), Kful, Kemp);
 
   const int nKful = Kful.size(),
             nKemp = Kemp.size();
@@ -81,8 +82,8 @@ template <class C> void updateSS (
  *  mutable: wdists, the weight parameter distributions.
  */
 template <class W> void vbmaximisationj (
-    const libcluster::SuffStat& SSj, // Sufficient stats of each group
-    W& wdistj                        // Weight parameter distributions
+    const SuffStat& SSj, // Sufficient stats of each group
+    W& wdistj            // Weight parameter distributions
     )
 {
   const unsigned int K = SSj.getK();
@@ -125,7 +126,7 @@ template <class W, class C> double vbexpectation (
   if ( (sparse == false) && (K > 1) )
     Kful = ArrayXi::LinSpaced(Sequential, K, 0, K-1);
   else if (sparse == true)
-    arrfind((wdistj.getNk() >= libcluster::ZEROCUTOFF), Kful, Kemp);
+    arrfind((wdistj.getNk() >= ZEROCUTOFF), Kful, Kemp);
 
   const int nKful = Kful.size(),
             nKemp = Kemp.size();
@@ -161,11 +162,11 @@ template <class W, class C> double vbexpectation (
  *  mutable: the model sufficient statistics - for the purposes of recording F
  */
 template <class W, class C> double fenergy (
-    const vector<W>& wdists,            // Weight parameter distributions
-    const vector<C>& cdists,            // Cluster parameter distributions
-    const vector<double>& Fxz,          // Free energy from data log-likelihood
-    vector<libcluster::SuffStat>& SSj,  // Group sufficient statistics
-    libcluster::SuffStat& SS            // Model Sufficient statistics
+    const vector<W>& wdists,    // Weight parameter distributions
+    const vector<C>& cdists,    // Cluster parameter distributions
+    const vector<double>& Fxz,  // Free energy from data log-likelihood
+    vSuffStat& SSj,             // Group sufficient statistics
+    SuffStat& SS                // Model Sufficient statistics
     )
 {
   const int K = cdists.size(),
@@ -198,10 +199,10 @@ template <class W, class C> double fenergy (
  *  throws: runtime_error if there is a negative free energy.
  */
 template <class W, class C> double vbem (
-    const vector<MatrixXd>& X,  // Observations
-    vector<MatrixXd>& qZ,       // Observations to model mixture assignments
-    vector<libcluster::SuffStat>& SSj, // Sufficient stats of each group
-    libcluster::SuffStat& SS,   // Sufficient stats of whole model
+    const vMatrixXd& X,         // Observations
+    vMatrixXd& qZ,              // Observations to model mixture assignments
+    vSuffStat& SSj,             // Sufficient stats of each group
+    SuffStat& SS,               // Sufficient stats of whole model
     const int maxit = -1,       // Max VBEM iterations (-1 = no max, default)
     const bool sparse = false,  // Do sparse updates to groups (default false)
     const bool verbose = false  // Verbose output (default false)
@@ -244,13 +245,13 @@ template <class W, class C> double vbem (
     F = fenergy<W,C>(wdists, cdists, Fxz, SSj, SS);
 
     // Check bad free energy step
-    if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
+    if ((F-Fold)/abs(Fold) > FENGYDEL)
       throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
       cout << '-' << flush;
   }
-  while ( (abs((Fold-F)/Fold) > libcluster::CONVERGE)
+  while ( (abs((Fold-F)/Fold) > CONVERGE)
           && ( (i++ < maxit) || (maxit < 0) ) );
 
   return F;
@@ -273,13 +274,13 @@ template <class W, class C> double vbem (
  */
 #ifndef GREEDY_SPLIT
 template <class W, class C> bool split_ex (
-    const vector<MatrixXd>& X,               // Observations
-    const vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
-    const libcluster::SuffStat& SS,          // Sufficient stats
-    const double F,                          // Current model free energy
-    vector<MatrixXd>& qZ,                    // Probabilities qZ
-    const bool sparse,                       // Do sparse updates to groups
-    const bool verbose                       // Verbose output
+    const vMatrixXd& X,   // Observations
+    const vSuffStat& SSj, // Sufficient stats of groups
+    const SuffStat& SS,   // Sufficient stats
+    const double F,       // Current model free energy
+    vMatrixXd& qZ,        // Probabilities qZ
+    const bool sparse,    // Do sparse updates to groups
+    const bool verbose    // Verbose output
     )
 {
   const unsigned int J = X.size(),
@@ -288,7 +289,7 @@ template <class W, class C> bool split_ex (
   // Pre allocate big objects for loops (this makes a runtime difference)
   double Fbest = numeric_limits<double>::infinity();
   vector<ArrayXi> mapidx(J, ArrayXi());
-  vector<MatrixXd> qZref(J,MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd()),
+  vMatrixXd qZref(J,MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd()),
                    qZbest;
   C csplit(SS.getprior(), X[0].cols());
 
@@ -325,8 +326,8 @@ template <class W, class C> bool split_ex (
       continue;
 
     // Refine the split
-    libcluster::SuffStat SSref(SS.getprior());
-    vector<libcluster::SuffStat> SSgref(J, libcluster::SuffStat(SS.getprior()));
+    SuffStat SSref(SS.getprior());
+    vSuffStat SSgref(J, SuffStat(SS.getprior()));
     vbem<W,C>(Xk, qZref, SSgref, SSref, SPLITITER, sparse);
 
     if (anyempty(SSref) == true) // One cluster only
@@ -338,8 +339,8 @@ template <class W, class C> bool split_ex (
       qZaug[j] = augmentqZ(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
 
     // Calculate free energy of this split with ALL data (and refine a bit)
-    libcluster::SuffStat SSaug = SS;                              // Copy :-(
-    vector<libcluster::SuffStat> SSj_aug = SSj;                   // Copy :-(
+    SuffStat SSaug = SS;                       // Copy :-(
+    vSuffStat SSj_aug = SSj;                   // Copy :-(
     double Fsplit = vbem<W,C>(X, qZaug, SSj_aug, SSaug, 1, sparse);
 
     if (anyempty(SSaug) == true) // One cluster only
@@ -383,14 +384,14 @@ template <class W, class C> bool split_ex (
  */
 #ifdef GREEDY_SPLIT
 template <class W, class C> bool split_gr (
-    const vector<MatrixXd>& X,               // Observations
-    const vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
-    const libcluster::SuffStat& SS,          // Sufficient stats
-    const double F,                          // Current model free energy
-    vector<MatrixXd>& qZ,                    // Probabilities qZ
-    vector<int>& tally,                      // Count of unsuccessful splits
-    const bool sparse,                       // Do sparse updates to groups
-    const bool verbose                       // Verbose output
+    const vMatrixXd& X,   // Observations
+    const vSuffStat& SSj, // Sufficient stats of groups
+    const SuffStat& SS,   // Sufficient stats
+    const double F,       // Current model free energy
+    vMatrixXd& qZ,        // Probabilities qZ
+    vector<int>& tally,   // Count of unsuccessful splits
+    const bool sparse,    // Do sparse updates to groups
+    const bool verbose    // Verbose output
     )
 {
   const unsigned int J = X.size(),
@@ -435,7 +436,7 @@ template <class W, class C> bool split_gr (
 
   // Pre allocate big objects for loops (this makes a runtime difference)
   vector<ArrayXi> mapidx(J, ArrayXi());
-  vector<MatrixXd> qZref(J,MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd());
+  vMatrixXd qZref(J, MatrixXd()), qZaug(J,MatrixXd()), Xk(J,MatrixXd());
 
   // Loop through each potential cluster in order and split it
   for (vector<GreedOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
@@ -473,9 +474,9 @@ template <class W, class C> bool split_gr (
       continue;
 
     // Refine the split
-    libcluster::SuffStat SSref(SS.getprior());
-    vector<libcluster::SuffStat> SSgref(J, libcluster::SuffStat(SS.getprior()));
-    vbem<W,C>(Xk, qZref, SSgref, SSref, libcluster::SPLITITER, sparse);
+    SuffStat SSref(SS.getprior());
+    vSuffStat SSgref(J, SuffStat(SS.getprior()));
+    vbem<W,C>(Xk, qZref, SSgref, SSref, SPLITITER, sparse);
 
     if (anyempty(SSref) == true) // One cluster only
       continue;
@@ -486,8 +487,8 @@ template <class W, class C> bool split_gr (
       qZaug[j] = augmentqZ(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
 
     // Calculate free energy of this split with ALL data (and refine a bit)
-    libcluster::SuffStat SSaug = SS;                              // Copy :-(
-    vector<libcluster::SuffStat> SSj_aug = SSj;                   // Copy :-(
+    SuffStat SSaug = SS;                       // Copy :-(
+    vSuffStat SSj_aug = SSj;                   // Copy :-(
     double Fsplit = vbem<W,C>(X, qZaug, SSj_aug, SSaug, 1, sparse);
 
     if (anyempty(SSaug) == true) // One cluster only
@@ -498,7 +499,7 @@ template <class W, class C> bool split_gr (
       cout << '=' << flush;
 
     // Test whether this cluster split is a keeper
-    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > libcluster::CONVERGE) )
+    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
     {
       qZ = qZaug;
       tally[k] = 0;   // Reset tally if successfully split
@@ -521,10 +522,10 @@ template <class W, class C> bool split_gr (
  *            they do not correspond to the number of groups in X.
  */
 template <class W, class C> void bootstrap (
-  const vector<MatrixXd>& X,          // Observations
-  const libcluster::SuffStat& SS,     // Model sufficient stats
-  vector<libcluster::SuffStat>& SSj,  // Group sufficient stats
-  vector<MatrixXd>& qZ                // Obs. to model mixture assignments
+  const vMatrixXd& X, // Observations
+  const SuffStat& SS, // Model sufficient stats
+  vSuffStat& SSj,     // Group sufficient stats
+  vMatrixXd& qZ       // Obs. to model mixture assignments
   )
 {
   const unsigned int K = (SS.getK() < 1) ? 1 : SS.getK(),
@@ -532,7 +533,7 @@ template <class W, class C> void bootstrap (
 
   // Create or check the group sufficient stats
   if (SSj.size() == 0)
-    SSj.resize(X.size(), libcluster::SuffStat(SS.getprior()));
+    SSj.resize(X.size(), SuffStat(SS.getprior()));
   else if (SSj.size() != J)
     throw invalid_argument("SSj does not have the same no. of groups as X!");
 
@@ -587,13 +588,13 @@ template <class W, class C> void bootstrap (
  *  throws: runtime_error if free energy increases.
  */
 template <class W, class C> double modelselect (
-    const vector<MatrixXd>& X,   // Observations
-    vector<MatrixXd>& qZ,        // Observations to model mixture assignments
-    vector<libcluster::SuffStat>& SSgroups, // Sufficient stats of groups
-    libcluster::SuffStat& SS,    // Sufficient stats
-    const bool sparse,           // Do sparse updates to groups
-    const bool verbose,          // Verbose output
-    const unsigned int nthreads  // Number of threads for OpenMP to use
+    const vMatrixXd& X,           // Observations
+    vMatrixXd& qZ,                // Observations to model mixture assignments
+    vSuffStat& SSgroups,          // Sufficient stats of groups
+    SuffStat& SS,                 // Sufficient stats
+    const bool sparse,            // Do sparse updates to groups
+    const bool verbose,           // Verbose output
+    const unsigned int nthreads   // Number of threads for OpenMP to use
     )
 {
   if (nthreads < 1)
@@ -667,9 +668,9 @@ double libcluster::learnVDP (
     cout << "Learning VDP..." << endl; // Print start
 
   // Make temporary vectors of data to use with modelselect()
-  vector<MatrixXd> vecX(1, X);          // copy :-(
-  vector<MatrixXd> vecqZ;
-  vector<SuffStat> SSgroup(1, SuffStat(SS.getprior()));
+  vMatrixXd vecX(1, X);          // copy :-(
+  vMatrixXd vecqZ;
+  vSuffStat SSgroup(1, SuffStat(SS.getprior()));
 
   // Perform model learning and selection
   double F = modelselect<StickBreak, GaussWish>(vecX, vecqZ, SSgroup, SS, false,
@@ -693,9 +694,9 @@ double libcluster::learnBGMM (
     cout << "Learning Bayesian GMM..." << endl; // Print start
 
   // Make temporary vectors of data to use with modelselect()
-  vector<MatrixXd> vecX(1, X);          // copy :-(
-  vector<MatrixXd> vecqZ;
-  vector<libcluster::SuffStat> SSgroup(1, SuffStat(SS.getprior()));
+  vMatrixXd vecX(1, X);          // copy :-(
+  vMatrixXd vecqZ;
+  vSuffStat SSgroup(1, SuffStat(SS.getprior()));
 
   // Perform model learning and selection
   double F = modelselect<Dirichlet, GaussWish>(vecX, vecqZ, SSgroup, SS, false,
@@ -719,9 +720,9 @@ double libcluster::learnDGMM (
     cout << "Learning Bayesian diagonal GMM..." << endl; // Print start
 
   // Make temporary vectors of data to use with modelselect()
-  vector<MatrixXd> vecX(1, X);          // copy :-(
-  vector<MatrixXd> vecqZ;
-  vector<libcluster::SuffStat> SSgroup(1, SuffStat(SS.getprior()));
+  vMatrixXd vecX(1, X);          // copy :-(
+  vMatrixXd vecqZ;
+  vSuffStat SSgroup(1, SuffStat(SS.getprior()));
 
   // Perform model learning and selection
   double F = modelselect<Dirichlet, NormGamma>(vecX, vecqZ, SSgroup, SS, false,
@@ -748,9 +749,9 @@ double libcluster::learnBEMM (
     cout << "Learning Bayesian EMM..." << endl; // Print start
 
   // Make temporary vectors of data to use with modelselect()
-  vector<MatrixXd> vecX(1, X);          // copy :-(
-  vector<MatrixXd> vecqZ;
-  vector<libcluster::SuffStat> SSgroup(1, SuffStat(SS.getprior()));
+  vMatrixXd vecX(1, X);          // copy :-(
+  vMatrixXd vecqZ;
+  vSuffStat SSgroup(1, SuffStat(SS.getprior()));
 
   // Perform model learning and selection
   double F = modelselect<Dirichlet, ExpGamma>(vecX, vecqZ, SSgroup, SS, false,
@@ -763,10 +764,10 @@ double libcluster::learnBEMM (
 
 
 double libcluster::learnGMC (
-    const vector<MatrixXd>& X,
-    vector<MatrixXd>& qZ,
-    vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -784,10 +785,10 @@ double libcluster::learnGMC (
 
 
 double libcluster::learnSGMC (
-    const vector<MatrixXd>& X,
-    vector<MatrixXd>& qZ,
-    vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -805,10 +806,10 @@ double libcluster::learnSGMC (
 
 
 double libcluster::learnDGMC (
-    const vector<MatrixXd>& X,
-    vector<MatrixXd>& qZ,
-    vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -826,10 +827,10 @@ double libcluster::learnDGMC (
 
 
 double libcluster::learnEGMC (
-    const vector<MatrixXd>& X,
-    vector<MatrixXd>& qZ,
-    vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads

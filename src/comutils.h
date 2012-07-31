@@ -12,6 +12,7 @@
 namespace comutils
 {
 
+
 //
 // Helper structures
 //
@@ -101,9 +102,9 @@ bool anyempty (const libcluster::SuffStat& SS);
  *    mutable: SS if there are empty clusters found.
  */
 bool prune_clusters (
-    std::vector<Eigen::MatrixXd>& qZ,       // Probabilities qZ
-    std::vector<libcluster::SuffStat>& SSj, // Sufficient stats of groups
-    libcluster::SuffStat& SS                // Sufficient stats
+    libcluster::vMatrixXd& qZ,  // Probabilities qZ
+    libcluster::vSuffStat& SSj, // Sufficient stats of groups
+    libcluster::SuffStat& SS    // Sufficient stats
     );
 
 }

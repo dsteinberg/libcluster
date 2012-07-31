@@ -21,8 +21,8 @@ namespace distributions
 
 const double BETAPRIOR   = 1.0;      //!< beta prior value (Gaussians)
 const double NUPRIOR     = 1.0;      //!< nu prior value (diagonal Gaussians)
-const double ALPHA1PRIOR = 1.0;      //!< alpha1 prior value (Weights)
-const double ALPHA2PRIOR = 1.0;      //!< alpha2 prior value (Weights)
+const double ALPHA1PRIOR = 1.0;      //!< alpha1 prior value (All weight dists)
+const double ALPHA2PRIOR = 1.0;      //!< alpha2 prior value (SB & Gdir)
 const double APRIOR      = 1.0;      //!< a prior value (Exponential)
 
 

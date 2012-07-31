@@ -72,12 +72,13 @@
 namespace libcluster
 {
 
+
 //
-// Namespace constants (use as argument defaults)
+// Namespace constants
 //
 
 const double PRIORVAL    = 1e-5;        //!< Default prior hyperparameter value
-const int    SPLITITER   = 20;          //!< Max number of iter. for split VBEM
+const int    SPLITITER   = 15;          //!< Max number of iter. for split VBEM
 const double CONVERGE    = 1.0e-5;      //!< Convergence threshold
 const double FENGYDEL    = CONVERGE/10; //!< Allowance for +ve F.E. steps
 const double ZEROCUTOFF  = 0.1;         //!< Obs. count cut off sparse updates
@@ -238,6 +239,23 @@ private:
  *  \returns a stream with SS.
  */
 std::ostream& operator<< (std::ostream& s, const SuffStat& SS);
+
+
+//
+// Convenience Typedefs
+//
+
+//! Vector of double matricies
+typedef std::vector<Eigen::MatrixXd>                  vMatrixXd;
+
+//! Vector of Sufficient Stats
+typedef std::vector<SuffStat>                         vSuffStat;
+
+//! Vector of vectors of double matricies
+typedef std::vector< std::vector<Eigen::MatrixXd> >   vvMatrixXd;
+
+//! Vector of vectors of Sufficient Stats
+typedef std::vector< std::vector<SuffStat> >          vvSuffStat;
 
 
 //
@@ -597,12 +615,12 @@ double learnEGMC (
  */
 
 double learnTCM (
-    const std::vector<Eigen::MatrixXd>& X,
+    const vMatrixXd& X,
     Eigen::MatrixXd& qY,
-    std::vector<Eigen::MatrixXd>& qZ,
-    std::vector<libcluster::SuffStat>& SSdocs, // Sufficient stats of documents
-    libcluster::SuffStat& SS,                  // Sufficient stats
-    Eigen::MatrixXd &classparams,              // Document class parameters
+    vMatrixXd& qZ,
+    vSuffStat& SSdocs,
+    libcluster::SuffStat& SS,
+    Eigen::MatrixXd &classparams,
     const unsigned int T,
     const bool verbose = false
     );

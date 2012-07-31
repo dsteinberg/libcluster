@@ -1,4 +1,3 @@
-#include <boost/math/special_functions.hpp>
 #include "libcluster.h"
 #include "probutils.h"
 
@@ -9,7 +8,6 @@
 
 using namespace std;
 using namespace Eigen;
-using namespace boost::math;
 using namespace probutils;
 
 

@@ -1,6 +1,5 @@
 #include <boost/math/special_functions.hpp>
 #include "distributions.h"
-#include "probutils.h"
 
 //
 // Namespaces

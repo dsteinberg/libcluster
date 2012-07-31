@@ -23,6 +23,7 @@ using namespace Eigen;
 using namespace probutils;
 using namespace distributions;
 using namespace comutils;
+using namespace libcluster;
 
 
 //
@@ -38,8 +39,8 @@ using namespace comutils;
 template <class C> ArrayXd updateSS (
     const MatrixXd& Xi,         // Observations in document i
     const MatrixXd& qZi,        // Observations to document mixture assignments
-    libcluster::SuffStat& SSi,  // Sufficient stats of document i
-    libcluster::SuffStat& SS    // Sufficient stats of whole model
+    SuffStat& SSi,  // Sufficient stats of document i
+    SuffStat& SS    // Sufficient stats of whole model
     )
 {
   const int K = qZi.cols();
@@ -144,8 +145,8 @@ template <class W, class L, class C> double fenergy (
     const vector<C>& cdists,
     const ArrayXd& Fy,
     const ArrayXd& Fz,
-    vector<libcluster::SuffStat>& SSi,  // Document sufficient statistics
-    libcluster::SuffStat& SS            // Model Sufficient statistics
+    vSuffStat& SSi,         // Document sufficient statistics
+    SuffStat& SS            // Model Sufficient statistics
     )
 {
   const int T = ldists.size(),
@@ -188,10 +189,10 @@ template <class W, class L, class C> double fenergy (
  *  throws: runtime_error if there is a negative free energy.
  */
 template <class W, class L, class C> double vbem (
-    const vector<MatrixXd>& X,  // Observations Ix[NjxD]
-    vector<MatrixXd>& qZ,       // Observations to cluster assignments Ix[NjxK]
+    const vMatrixXd& X,  // Observations Ix[NjxD]
+    vMatrixXd& qZ,       // Observations to cluster assignments Ix[NjxK]
     MatrixXd& qY,               // Indicator to label assignments [IxT]
-    vector<libcluster::SuffStat>& SSi, // Sufficient stats of each document
+    vSuffStat& SSi, // Sufficient stats of each document
     libcluster::SuffStat& SS,   // Sufficient stats of whole model
     const int maxit = -1,       // Max VBEM iterations (-1 = no max, default)
     const bool verbose = false  // Verbose output (default false)
@@ -242,8 +243,7 @@ template <class W, class L, class C> double vbem (
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
-      cout << '(' << (F-Fold)/abs(Fold) << "), it = " << it << flush;
-//      throw runtime_error("Free energy increase!");
+      throw runtime_error("Free energy increase!");
 
     if (verbose == true)              // Notify iteration
       cout << '-' << flush;
@@ -273,14 +273,14 @@ template <class W, class L, class C> double vbem (
  *    throws: runtime_error from its internal VBEM calls
  */
 template <class W, class L, class C> bool split_gr (
-    const vector<MatrixXd>& X,               // Observations
-    const vector<libcluster::SuffStat>& SSi, // Sufficient stats of groups
-    const libcluster::SuffStat& SS,          // Sufficient stats
-    const double F,                          // Current model free energy
-    MatrixXd& qY,                            // Class Probabilities qY
-    vector<MatrixXd>& qZ,                    // Cluster Probabilities qZ
-    vector<int>& tally,                      // Count of unsuccessful splits
-    const bool verbose                       // Verbose output
+    const vMatrixXd& X,             // Observations
+    const vSuffStat& SSi,           // Sufficient stats of groups
+    const libcluster::SuffStat& SS, // Sufficient stats
+    const double F,                 // Current model free energy
+    MatrixXd& qY,                   // Class Probabilities qY
+    vMatrixXd& qZ,                  // Cluster Probabilities qZ
+    vector<int>& tally,             // Count of unsuccessful splits
+    const bool verbose              // Verbose output
     )
 {
   const unsigned int I = X.size(),
@@ -325,7 +325,7 @@ template <class W, class L, class C> bool split_gr (
 
   // Pre allocate big objects for loops (this makes a runtime difference)
   vector<ArrayXi> mapidx(I, ArrayXi());
-  vector<MatrixXd> qZref(I,MatrixXd()), qZaug(I,MatrixXd()), Xk(I,MatrixXd());
+  vMatrixXd qZref(I,MatrixXd()), qZaug(I,MatrixXd()), Xk(I,MatrixXd());
 
   // Loop through each potential cluster in order and split it
   for (vector<GreedOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
@@ -364,9 +364,9 @@ template <class W, class L, class C> bool split_gr (
 
     // Refine the split
     MatrixXd qYref = MatrixXd::Ones(I,1);
-    libcluster::SuffStat SSref(SS.getprior());
-    vector<libcluster::SuffStat> SSiref(I, libcluster::SuffStat(SS.getprior()));
-    vbem<W,L,C>(Xk, qZref, qYref, SSiref, SSref, libcluster::SPLITITER);
+    SuffStat SSref(SS.getprior());
+    vSuffStat SSiref(I, SuffStat(SS.getprior()));
+    vbem<W,L,C>(Xk, qZref, qYref, SSiref, SSref, SPLITITER);
 
     if (anyempty(SSref) == true) // One cluster only
       continue;
@@ -378,8 +378,8 @@ template <class W, class L, class C> bool split_gr (
 
     // Calculate free energy of this split with ALL data (and refine a bit)
     MatrixXd qYaug = qY;                                          // Copy :-(
-    libcluster::SuffStat SSaug = SS;                              // Copy :-(
-    vector<libcluster::SuffStat> SSiaug = SSi;                    // Copy :-(
+    SuffStat SSaug = SS;                              // Copy :-(
+    vSuffStat SSiaug = SSi;                    // Copy :-(
     double Fsplit = vbem<W,L,C>(X, qZaug, qYaug, SSiaug, SSaug, 1);
 
     if (anyempty(SSaug) == true) // One cluster only
@@ -390,7 +390,7 @@ template <class W, class L, class C> bool split_gr (
       cout << '=' << flush;
 
     // Test whether this cluster split is a keeper
-    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > libcluster::CONVERGE) )
+    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
     {
       qY = qYaug;
       qZ = qZaug;
@@ -409,7 +409,7 @@ template <class W, class L, class C> bool split_gr (
  */
 template<class L> MatrixXd get_classparams (
     const MatrixXd& qY,
-    const vector<MatrixXd>& qZ
+    const vMatrixXd& qZ
     )
 {
   const int T = qY.cols(),
@@ -442,7 +442,7 @@ bool prune_classes (MatrixXd& qY)
 
   // Find empty classes, count them
   ArrayXi Ypop, Yemp;
-  arrfind(qY.colwise().sum().array() > libcluster::ZEROCUTOFF, Ypop, Yemp);
+  arrfind(qY.colwise().sum().array() > ZEROCUTOFF, Ypop, Yemp);
   const unsigned int Tpop = Ypop.size();
 
   // No empty classes
@@ -471,11 +471,11 @@ bool prune_classes (MatrixXd& qY)
  *  throws: runtime_error if free energy increases.
  */
 template <class W, class L, class C> double modelselect (
-    const vector<MatrixXd>& X,   // Observations
+    const vMatrixXd& X,   // Observations
     MatrixXd& qY,                // Class assignments
-    vector<MatrixXd>& qZ,        // Observations to cluster assignments
-    vector<libcluster::SuffStat>& SSdocs, // Sufficient stats of documents
-    libcluster::SuffStat& SS,    // Sufficient stats
+    vMatrixXd& qZ,        // Observations to cluster assignments
+    vSuffStat& SSdocs, // Sufficient stats of documents
+    SuffStat& SS,    // Sufficient stats
     const unsigned int T,        // Truncation level for number of classes
     const bool verbose           // Verbose output
     )
@@ -521,12 +521,6 @@ template <class W, class L, class C> double modelselect (
     if ( (verbose == true) && (isremk == true) )
       cout << 'x' << flush;
 
-    // Remove any empty classes
-    bool isremc = prune_classes(qY);
-
-    if ( (verbose == true) && (isremc == true) )
-      cout << '*' << flush;
-
     // Start model search heuristics
     if (verbose == true)
       cout << '<' << flush;     // Notify start search
@@ -537,6 +531,9 @@ template <class W, class L, class C> double modelselect (
     if (verbose == true)
       cout << '>' << endl;     // Notify end search
   }
+
+  // Remove any empty classes
+  prune_classes(qY);
 
   // Print finished notification if verbose
   if (verbose == true)
@@ -557,16 +554,17 @@ template <class W, class L, class C> double modelselect (
 
 
 double libcluster::learnTCM (
-    const vector<MatrixXd>& X,
+    const vMatrixXd& X,
     MatrixXd& qY,
-    vector<MatrixXd>& qZ,
-    vector<libcluster::SuffStat>& SSdocs,
-    libcluster::SuffStat& SS,
+    vMatrixXd& qZ,
+    vSuffStat& SSdocs,
+    SuffStat& SS,
     MatrixXd& classparams,
     const unsigned int T,
     const bool verbose
     )
 {
+
   // Model selection and Variational Bayes learning
   if (verbose == true)
     cout << "Learning " << "TCM..." << endl;
@@ -580,80 +578,4 @@ double libcluster::learnTCM (
 
   return F;
 }
-
-
-/* TODO
- *
- */
-//template<class L> bool merge_classes (
-////template<class W, class L, class C> bool merge_classes (
-////    const vector<MatrixXd>& X,               // Observations
-////    const vector<libcluster::SuffStat>& SSi, // Sufficient stats of groups
-////    const libcluster::SuffStat& SS,          // Sufficient stats
-////    const double F,                          // Current model free energy
-//    const vector<MatrixXd>& qZ,             // Cluster Probabilities qZ
-//    MatrixXd& qY                            // Class Probabilities qY
-//    )
-//{
-//  const int T = qY.cols(),
-//            I = qZ.size();
-
-//  // Get the class parameters
-//  MatrixXd classparams = get_classparams<L>(qY, qZ);
-
-//  // Normalise class parameters for similarity
-//  for (int t = 0; t < T; ++t)
-//    classparams.row(t) = classparams.row(t) / classparams.row(t).norm();
-
-//  // Find class similarity (using upper triangular matrix, no diags)
-//  MatrixXd sim = MatrixXd::Zero(T, T);
-//  sim.triangularView<Upper>() = classparams * classparams.transpose();
-//  sim.diagonal() = VectorXd::Zero(T);
-
-//  // Find two most similar classes to merge
-//  int i,j;
-//  double mxcoef = sim.maxCoeff(&i, &j);
-
-//  if (mxcoef >= 0.9)
-//  {
-//    // Merge cols i and j of qY
-//    MatrixXd qYnew = MatrixXd::Zero(I, T-1);
-//    for (int t = 0, s = 0; t < T; ++t)
-//    {
-//      if (t != j)
-//      {
-//        if (t != i)
-//          qYnew.col(s) = qY.col(t);
-//        else
-//          qYnew.col(s) = qY.col(i) + qY.col(j);
-//        ++s;
-//      }
-//    }
-
-//    qY = qYnew;
-//    return true;
-//  }
-//  else     // Failed to find merges
-//    return false;
-
-
-//  // Test Merge for Free Energy improvment
-//  vector<MatrixXd> qZnew = qZ;                // copy :-(
-//  libcluster::SuffStat SSnew = SS;            // Copy :-(
-//  vector<libcluster::SuffStat> SSinew = SSi;  // Copy :-(
-//  double Fmerge = vbem<W,L,C>(X, qZnew, qYnew, SSinew, SSnew, 1);
-
-//  cout << i << ',' << j << '|' << Fmerge << ',' << F << flush;
-
-//  // Test whether this class merge is a keeper
-//  if (Fmerge < F)
-//  {
-//    qY = qYnew;
-//    qZ = qZnew;
-//    return true;
-//  }
-
-//  // Failed to find merges
-//  return false;
-//}
 
