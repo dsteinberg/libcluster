@@ -49,10 +49,10 @@ public:
    */
   virtual const Eigen::ArrayXd& Elogweight () const = 0;
 
-  /*! \brief Get the number of observations in each cluster.
-   *  \returns An array the number of observations in each cluster.
+  /*! \brief Get the number of observations contributing to each weight.
+   *  \returns An array the number of observations contributing to each weight.
    */
-  virtual const Eigen::ArrayXd& getNk () const = 0;
+  const Eigen::ArrayXd& getNk () const { return this->Nk; }
 
   /*! \brief Get the free energy contribution of these weights.
    *  \returns the free energy contribution of these weights
@@ -62,6 +62,14 @@ public:
   /*! \brief virtual destructor.
    */
   virtual ~WeightDist() {}
+
+protected:
+
+  /*! \brief Default Constructor - sets empty observation array.
+   */
+  WeightDist () : Nk(Eigen::ArrayXd::Zero(1)) {}
+
+  Eigen::ArrayXd Nk; //!< Number of observations making up the weights.
 };
 
 
@@ -78,8 +86,6 @@ public:
 
   const Eigen::ArrayXd& Elogweight () const { return this->E_logpi; }
 
-  const Eigen::ArrayXd& getNk () const { return this->Nk; }
-
   double fenergy () const;
 
   virtual ~StickBreak () {}
@@ -92,7 +98,6 @@ protected:
   double F_p;
 
   // Posterior hyperparameters and expectations
-  Eigen::ArrayXd Nk;
   Eigen::ArrayXd alpha1;
   Eigen::ArrayXd alpha2;
   Eigen::ArrayXd E_logv;
@@ -131,8 +136,6 @@ public:
 
   const Eigen::ArrayXd& Elogweight () const { return this->E_logpi; }
 
-  const Eigen::ArrayXd& getNk () const { return this->Nk; }
-
   double fenergy () const;
 
   virtual ~Dirichlet () {}
@@ -144,7 +147,6 @@ protected:
   double F_p;
 
   // Posterior hyperparameters and expectations
-  Eigen::ArrayXd Nk;
   Eigen::ArrayXd alpha;
   Eigen::ArrayXd E_logpi;
 
@@ -198,6 +200,26 @@ class ClusterDist
 {
 public:
 
+  /*! \brief Add observations to the cluster without updating the parameters
+   *         (i.e. add to the sufficient statistics)
+   *  \param qZk the observation indicators for this cluster, corresponding to X
+   *  \param X the observations to add to this cluster according to qZk.
+   */
+  virtual void addobs (
+      const Eigen::VectorXd& qZk,
+      const Eigen::MatrixXd& X
+      ) = 0;
+
+  /*! \brief Update the cluster parameters from the observations added from
+   *         addobs().
+   */
+  virtual void update () = 0;
+
+  /*! \brief Clear the all parameters and observation accumulations from
+   *         addobs().
+   */
+  virtual void clearobs () = 0;
+
   /*! \brief Update the distribution.
    *  \param N an array of observations counts belonging to this cluster
    *  \param suffstat1 sufficient statistic 1, made by makeSS()
@@ -228,6 +250,11 @@ public:
    */
   virtual probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const = 0;
 
+  /*! \brief Return the number of observations belonging to this cluster.
+   *  \returns the number of observations belonging to this cluster.
+   */
+  double getN () const { return this->N; }
+
   /*! \brief virtual destructor.
    */
   virtual ~ClusterDist() {}
@@ -239,10 +266,12 @@ protected:
    *  \param prior the cluster prior.
    *  \param D the dimensionality of this cluster.
    */
-  ClusterDist (const double prior, const unsigned int D) : D(D), prior(prior) {}
+  ClusterDist (const double prior, const unsigned int D)
+    : D(D), prior(prior), N(0) {}
 
-  unsigned int D;
-  double prior;
+  unsigned int D; //!< Dimensionality
+  double prior;   //!< Cluster prior
+  double N;       //!< Number of observations making up this cluster.
 
 };
 
@@ -261,6 +290,12 @@ public:
    *  \param D is the dimensionality of the data
    */
   GaussWish (const double clustwidth, const unsigned int D);
+
+  void addobs (const Eigen::VectorXd& qZk, const Eigen::MatrixXd& X);
+
+  void update ();
+
+  void clearobs ();
 
   static void makeSS (
       const Eigen::VectorXd& qZk,
@@ -285,6 +320,16 @@ public:
 
   double fenergy () const;
 
+  /*! \brief Get the estimated cluster mean.
+   *  \returns the expected cluster mean.
+   */
+  const Eigen::RowVectorXd& getmean () const { return this->m; }
+
+  /*! \brief Get the estimated cluster covariance.
+   *  \returns the expected cluster covariance.
+   */
+  Eigen::MatrixXd getcov () const { return this->iW/this->nu; }
+
 
 private:
 
@@ -302,7 +347,12 @@ private:
   Eigen::RowVectorXd m;   // m, mu ~ Normal(m, (beta*Lambda)^-1)
   Eigen::MatrixXd iW;     // Inverse W, Lambda ~ Wishart(W, nu)
   double logdW;           // log(det(W))
-  double N;
+
+  // Sufficient Statistics
+  double N_s;
+  Eigen::RowVectorXd x_s;
+  Eigen::MatrixXd xx_s;
+
 };
 
 
@@ -320,6 +370,12 @@ public:
    *  \param D is the dimensionality of the data
    */
   NormGamma (const double clustwidth, const unsigned int D);
+
+  void addobs (const Eigen::VectorXd& qZk, const Eigen::MatrixXd& X);
+
+  void update ();
+
+  void clearobs ();
 
   static void makeSS (
       const Eigen::VectorXd& qZk,
@@ -360,7 +416,12 @@ private:
   Eigen::RowVectorXd m;
   Eigen::RowVectorXd L;
   double logL;
-  double N;
+
+  // Sufficient Statistics
+  double N_s;
+  Eigen::RowVectorXd x_s;
+  Eigen::RowVectorXd xx_s;
+
 };
 
 
@@ -379,6 +440,12 @@ public:
    *  \param D is the dimensionality of the data
    */
   ExpGamma (const double obsmag, const unsigned int D);
+
+  void addobs (const Eigen::VectorXd& qZk, const Eigen::MatrixXd& X);
+
+  void update ();
+
+  void clearobs ();
 
   static void makeSS (
       const Eigen::VectorXd& qZk,
@@ -413,6 +480,10 @@ private:
   double a;
   Eigen::RowVectorXd ib;  // inverse b
   double logb;
+
+  // Sufficient Statistics
+  double N_s;
+  Eigen::RowVectorXd x_s;
 
 };
 

@@ -71,7 +71,7 @@ include_directories(${LIB_INCLUDE_DIR})
 add_library(cluster SHARED
   ${LIB_INCLUDE_DIR}/libcluster.h
   ${LIB_INCLUDE_DIR}/probutils.h
-  ${LIB_SOURCE_DIR}/distributions.h
+  ${LIB_INCLUDE_DIR}/distributions.h
   ${LIB_SOURCE_DIR}/distributions.cpp
   ${LIB_SOURCE_DIR}/comutils.h
   ${LIB_SOURCE_DIR}/comutils.cpp
@@ -95,6 +95,7 @@ install(TARGETS cluster DESTINATION lib)
 install(FILES
   ${LIB_INCLUDE_DIR}/libcluster.h
   ${LIB_INCLUDE_DIR}/probutils.h
+  ${LIB_INCLUDE_DIR}/distributions.h
   DESTINATION include/libcluster
 )
 

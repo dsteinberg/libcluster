@@ -1,5 +1,6 @@
 // TODO:
-//  - Get rid of the copying in the learnVDP and learnGMM functions.
+//  - Get rid of the vbmaximisationj() function, like in ctopic?
+//  - Get rid of the copying in the learnVDP etc functions.
 //  - Some copying still in split()
 
 #include <limits>
@@ -34,7 +35,7 @@ using namespace libcluster;
 template <class C> void updateSS (
     const MatrixXd& Xj,   // Observations in group j
     const MatrixXd& qZj,  // Observations to group mixture assignments
-    SuffStat& SSj,        // Sufficient stats of group j
+    SuffStat& SSj     ,   // Sufficient stats of group j
     SuffStat& SS,         // Sufficient stats of whole model
     const bool sparse     // Do sparse updates to groups
     )
@@ -42,7 +43,7 @@ template <class C> void updateSS (
   const unsigned int K = qZj.cols();
 
   #pragma omp critical
-  SS.subSS(SSj);                      // get rid of old group SS contribution
+  SS.subSS(SSj);                         // get rid of old group SS contribution
 
   const ArrayXd Njk = qZj.colwise().sum();  // count obs. in this group
   ArrayXi Kful = ArrayXi::Zero(1),          // Initialise and set K = 1 defaults
@@ -92,7 +93,7 @@ template <class W> void vbmaximisationj (
 
   // Get cluster counts for group
   for (unsigned int k = 0; k < K; ++k)
-    Njk(k) = SSj.getN_k(k);
+    Njk(k) = SSj.getNk(k);
 
   // Update the weight parameter distribution
   wdistj.update(Njk);
@@ -165,7 +166,7 @@ template <class W, class C> double fenergy (
     const vector<W>& wdists,    // Weight parameter distributions
     const vector<C>& cdists,    // Cluster parameter distributions
     const vector<double>& Fxz,  // Free energy from data log-likelihood
-    vSuffStat& SSj,             // Group sufficient statistics
+    vSuffStat& SSgroups,        // Group sufficient statistics
     SuffStat& SS                // Model Sufficient statistics
     )
 {
@@ -175,9 +176,9 @@ template <class W, class C> double fenergy (
   // Free energy of the weight parameter distributions
   for (int j = 0; j < J; ++j)
   {
-    SS.subF(SSj[j]);  // Remove old groups F contribution
-    SSj[j].setF(wdists[j].fenergy() + Fxz[j]);
-    SS.addF(SSj[j]);  // Add in the new groups F contribution
+    SS.subF(SSgroups[j]);  // Remove old groups F contribution
+    SSgroups[j].setF(wdists[j].fenergy() + Fxz[j]);
+    SS.addF(SSgroups[j]);  // Add in the new groups F contribution
   }
 
   // Free energy of the cluster parameter distributionsreturn
@@ -201,7 +202,7 @@ template <class W, class C> double fenergy (
 template <class W, class C> double vbem (
     const vMatrixXd& X,         // Observations
     vMatrixXd& qZ,              // Observations to model mixture assignments
-    vSuffStat& SSj,             // Sufficient stats of each group
+    vSuffStat& SSgroups,             // Sufficient stats of each group
     SuffStat& SS,               // Sufficient stats of whole model
     const int maxit = -1,       // Max VBEM iterations (-1 = no max, default)
     const bool sparse = false,  // Do sparse updates to groups (default false)
@@ -227,14 +228,14 @@ template <class W, class C> double vbem (
     #pragma omp parallel for schedule(guided)
     for (int j = 0; j < J; ++j)
     {
-      updateSS<C>(X[j], qZ[j], SSj[j], SS, sparse);
-      vbmaximisationj<W>(SSj[j], wdists[j]);
+      updateSS<C>(X[j], qZ[j], SSgroups[j], SS, sparse);
+      vbmaximisationj<W>(SSgroups[j], wdists[j]);
     }
 
     // VBM for clusters
     #pragma omp parallel for schedule(guided)
     for (int k=0; k < K; ++k)
-      cdists[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
+      cdists[k].update(SS.getNk(k), SS.getSS1(k), SS.getSS2(k));
 
     // VBE
     #pragma omp parallel for schedule(guided)
@@ -242,7 +243,7 @@ template <class W, class C> double vbem (
       Fxz[j] = vbexpectation<W,C>(X[j], wdists[j], cdists, qZ[j], sparse);
 
     // Calculate free energy of model
-    F = fenergy<W,C>(wdists, cdists, Fxz, SSj, SS);
+    F = fenergy<W,C>(wdists, cdists, Fxz, SSgroups, SS);
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > FENGYDEL)
@@ -275,7 +276,7 @@ template <class W, class C> double vbem (
 #ifndef GREEDY_SPLIT
 template <class W, class C> bool split_ex (
     const vMatrixXd& X,   // Observations
-    const vSuffStat& SSj, // Sufficient stats of groups
+    const vSuffStat& SSgroups, // Sufficient stats of groups
     const SuffStat& SS,   // Sufficient stats
     const double F,       // Current model free energy
     vMatrixXd& qZ,        // Probabilities qZ
@@ -297,12 +298,12 @@ template <class W, class C> bool split_ex (
   for (unsigned int k = 0; k < K; ++k)
   {
     // Don't waste time with clusters that can't really be split min (2:2)
-    if (SS.getN_k(k) < 4)
+    if (SS.getNk(k) < 4)
       continue;
 
     // Now split observations and qZ.
     int scount = 0, Mtot = 0;
-    csplit.update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
+    csplit.update(SS.getNk(k), SS.getSS1(k), SS.getSS2(k));
 
     #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
     for (unsigned int j = 0; j < J; ++j)
@@ -340,8 +341,8 @@ template <class W, class C> bool split_ex (
 
     // Calculate free energy of this split with ALL data (and refine a bit)
     SuffStat SSaug = SS;                       // Copy :-(
-    vSuffStat SSj_aug = SSj;                   // Copy :-(
-    double Fsplit = vbem<W,C>(X, qZaug, SSj_aug, SSaug, 1, sparse);
+    vSuffStat SSgroups_aug = SSgroups;                   // Copy :-(
+    double Fsplit = vbem<W,C>(X, qZaug, SSgroups_aug, SSaug, 1, sparse);
 
     if (anyempty(SSaug) == true) // One cluster only
       continue;
@@ -385,7 +386,7 @@ template <class W, class C> bool split_ex (
 #ifdef GREEDY_SPLIT
 template <class W, class C> bool split_gr (
     const vMatrixXd& X,   // Observations
-    const vSuffStat& SSj, // Sufficient stats of groups
+    const vSuffStat& SSgroups, // Sufficient stats of groups
     const SuffStat& SS,   // Sufficient stats
     const double F,       // Current model free energy
     vMatrixXd& qZ,        // Probabilities qZ
@@ -406,7 +407,7 @@ template <class W, class C> bool split_gr (
   #pragma omp parallel for schedule(guided)
   for (unsigned int k = 0; k < K; ++k)
   {
-    csplit[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
+    csplit[k].update(SS.getNk(k), SS.getSS1(k), SS.getSS2(k));
     ord[k].k     = k;
     ord[k].tally = tally[k];
     ord[k].Fk    = csplit[k].fenergy();
@@ -446,7 +447,7 @@ template <class W, class C> bool split_gr (
     ++tally[k]; // increase this cluster's unsuccessful split tally by default
 
     // Don't waste time with clusters that can't really be split min (2:2)
-    if (SS.getN_k(k) < 4)
+    if (SS.getNk(k) < 4)
       continue;
 
     // Now split observations and qZ.
@@ -488,8 +489,8 @@ template <class W, class C> bool split_gr (
 
     // Calculate free energy of this split with ALL data (and refine a bit)
     SuffStat SSaug = SS;                       // Copy :-(
-    vSuffStat SSj_aug = SSj;                   // Copy :-(
-    double Fsplit = vbem<W,C>(X, qZaug, SSj_aug, SSaug, 1, sparse);
+    vSuffStat SSgroups_aug = SSgroups;                   // Copy :-(
+    double Fsplit = vbem<W,C>(X, qZaug, SSgroups_aug, SSaug, 1, sparse);
 
     if (anyempty(SSaug) == true) // One cluster only
       continue;
@@ -524,7 +525,7 @@ template <class W, class C> bool split_gr (
 template <class W, class C> void bootstrap (
   const vMatrixXd& X, // Observations
   const SuffStat& SS, // Model sufficient stats
-  vSuffStat& SSj,     // Group sufficient stats
+  vSuffStat& SSgroups,     // Group sufficient stats
   vMatrixXd& qZ       // Obs. to model mixture assignments
   )
 {
@@ -532,10 +533,10 @@ template <class W, class C> void bootstrap (
                      J = X.size();
 
   // Create or check the group sufficient stats
-  if (SSj.size() == 0)
-    SSj.resize(X.size(), SuffStat(SS.getprior()));
-  else if (SSj.size() != J)
-    throw invalid_argument("SSj does not have the same no. of groups as X!");
+  if (SSgroups.size() == 0)
+    SSgroups.resize(X.size(), SuffStat(SS.getprior()));
+  else if (SSgroups.size() != J)
+    throw invalid_argument("SSgroups does not have the same no. of groups as X!");
 
   qZ.resize(J);
 
@@ -552,17 +553,17 @@ template <class W, class C> void bootstrap (
     // Create cluster params from old suff stats
     for (unsigned int k = 0; k < K; ++k)
     {
-      cdists[k].update(SS.getN_k(k), SS.getSS1(k), SS.getSS2(k));
-      Nk(k) = SS.getN_k(k);
+      cdists[k].update(SS.getNk(k), SS.getSS1(k), SS.getSS2(k));
+      Nk(k) = SS.getNk(k);
     }
 
     // Create weights and preliminary labels
     for (unsigned int j = 0; j < J; ++j)
     {
-     if (SSj[j].getK() > 0)  // Use old group suff. stats. if we have some
+     if (SSgroups[j].getK() > 0)  // Use old group suff. stats. if we have some
       {
         for (unsigned int k = 0; k < K; ++k)
-          Njk(k) = SSj[j].getN_k(k);
+          Njk(k) = SSgroups[j].getNk(k);
 
         wdists[j].update(Njk);
       }

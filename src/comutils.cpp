@@ -88,51 +88,60 @@ bool comutils::anyempty (const SuffStat& SS)
   const int K = SS.getK();
 
   for (int k = 0; k < K; ++k)
-    if (SS.getN_k(k) <= 1)
+    if (SS.getNk(k) <= 1)
       return true;
 
   return false;
 }
 
 
+/*  Find and remove all empty clusters. This is now necessary if we don't do an
+ *    exhaustive search for the BEST cluster to split.
+ *
+ *    returns: true if any clusters have been deleted, false if all are kept.
+ *    mutable: qZ may have columns deleted if there are empty clusters found.
+ *    mutable: SSgroups if there are empty clusters found.
+ *    mutable: SS if there are empty clusters found.
+ */
 bool comutils::prune_clusters (
-    vMatrixXd& qZ,         // Probabilities qZ
-    vSuffStat& SSj,        // Sufficient stats of groups
-    SuffStat& SS           // Sufficient stats
+    vMatrixXd& qZ,        // Probabilities qZ
+    vSuffStat& SSgroups,  // Sufficient stats of groups
+    SuffStat& SS          // Sufficient stats
     )
 {
-  const int K = SS.getK(),
-            J = qZ.size();
-  ArrayXb kempty(K);
+  const unsigned int K = SS.getK(),
+                     J = qZ.size();
 
   // Look for empty sufficient statistics
-  for (int k = 0; k < K; ++k)
-    kempty(k) = SS.getN_k(k) < 1;
-
-  // If everything is not empty, return false
-  if ((kempty == false).all())
-    return false;
+  ArrayXd Nk = ArrayXd::Zero(K);
+  for (unsigned int k = 0; k < K; ++k)
+    Nk(k) = SS.getNk(k);
 
   // Find location of empty and full clusters
   ArrayXi eidx, fidx;
-  arrfind(kempty, eidx, fidx);
+  arrfind(Nk.array() < ZEROCUTOFF, eidx, fidx);
+  const unsigned int nempty = eidx.size();
+
+  // If everything is not empty, return false
+  if (nempty == 0)
+    return false;
 
   // Delete empty cluster suff. stats.
-  for (int i = eidx.size() - 1; i >= 0; --i)
+  for (unsigned int i = nempty - 1; i >= 0; --i)
   {
     SS.delk(eidx(i));
-    for (int j = 0; j < J; ++j)
-      SSj[j].delk(eidx(i));
+    for (unsigned int j = 0; j < J; ++j)
+      SSgroups[j].delk(eidx(i));
   }
 
   // Delete empty cluster indicators by copying only full indicators
-  const int newK = fidx.size();
+  const unsigned int newK = fidx.size();
   vMatrixXd newqZ(J);
 
-  for (int j = 0; j < J; ++j)
+  for (unsigned int j = 0; j < J; ++j)
   {
     newqZ[j].setZero(qZ[j].rows(), newK);
-    for (int k = 0; k < newK; ++k)
+    for (unsigned int k = 0; k < newK; ++k)
       newqZ[j].col(k) = qZ[j].col(fidx(k));
   }
 

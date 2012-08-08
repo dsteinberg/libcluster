@@ -23,7 +23,7 @@ ostream& libcluster::operator<< (ostream& s, const libcluster::SuffStat& SS)
   // Numbers of each cluster
   s << "N_k = [ ";
   for (unsigned int k = 0; k < SS.getK(); ++k)
-    s << SS.getN_k(k) << ' ';
+    s << SS.getNk(k) << ' ';
   s << " ]" << endl << endl;
 
   // Sufficient statistic 1 of each cluster
@@ -77,7 +77,7 @@ void libcluster::SuffStat::setSS (
 }
 
 
-double libcluster::SuffStat::getN_k (const unsigned int k) const
+double libcluster::SuffStat::getNk (const unsigned int k) const
 {
   if (k > this->K)
     throw invalid_argument("Index k is greater than number of suff. stats.");

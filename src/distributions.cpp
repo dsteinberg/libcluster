@@ -60,9 +60,9 @@ ArrayXd enumdims (const int D)
 //
 
 distributions::StickBreak::StickBreak ()
-  : alpha1_p(distributions::ALPHA1PRIOR),
+  : WeightDist(),
+    alpha1_p(distributions::ALPHA1PRIOR),
     alpha2_p(distributions::ALPHA2PRIOR),
-    Nk(ArrayXd::Zero(1)),
     alpha1(ArrayXd::Constant(1, distributions::ALPHA1PRIOR)),
     alpha2(ArrayXd::Constant(1, distributions::ALPHA2PRIOR)),
     E_logv(ArrayXd::Zero(1)),
@@ -175,8 +175,8 @@ double distributions::GDirichlet::fenergy () const
 //
 
 distributions::Dirichlet::Dirichlet ()
-  : alpha_p(distributions::ALPHA1PRIOR),
-    Nk(ArrayXd::Zero(1)),
+  : WeightDist(),
+    alpha_p(distributions::ALPHA1PRIOR),
     alpha(ArrayXd::Constant(1, distributions::ALPHA1PRIOR)),
     E_logpi(ArrayXd::Zero(1))
 {}
@@ -220,27 +220,79 @@ distributions::GaussWish::GaussWish (
   : ClusterDist(clustwidth, D),
     nu_p(D),
     beta_p(distributions::BETAPRIOR),
-    m_p(RowVectorXd::Zero(D)),
-    nu(D),
-    beta(distributions::BETAPRIOR),
-    m(RowVectorXd::Zero(D)),
-    logdW(0),
-    N(0)
+    m_p(RowVectorXd::Zero(D))
 {
   if (clustwidth <= 0)
     throw invalid_argument("clustwidth must be > 0!");
 
   // Create Prior
-  this->iW_p = this->iW = this->nu_p * this->prior * MatrixXd::Identity(D, D);
+  this->iW_p = this->nu_p * this->prior * MatrixXd::Identity(D, D);
 
   try
-    { this->logdW_p = this->logdW = -logdet(this->iW_p); }
+    { this->logdW_p = -logdet(this->iW_p); }
   catch (invalid_argument e)
     { throw invalid_argument(string("Creating prior: ").append(e.what())); }
 
   // Calculate prior free energy contribution
   this->F_p = mxlgamma((this->nu_p + 1
               - enumdims(this->m_p.cols())).matrix() / 2).sum();
+
+  this->clearobs(); // Empty suff. stats. and set posteriors equal to priors
+}
+
+
+void distributions::GaussWish::addobs(const VectorXd& qZk, const MatrixXd& X)
+{
+  if (X.cols() != this->D)
+    throw invalid_argument("Mismatched dims. of cluster params and obs.!");
+  if (qZk.rows() != X.rows())
+    throw invalid_argument("qZk and X ar not the same length!");
+
+  MatrixXd qZkX = qZk.asDiagonal() * X;
+
+  this->N_s += qZk.sum();
+  this->x_s += qZkX.colwise().sum();             // [1xD] row vector
+  this->xx_s.noalias() += qZkX.transpose() * X;  // [DxD] matrix
+}
+
+
+void distributions::GaussWish::update ()
+{
+  // Prepare the Sufficient statistics
+  RowVectorXd xk = RowVectorXd::Zero(this->D);
+  if (this->N_s > 0)
+    xk = this->x_s/this->N_s;
+  MatrixXd Sk = this->xx_s - xk.transpose() * this->x_s;
+  RowVectorXd xk_m = xk - this->m_p;               // for iW, (xk - m)
+
+  // Update posterior params
+  this->N    = this->N_s;
+  this->nu   = this->nu_p + this->N;
+  this->beta = this->beta_p + this->N;
+  this->m    = (this->beta_p * this->m_p + this->x_s) / this->beta;
+  this->iW   = this->iW_p + Sk
+                + (this->beta_p * this->N/this->beta) * xk_m.transpose() * xk_m;
+
+  try
+    { this->logdW = -logdet(this->iW); }
+  catch (invalid_argument e)
+    { throw runtime_error(string("Calc log(det(W)): ").append(e.what())); }
+}
+
+
+void distributions::GaussWish::clearobs ()
+{
+  // Reset parameters back to prior values
+  this->nu    = this->nu_p;
+  this->beta  = this->beta_p;
+  this->m     = this->m_p;
+  this->iW    = this->iW_p;
+  this->logdW = this->logdW_p;
+
+  // Empty sufficient statistics
+  this->N_s  = 0;
+  this->x_s  = RowVectorXd::Zero(D);
+  this->xx_s = MatrixXd::Zero(D,D);
 }
 
 
@@ -356,18 +408,73 @@ distributions::NormGamma::NormGamma (
   : ClusterDist(clustwidth, D),
     nu_p(distributions::NUPRIOR),
     beta_p(distributions::BETAPRIOR),
-    m_p(RowVectorXd::Zero(D)),
-    nu(distributions::NUPRIOR),
-    beta(distributions::BETAPRIOR),
-    m(RowVectorXd::Zero(D)),
-    N(0)
+    m_p(RowVectorXd::Zero(D))
 {
   if (clustwidth <= 0)
     throw invalid_argument("clustwidth must be > 0!");
 
   // Create Prior
-  this->L_p = this->L = this->nu_p * this->prior * RowVectorXd::Ones(D);
+  this->L_p = this->nu_p * this->prior * RowVectorXd::Ones(D);
   this->logL_p = this->L_p.array().log().sum();
+
+  this->clearobs(); // Empty suff. stats. and set posteriors equal to priors
+}
+
+
+void distributions::NormGamma::addobs (const VectorXd& qZk, const MatrixXd& X)
+{
+  if (X.cols() != this->D)
+    throw invalid_argument("Mismatched dims. of cluster params and obs.!");
+  if (qZk.rows() != X.rows())
+    throw invalid_argument("qZk and X ar not the same length!");
+
+  MatrixXd qZkX = qZk.asDiagonal() * X;
+
+  this->N_s  += qZk.sum();
+  this->x_s  += qZkX.colwise().sum();                                 // [1xD]
+  this->xx_s += (qZkX.array() * X.array()).colwise().sum().matrix();  // [1xD]
+}
+
+
+void distributions::NormGamma::update ()
+{
+  // Prepare the Sufficient statistics
+  RowVectorXd xk = RowVectorXd::Zero(this->D);
+  RowVectorXd Sk = RowVectorXd::Zero(this->D);
+  if (this->N_s > 0)
+  {
+    xk = this->x_s/this->N_s;
+    Sk = this->xx_s.array() - this->x_s.array().square()/this->N_s;
+  }
+
+  // Update posterior params
+  this->N    = this->N_s;
+  this->beta = this->beta_p + this->N;
+  this->nu   = this->nu_p + this->N/2;
+  this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
+  this->L    = this->L_p + Sk/2 + (this->beta_p * this->N / (2 * this->beta))
+                * (xk - this->m_p).array().square().matrix();
+
+  if ((this->L.array() <= 0).any())
+    throw invalid_argument(string("Calc log(L): Variance is zero or less!"));
+
+  this->logL = this->L.array().log().sum();
+}
+
+
+void distributions::NormGamma::clearobs ()
+{
+  // Reset parameters back to prior values
+  this->nu   = this->nu_p;
+  this->beta = this->beta_p;
+  this->m    = this->m_p;
+  this->L    = this->L_p;
+  this->logL = this->logL_p;
+
+  // Empty sufficient statistics
+  this->N_s  = 0;
+  this->x_s  = RowVectorXd::Zero(this->D);
+  this->xx_s = RowVectorXd::Zero(this->D);
 }
 
 
@@ -405,10 +512,13 @@ void distributions::NormGamma::update (
     throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
 
   // Prepare the Sufficient statistics
-  RowVectorXd xk = RowVectorXd::Zero(x_s.cols());
+  RowVectorXd xk = RowVectorXd::Zero(this->D);
+  RowVectorXd Sk = RowVectorXd::Zero(this->D);
   if (N > 0)
+  {
     xk = x_s/N;
-  RowVectorXd Sk = xx_s.array() - x_s.array().square()/N;
+    Sk = xx_s.array() - x_s.array().square()/N;
+  }
 
   // Update posterior params
   this->N    = N;
@@ -463,18 +573,51 @@ double distributions::NormGamma::fenergy () const
 
 
 //
-// Normal Gamma parameter distribution.
+// Exponential Gamma parameter distribution.
 //
-
 
 distributions::ExpGamma::ExpGamma (const double obsmag, const unsigned int D)
   : ClusterDist(obsmag, D),
     a_p(distributions::APRIOR),
-    b_p(obsmag),
-    a(a_p),
-    ib(RowVectorXd::Constant(D, 1/obsmag)),
-    logb(D*log(b_p))
-{}
+    b_p(obsmag)
+{
+    this->clearobs(); // Empty suff. stats. and set posteriors equal to priors
+}
+
+
+void distributions::ExpGamma::addobs (const VectorXd& qZk, const MatrixXd& X)
+{
+  if (X.cols() != this->D)
+    throw invalid_argument("Mismatched dims. of cluster params and obs.!");
+  if (qZk.rows() != X.rows())
+    throw invalid_argument("qZk and X ar not the same length!");
+
+  this->N_s += qZk.sum();
+  this->x_s += (qZk.asDiagonal() * X).colwise().sum();
+}
+
+
+void distributions::ExpGamma::update ()
+{
+  // Update posterior params
+  this->N    = this->N_s;
+  this->a    = this->a_p + this->N;
+  this->ib   = (this->b_p + this->x_s.array()).array().inverse().matrix();
+  this->logb = - this->ib.array().log().sum();
+}
+
+
+void distributions::ExpGamma::clearobs ()
+{
+  // Reset parameters back to prior values
+  this->a    = this->a_p;
+  this->ib   = RowVectorXd::Constant(this->D, 1/this->b_p);
+  this->logb = this->D * log(this->b_p);
+
+  // Empty sufficient statistics
+  this->N_s = 0;
+  this->x_s = RowVectorXd::Zero(this->D);
+}
 
 
 void distributions::ExpGamma::makeSS (
@@ -504,6 +647,7 @@ void distributions::ExpGamma::update (
   if ( (x_s.rows() != 1) || (x_s.cols() != this->D) )
     throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
 
+  this->N    = N;
   this->a    = this->a_p + N;
   this->ib   = (this->b_p + x_s.array()).array().inverse().matrix();
   this->logb = - this->ib.array().log().sum();

@@ -20,7 +20,7 @@ void printwj(const libcluster::vSuffStat& SSgroup)
     Eigen::RowVectorXd wj = Eigen::RowVectorXd::Zero(SSgroup[j].getK());
 
     for (unsigned int k = 0; k < SSgroup[j].getK(); ++k)
-      wj(k) = SSgroup[j].getN_k(k);
+      wj(k) = SSgroup[j].getNk(k);
 
     std::cout << "w_group(" << j << ") = " << wj/wj.sum() << std::endl;
   }
@@ -34,20 +34,20 @@ void printGMM (const libcluster::SuffStat& SS)
   bool isdiag = SS.getSS2(0).rows() == 1;
   double N = 0;
   for (unsigned int k = 0; k < SS.getK(); ++k)
-    N += SS.getN_k(k);
+    N += SS.getNk(k);
 
   // Print Mixture properties
   for (unsigned int k = 0; k < SS.getK(); ++k)
   {
-    double w = SS.getN_k(k)/N;
-    Eigen::RowVectorXd mean = SS.getSS1(k)/SS.getN_k(k);
+    double w = SS.getNk(k)/N;
+    Eigen::RowVectorXd mean = SS.getSS1(k)/SS.getNk(k);
     Eigen::MatrixXd cov;
 
     if (isdiag == true)
-      cov = Eigen::MatrixXd(Eigen::RowVectorXd((SS.getSS2(k)/SS.getN_k(k)
+      cov = Eigen::MatrixXd(Eigen::RowVectorXd((SS.getSS2(k)/SS.getNk(k)
                               - mean.array().square().matrix())).asDiagonal());
     else
-      cov = SS.getSS2(k)/SS.getN_k(k) - mean.transpose()*mean;
+      cov = SS.getSS2(k)/SS.getNk(k) - mean.transpose()*mean;
 
     std::cout << std::endl << "w_k(" << k << ") = " << w << std::endl
          << "mu_k(" << k << ") = " << mean << std::endl

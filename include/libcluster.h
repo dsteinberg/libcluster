@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <omp.h>
+#include "distributions.h"
 
 
 //
@@ -150,7 +151,7 @@ public:
    *  \returns the observations count.
    *  \throws invalid_argument if k < 0 or k >= K.
    */
-  double getN_k (const unsigned int k) const;
+  double getNk (const unsigned int k) const;
 
   /*! \brief Get the first sufficient statistic corresponding to a particular
    *         cluster
@@ -254,9 +255,6 @@ typedef std::vector<SuffStat>                         vSuffStat;
 //! Vector of vectors of double matricies
 typedef std::vector< std::vector<Eigen::MatrixXd> >   vvMatrixXd;
 
-//! Vector of vectors of Sufficient Stats
-typedef std::vector< std::vector<SuffStat> >          vvSuffStat;
-
 
 //
 // Mixture Models for Clustering (cluster.cpp)
@@ -296,7 +294,7 @@ typedef std::vector< std::vector<SuffStat> >          vvSuffStat;
 double learnVDP (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    libcluster::SuffStat& SS,
+    SuffStat& SS,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -333,7 +331,7 @@ double learnVDP (
 double learnBGMM (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    libcluster::SuffStat& SS,
+    SuffStat& SS,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -371,7 +369,7 @@ double learnBGMM (
 double learnDGMM (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    libcluster::SuffStat& SS,
+    SuffStat& SS,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -409,7 +407,7 @@ double learnDGMM (
 double learnBEMM (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    libcluster::SuffStat& SS,
+    SuffStat& SS,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -452,10 +450,10 @@ double learnBEMM (
  *        these can be used to initialise this model for incremental clustering.
  */
 double learnGMC (
-    const std::vector<Eigen::MatrixXd>& X,
-    std::vector<Eigen::MatrixXd>& qZ,
-    std::vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -500,10 +498,10 @@ double learnGMC (
  *        these can be used to initialise this model for incremental clustering.
  */
 double learnSGMC (
-    const std::vector<Eigen::MatrixXd>& X,
-    std::vector<Eigen::MatrixXd>& qZ,
-    std::vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -549,10 +547,10 @@ double learnSGMC (
  *        these can be used to initialise this model for incremental clustering.
  */
 double learnDGMC (
-    const std::vector<Eigen::MatrixXd>& X,
-    std::vector<Eigen::MatrixXd>& qZ,
-    std::vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -596,10 +594,10 @@ double learnDGMC (
  *        these can be used to initialise this model for incremental clustering.
  */
 double learnEGMC (
-    const std::vector<Eigen::MatrixXd>& X,
-    std::vector<Eigen::MatrixXd>& qZ,
-    std::vector<libcluster::SuffStat>& SSgroups,
-    libcluster::SuffStat& SS,
+    const vMatrixXd& X,
+    vMatrixXd& qZ,
+    vSuffStat& SSgroups,
+    SuffStat& SS,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -610,19 +608,21 @@ double learnEGMC (
 // Topic models for Clustering (ctopic.cpp)
 //
 
+
 /*
  * TODO
  */
 
 double learnTCM (
-    const vMatrixXd& X,
-    Eigen::MatrixXd& qY,
-    vMatrixXd& qZ,
-    vSuffStat& SSdocs,
-    libcluster::SuffStat& SS,
-    Eigen::MatrixXd &classparams,
+    const vvMatrixXd& X,
+    vMatrixXd& qY,
+    vvMatrixXd& qZ,
+    std::vector<distributions::GDirichlet>& weights,       // Group weight distributions
+    std::vector<distributions::Dirichlet>& classes,       // "Document" Class distributions
+    std::vector<distributions::GaussWish>& clusters,      // Cluster Distributions
     const unsigned int T,
-    const bool verbose = false
+    const bool verbose = false,
+    const double clusterprior = PRIORVAL   // Prior value for cluster distributions
     );
 
 }

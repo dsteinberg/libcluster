@@ -11,6 +11,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace libcluster;
+using namespace distributions;
 using namespace probutils;
 
 
@@ -25,34 +26,36 @@ int main()
 
   // Populate test data from testdata.h
   MatrixXd Xcat;
-  vMatrixXd X;
-  makedata(Xcat, X);
+  vvMatrixXd X(1);
+  makedata(Xcat, X[0]);
 
-  const unsigned I = X.size();
-
-  SuffStat SS;
-  vSuffStat SSdocs(I, SuffStat());
-  MatrixXd qY, classparams;
-  vMatrixXd qZ;
+  vector<GDirichlet> weights;
+  vector<Dirichlet>  classes;
+  vector<GaussWish>  clusters;
+  vMatrixXd qY;
+  vvMatrixXd qZ;
   clock_t start = clock();
 
-  learnTCM(X, qY, qZ, SSdocs, SS, classparams, 4, true);
+  learnTCM(X, qY, qZ, weights, classes, clusters, 4, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Topic Elapsed time = " << stop << " sec." << endl;
 
   cout << endl << "Class proportions:" << endl;
-  cout << qY.colwise().sum()/I << endl << endl;
+  for (vector<GDirichlet>::iterator j = weights.begin(); j < weights.end(); ++j)
+    cout << j->Elogweight().exp().transpose() << endl;
 
   cout << endl << "Class parameters:" << endl;
-  cout << classparams << endl << endl;
+  for (vector<Dirichlet>::iterator t = classes.begin(); t < classes.end(); ++t)
+    cout << t->Elogweight().exp().transpose() << endl;
 
-  cout << "Document cluster proportions:";
-  printwj(SSdocs);
-  cout << endl << "Cluster parameters:";
-  printGMM(SS);
+  cout << endl << "Cluster means:" << endl;
+  for (vector<GaussWish>::iterator k=clusters.begin(); k < clusters.end(); ++k)
+    cout << k->getmean() << endl;
 
-//  cout << endl << qY << endl;
+  cout << endl << "Cluster covariances:" << endl;
+  for (vector<GaussWish>::iterator k=clusters.begin(); k < clusters.end(); ++k)
+    cout << k->getcov() << endl << endl;
 
   return 0;
 }

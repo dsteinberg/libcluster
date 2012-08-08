@@ -90,24 +90,36 @@ Eigen::MatrixXd  augmentqZ (
  *
  *  returns: True if any of the sufficient statistics are empty
  */
+
+// TODO: SWAP THIS
 bool anyempty (const libcluster::SuffStat& SS);
 
+// TODO: FOR THIS
+template <class C> bool anyempty_c (const std::vector<C>& clusters)
+{
+  const unsigned int K = clusters.size();
 
-/*  Find and remove all empty clusters. This is now necessary if we don't do an
- *    exhaustive search for the BEST cluster to split.
+  for (unsigned int k = 0; k < K; ++k)
+    if (clusters[k].getN() <= 1)
+      return true;
+
+  return false;
+}
+
+
+/*  Find and remove all empty clusters.
  *
  *    returns: true if any clusters have been deleted, false if all are kept.
  *    mutable: qZ may have columns deleted if there are empty clusters found.
- *    mutable: SSj if there are empty clusters found.
+ *    mutable: SSgroups if there are empty clusters found.
  *    mutable: SS if there are empty clusters found.
  */
 bool prune_clusters (
-    libcluster::vMatrixXd& qZ,  // Probabilities qZ
-    libcluster::vSuffStat& SSj, // Sufficient stats of groups
-    libcluster::SuffStat& SS    // Sufficient stats
+    libcluster::vMatrixXd& qZ,         // Probabilities qZ
+    libcluster::vSuffStat& SSgroups,   // Sufficient stats of groups
+    libcluster::SuffStat& SS           // Sufficient stats
     );
 
 }
-
 
 #endif // COMUTILS_H
