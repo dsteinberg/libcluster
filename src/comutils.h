@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include "libcluster.h"
 #include "probutils.h"
+#include "distributions.h"
 
 
 /*! Namespace that implements various common utilities used in the algorithms */
@@ -54,7 +55,7 @@ bool inline greedcomp (const GreedOrder& i, const GreedOrder& j)
  *  mutable: indfalse the indices of the false values in the array "expression"
  */
 void arrfind (
-    const probutils::ArrayXb& expression,
+    const distributions::ArrayXb& expression,
     Eigen::ArrayXi& indtrue,
     Eigen::ArrayXi& indfalse
     );
@@ -66,8 +67,8 @@ void arrfind (
  *  returns: an Mx1 array of the locations of Xk in X.
  */
 Eigen::ArrayXi partX (
-    const Eigen::MatrixXd& X,        // NxD matrix of observations.
-    const probutils::ArrayXb& Xpart, // Nx1 indicator vector to partition X by.
+    const Eigen::MatrixXd& X,            // NxD matrix of observations.
+    const distributions::ArrayXb& Xpart, // Nx1 indicator vector to partition X.
     Eigen::MatrixXd& Xk          // MxD matrix of obs. beloning to new partition
     );
 
@@ -81,7 +82,7 @@ Eigen::ArrayXi partX (
 Eigen::MatrixXd  augmentqZ (
     const double k,               // Cluster to split (i.e. which column of qZ)
     const Eigen::ArrayXi& map,    // Mapping from array of partitioned obs to qZ
-    const probutils::ArrayXb& Zsplit, // Boolean array of assignments.
+    const distributions::ArrayXb& Zsplit, // Boolean array of assignments.
     const Eigen::MatrixXd& qZ     // [NxK] observation assignment prob. matrix.
     );
 
@@ -90,12 +91,7 @@ Eigen::MatrixXd  augmentqZ (
  *
  *  returns: True if any of the sufficient statistics are empty
  */
-
-// TODO: SWAP THIS
-bool anyempty (const libcluster::SuffStat& SS);
-
-// TODO: FOR THIS
-template <class C> bool anyempty_c (const std::vector<C>& clusters)
+template <class C> bool anyempty (const std::vector<C>& clusters)
 {
   const unsigned int K = clusters.size();
 
@@ -105,20 +101,6 @@ template <class C> bool anyempty_c (const std::vector<C>& clusters)
 
   return false;
 }
-
-
-/*  Find and remove all empty clusters.
- *
- *    returns: true if any clusters have been deleted, false if all are kept.
- *    mutable: qZ may have columns deleted if there are empty clusters found.
- *    mutable: SSgroups if there are empty clusters found.
- *    mutable: SS if there are empty clusters found.
- */
-bool prune_clusters (
-    libcluster::vMatrixXd& qZ,         // Probabilities qZ
-    libcluster::vSuffStat& SSgroups,   // Sufficient stats of groups
-    libcluster::SuffStat& SS           // Sufficient stats
-    );
 
 }
 

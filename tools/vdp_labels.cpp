@@ -8,16 +8,12 @@
  *  vdp_labels.cpp has been adapted from a file created by MVJ which was a
  *  placeholder, but did most of the file ops present in this file.
  *
- *  This program outputs two files:
+ *  This program outputs one file:
  *   image_labels.data  --   The labels for each point of data, 0 is a no-label
- *   SS.data            --   The sufficient statistics learned by the VDP.
  *
  *
- * \note The SS.data output uses a subset of the dimensions, which have been
- *       transformed and standardised.
- *
- * \todo Find a nice way to document the transforms and standardisation
- *       coefficients used to create the labels and SS.
+ * \todo This uses really old features, and is generally a bit of a hack... 
+ *       needs to be severely updated!
  *
  * \author Daniel Steinberg
  *         Australian Centre for Field Robotics
@@ -37,6 +33,7 @@
 #include "adt_file_utils.hpp"
 #include "auv_config_file.hpp"
 #include "libcluster.h"
+#include "distributions.h"
 #include "probutils.h"
 
 using namespace std;
@@ -44,6 +41,7 @@ using namespace libplankton;
 using namespace auv_data_tools;
 using namespace Eigen;
 using namespace libcluster;
+using namespace distributions;
 using namespace probutils;
 
 //
@@ -176,14 +174,12 @@ int main (int argc, char *argv[])
     X.row(i) = SCALEFACTOR * (X.row(i) - meanX).array() / stdevX.array();
 
   // Cluster features
-  SuffStat SS(clustwidth);
+  StickBreak weights;
+  vector<GaussWish> clusters;
   MatrixXd qZ;
   try
   {  
-    //clock_t start = clock();
-    learnVDP(X, qZ, SS, true, nthreads);
-    //double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
-    //cout << "VDP Elapsed time = " << stop << " sec." << endl;
+    learnVDP(X, qZ, weights, clusters, clustwidth, true, nthreads);
   }
   catch (runtime_error e)
   {
@@ -220,17 +216,11 @@ int main (int argc, char *argv[])
     image_label_data.push_back(label);
   }
 
-  // Write the image label file and Sufficient Statistic file.
+  // Write the image label file
   try
   {
     // Image labels
     write_image_label_file("image_label.data", "", image_label_data);
-
-    // SuffStat object
-    ofstream SSfile("SS.data");
-    SSfile << endl << "% Cluster Sufficient Statistics:" << endl; 
-    SSfile << SS << endl;
-    SSfile.close();
   }
   catch (Seabed_SLAM_IO_Exception &e)
     { cerr << "ERROR - " << e.what() << endl; }

@@ -1,5 +1,7 @@
+#include "libcluster.h"
+#include "distributions.h"
 #include "testdata.h"
-#include "test.h"
+
 
 //
 // Namespaces
@@ -9,7 +11,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace libcluster;
-using namespace probutils;
+using namespace distributions;
 
 
 // Main
@@ -21,52 +23,27 @@ int main()
   vMatrixXd X;
   makedata(Xcat, X);
 
-  const int J = X.size();
-
   // GMC
-  SuffStat SS;
-  vSuffStat SSgroup(J, SuffStat());
+  vector<GDirichlet> weights;
+  vector<GaussWish>  clusters;
   vMatrixXd qZgroup;
   clock_t start = clock();
-  learnGMC (X, qZgroup, SSgroup, SS, true, true);
+  learnGMC (X, qZgroup, weights, clusters, PRIORVAL, true, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "GMC Elapsed time = " << stop << " sec." << endl;
-  printwj(SSgroup);
-  printGMM(SS);
 
+  cout << endl << "Cluster Weights:" << endl;
+  for (vector<GDirichlet>::iterator j = weights.begin(); j < weights.end(); ++j)
+    cout << j->Elogweight().exp().transpose() << endl;
 
-  // SGMC
-  SS = SuffStat();
-  SSgroup.clear();
-  start = clock();
-  learnSGMC (X, qZgroup, SSgroup, SS, true, true);
+  cout << endl << "Cluster means:" << endl;
+  for (vector<GaussWish>::iterator k=clusters.begin(); k < clusters.end(); ++k)
+    cout << k->getmean() << endl;
 
-  stop = (double)((clock() - start))/CLOCKS_PER_SEC;
-  cout << "Symmetric GMC Elapsed time = " << stop << " sec." << endl;
-  printwj(SSgroup);
-  printGMM(SS);
-
-
-  // VDP
-  MatrixXd qZ;
-  SS = SuffStat();
-  start = clock();
-  learnVDP(Xcat, qZ, SS, true);
-
-  stop = (double)((clock() - start))/CLOCKS_PER_SEC;
-  cout << "VDP Elapsed time = " << stop << " sec." << endl;
-  printGMM(SS);
-
-
-  // GMM
-  start = clock();
-  SS = SuffStat();
-  learnBGMM(Xcat, qZ, SS, true);
-
-  stop = (double)((clock() - start))/CLOCKS_PER_SEC;
-  cout << "Bayesian GMM Elapsed time = " << stop << " sec." << endl;
-  printGMM(SS);
+  cout << endl << "Cluster covariances:" << endl;
+  for (vector<GaussWish>::iterator k=clusters.begin(); k < clusters.end(); ++k)
+    cout << k->getcov() << endl << endl;
 
   return 0;
 }

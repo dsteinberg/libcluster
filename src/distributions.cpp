@@ -1,5 +1,6 @@
 #include <boost/math/special_functions.hpp>
 #include "distributions.h"
+#include "probutils.h"
 
 //
 // Namespaces
@@ -296,61 +297,6 @@ void distributions::GaussWish::clearobs ()
 }
 
 
-void distributions::GaussWish::makeSS (
-    const VectorXd& qZk,
-    const MatrixXd& X,
-    MatrixXd& x_s,
-    MatrixXd& xx_s
-    )
-{
-  MatrixXd qZkX = qZk.asDiagonal() * X;
-  x_s = qZkX.colwise().sum();             // [1xD] row vector
-  xx_s.noalias() = qZkX.transpose() * X;  // [DxD] matrix
-}
-
-
-pair<Array2i, Array2i> distributions::GaussWish::dimSS (const MatrixXd& X)
-{
-  return pair<Array2i, Array2i>(Array2i(1, X.cols()),
-                                Array2i(X.cols(), X.cols()));
-}
-
-void distributions::GaussWish::update (
-      const double N,
-      const MatrixXd& x_s,
-      const MatrixXd& xx_s
-    )
-{
-  if (
-      (x_s.rows() != 1)
-      || (x_s.cols() != this->D)
-      || (xx_s.cols() != this->D)
-      || (xx_s.rows() != this->D)
-     )
-    throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
-
-  // Prepare the Sufficient statistics
-  RowVectorXd xk = RowVectorXd::Zero(x_s.cols());
-  if (N > 0)
-    xk = x_s/N;
-  MatrixXd Sk = xx_s - xk.transpose() * x_s;
-  RowVectorXd xk_m = xk - this->m_p;               // for iW, (xk - m)
-
-  // Update posterior params
-  this->N    = N;
-  this->nu   = this->nu_p + N;
-  this->beta = this->beta_p + N;
-  this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
-  this->iW   = this->iW_p + Sk
-                + (this->beta_p*N/this->beta) * xk_m.transpose() * xk_m;
-
-  try
-    { this->logdW = -logdet(this->iW); }
-  catch (invalid_argument e)
-    { throw invalid_argument(string("Calc log(det(W)): ").append(e.what())); }
-}
-
-
 VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
 {
   // Expectations of log Gaussian likelihood
@@ -368,7 +314,7 @@ VectorXd distributions::GaussWish::Eloglike (const MatrixXd& X) const
 }
 
 
-ArrayXb distributions::GaussWish::splitobs (
+distributions::ArrayXb distributions::GaussWish::splitobs (
     const MatrixXd& X
     ) const
 {
@@ -478,63 +424,6 @@ void distributions::NormGamma::clearobs ()
 }
 
 
-void distributions::NormGamma::makeSS (
-    const VectorXd& qZk,
-    const MatrixXd& X,
-    MatrixXd& x_s,
-    MatrixXd& xx_s
-    )
-{
-  MatrixXd qZkX = qZk.asDiagonal() * X;
-  x_s  = qZkX.colwise().sum();                        // [1xD] row vector
-  xx_s = (qZkX.array() * X.array()).colwise().sum();  // [1xD] row vector
-}
-
-
-pair<Array2i, Array2i> distributions::NormGamma::dimSS (const MatrixXd& X)
-{
-  return pair<Array2i, Array2i>(Array2i(1, X.cols()), Array2i(1, X.cols()));
-}
-
-
-void distributions::NormGamma::update (
-      const double N,
-      const MatrixXd& x_s,
-      const MatrixXd& xx_s
-    )
-{
-  if (
-      (x_s.rows() != 1)
-      || (x_s.cols() != this->D)
-      || (xx_s.cols() != this->D)
-      || (xx_s.rows() != 1)
-     )
-    throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
-
-  // Prepare the Sufficient statistics
-  RowVectorXd xk = RowVectorXd::Zero(this->D);
-  RowVectorXd Sk = RowVectorXd::Zero(this->D);
-  if (N > 0)
-  {
-    xk = x_s/N;
-    Sk = xx_s.array() - x_s.array().square()/N;
-  }
-
-  // Update posterior params
-  this->N    = N;
-  this->beta = this->beta_p + N;
-  this->nu   = this->nu_p + N/2;
-  this->m    = (this->beta_p * this->m_p + x_s) / this->beta;
-  this->L    = this->L_p + Sk/2 + (this->beta_p * N / (2 * this->beta))
-                * (xk - this->m_p).array().square().matrix();
-
-  if ((this->L.array() <= 0).any())
-    throw invalid_argument(string("Calc log(L): Variance is zero or less!"));
-
-  this->logL = this->L.array().log().sum();
-}
-
-
 VectorXd distributions::NormGamma::Eloglike (const MatrixXd& X) const
 {
   // Distance evaluation in the exponent
@@ -547,7 +436,7 @@ VectorXd distributions::NormGamma::Eloglike (const MatrixXd& X) const
 }
 
 
-ArrayXb distributions::NormGamma::splitobs (
+distributions::ArrayXb distributions::NormGamma::splitobs (
     const MatrixXd& X
     ) const
 {
@@ -620,40 +509,6 @@ void distributions::ExpGamma::clearobs ()
 }
 
 
-void distributions::ExpGamma::makeSS (
-    const VectorXd& qZk,
-    const MatrixXd& X,
-    MatrixXd& x_s,
-    MatrixXd& emp
-    )
-{
-  x_s = (qZk.asDiagonal() * X).colwise().sum();
-  emp = MatrixXd::Zero(0,0);
-}
-
-
-pair<Array2i, Array2i> distributions::ExpGamma::dimSS (const MatrixXd& X)
-{
-  return pair<Array2i, Array2i>(Array2i(1, X.cols()), Array2i(0, 0));
-}
-
-
-void distributions::ExpGamma::update (
-      const double N,
-      const MatrixXd& x_s,
-      const MatrixXd& emp
-    )
-{
-  if ( (x_s.rows() != 1) || (x_s.cols() != this->D) )
-    throw invalid_argument("Suff. Stats. are wrong dim. for updating params!");
-
-  this->N    = N;
-  this->a    = this->a_p + N;
-  this->ib   = (this->b_p + x_s.array()).array().inverse().matrix();
-  this->logb = - this->ib.array().log().sum();
-}
-
-
 VectorXd distributions::ExpGamma::Eloglike (const MatrixXd& X) const
 {
   return this->D * digamma(this->a) - this->logb
@@ -661,7 +516,7 @@ VectorXd distributions::ExpGamma::Eloglike (const MatrixXd& X) const
 }
 
 
-ArrayXb distributions::ExpGamma::splitobs (
+distributions::ArrayXb distributions::ExpGamma::splitobs (
     const MatrixXd& X
     ) const
 {

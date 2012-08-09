@@ -24,13 +24,6 @@ namespace probutils
 
 
 //
-// Useful Typedefs
-//
-
-typedef Eigen::Array<bool, Eigen::Dynamic, 1> ArrayXb; //!< Boolean Array
-
-
-//
 // Useful Functions
 //
 

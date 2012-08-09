@@ -7,6 +7,7 @@
 #include <cstring>
 #include <wordexp.h>
 #include "libcluster.h"
+#include "distributions.h"
 
 
 //
@@ -16,6 +17,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace libcluster;
+using namespace distributions;
 
 
 //
@@ -57,13 +59,14 @@ int main (int argc, char* argv[])
   cout << "done. X is [ " << X.rows() << " x " << X.cols() << " ]." << endl;
 
   // Cluster observations using VDP
-  SuffStat SS;
+  StickBreak weights;
+  vector<GaussWish> clusters;
   MatrixXd qZ;
   double F;
   clock_t start = clock();
 
   try
-    { F = learnVDP(X, qZ, SS, false, true); }
+    { F = learnVDP(X, qZ, weights, clusters, false, true); }
   catch (logic_error e)
     { throw; }
   catch (runtime_error e)

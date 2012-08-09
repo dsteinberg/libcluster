@@ -1,10 +1,9 @@
 // TODO:
 //  - Is the new LL in split_gr right? I.e. the qY and qZ interaction??
-//  - General code neaten, !!!SIMPLIFICATION!!!, and proof read.
+//  - Make this multithreaded over documents where available, or groups.
 //  - Make a sparse flag for the clusters and classes?
 //  - Neaten up the split_gr() function.
 //  - Add in an optional split_ex() function.
-//  - Parallelise
 
 #include <limits>
 #include "libcluster.h"
@@ -28,14 +27,17 @@ using namespace libcluster;
 //  Variational Bayes Private Functions
 //
 
-/* TODO
+/* The Variational Bayes Expectation step for classes in each group.
  *
+ *  mutable: Class assignment probabilities, qYj
+ *  returns: The complete-data  free energy, Y and Y+Z dep. terms, for group j.
+ *  throws: invalid_argument rethrown from other functions.
  */
 template <class W, class L> double vbeY (
-    const vMatrixXd& qZj,
-    const W& weightsj,
-    const vector<L>& classes,
-    MatrixXd& qYj                 // [IxT]
+    const vMatrixXd& qZj,       // Cluster assignments for group j
+    const W& weightsj,          // Group class weights
+    const vector<L>& classes,   // Class parameters
+    MatrixXd& qYj               // Class assignments for group j
     )
 {
   const unsigned int T  = classes.size(),
@@ -69,15 +71,18 @@ template <class W, class L> double vbeY (
 }
 
 
-/* TODO
+/* The Variational Bayes Expectation step for clusters in each document.
  *
+ *  mutable: Cluster assignment probabilities, qZji
+ *  returns: The complete-data  free energy, Z dep. terms, for group j.
+ *  throws: invalid_argument rethrown from other functions.
  */
 template <class L, class C> double vbeZ (
-    const MatrixXd& Xji,
-    const RowVectorXd& qYji,
-    const vector<L>& classes,
-    const vector<C>& clusters,
-    MatrixXd& qZji
+    const MatrixXd& Xji,        // Observations in document i in group j
+    const RowVectorXd& qYji,    // Class assignment of this document
+    const vector<L>& classes,   // Class parameters
+    const vector<C>& clusters,  // Cluster parameters
+    MatrixXd& qZji              // Observation to cluster assignments
     )
 {
   const int K   = clusters.size(),
@@ -106,15 +111,16 @@ template <class L, class C> double vbeZ (
 }
 
 
-/* TODO
+/* Calculates the free energy lower bound for the model parameter distributions.
  *
+ *  returns: the free energy of the model
  */
 template <class W, class L, class C> double fenergy (
-    const vector<W>& weights,
-    const vector<L>& classes,
-    const vector<C>& clusters,
-    const double Fy,
-    const double Fz
+    const vector<W>& weights,   // Group class weights
+    const vector<L>& classes,   // Class parameters
+    const vector<C>& clusters,  // Cluster parameters
+    const double Fyz,           // Free energy Y and Z+Y terms
+    const double Fz             // Free energy Z terms
     )
 {
   const int T = classes.size(),
@@ -136,7 +142,7 @@ template <class W, class L, class C> double fenergy (
   for (int j = 0; j < J; ++j)
     Fw += weights[j].fenergy();
 
-  return Fw + Fc + Fk + Fy + Fz;
+  return Fw + Fc + Fk + Fyz + Fz;
 }
 
 
@@ -210,12 +216,12 @@ template <class W, class L, class C> double vbem (
     for (unsigned int k = 0; k < K; ++k)
       clusters[k].update();
 
-    double Fz = 0, Fy = 0;
+    double Fz = 0, Fyz = 0;
 
     for (unsigned int j = 0; j < J; ++j)
     {
       // VBE for class indicators
-      Fy += vbeY<W,L>(qZ[j], weights[j], classes, qY[j]);
+      Fyz += vbeY<W,L>(qZ[j], weights[j], classes, qY[j]);
 
       // VBE for cluster indicators
       for (unsigned int i = 0; i < Ij(j); ++i)
@@ -223,7 +229,7 @@ template <class W, class L, class C> double vbem (
     }
 
     // Calculate free energy of model
-    F = fenergy<W,L,C>(weights, classes, clusters, Fy, Fz);
+    F = fenergy<W,L,C>(weights, classes, clusters, Fyz, Fz);
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
@@ -259,12 +265,12 @@ template <class W, class L, class C> bool split_gr (
     const vvMatrixXd& X,            // Observations
     const vector<L>& classes,       // "Document" Class distributions
     const vector<C>& clusters,      // Cluster Distributions
-    const double F,                 // Current model free energy
     vMatrixXd& qY,                  // Class Probabilities qY
     vvMatrixXd& qZ,                 // Cluster Probabilities qZ
     vector<int>& tally,             // Count of unsuccessful splits
-    const bool verbose,             // Verbose output
-    const double clusterprior
+    const double F,                 // Current model free energy
+    const double clusterprior,      // Prior value for cluster distributions
+    const bool verbose              // Verbose output
     )
 {
   const unsigned int J = X.size(),
@@ -368,7 +374,7 @@ template <class W, class L, class C> bool split_gr (
     vector<C> cspl;
     vbem<W,L,C>(Xk, qZref, qYref, wspl, lspl, cspl, clusterprior, SPLITITER);
 
-    if (anyempty_c<C>(cspl) == true) // One cluster only
+    if (anyempty<C>(cspl) == true) // One cluster only
       continue;
 
     // Map the refined splits back to original whole-data problem
@@ -382,7 +388,7 @@ template <class W, class L, class C> bool split_gr (
     vMatrixXd qYaug = qY;                             // Copy :-(
     double Fs = vbem<W,L,C>(X, qZaug, qYaug, wspl, lspl, cspl, clusterprior, 1);
 
-    if (anyempty_c<C>(cspl) == true) // One cluster only
+    if (anyempty<C>(cspl) == true) // One cluster only
       continue;
 
     // Only notify here of split candidates
@@ -406,12 +412,11 @@ template <class W, class L, class C> bool split_gr (
 /*  Find and remove all empty classes.
  *
  *    returns: true if any classes have been deleted, false if all are kept.
- *    mutable: qZ may have columns deleted if there are empty clusters found.
- *    mutable: weights if there are empty classes found.
+ *    mutable: qZ may have columns deleted if there are empty classes found.
  *    mutable: classes if there are empty classes found.
  */
 template <class L> bool prune_classes (
-    vMatrixXd& qY,       // Probabilities qZ
+    vMatrixXd& qY,       // Probabilities qY
     vector<L>& classes,  // classes distributions
     bool verbose = false // print status
     )
@@ -468,15 +473,15 @@ template <class L> bool prune_classes (
  *  throws: runtime_error if free energy increases.
  */
 template <class W, class L, class C> double ctopic (
-    const vvMatrixXd& X,      // Observations
-    vMatrixXd& qY,            // Class assignments
-    vvMatrixXd& qZ,           // Observations to cluster assignments
-    vector<W>& weights,       // Group weight distributions
-    vector<L>& classes,       // "Document" Class distributions
-    vector<C>& clusters,      // Cluster Distributions
-    const unsigned int T,     // Truncation level for number of classes
-    const bool verbose,       // Verbose output
-    const double clusterprior // Prior value for cluster distributions
+    const vvMatrixXd& X,       // Observations
+    vMatrixXd& qY,             // Class assignments
+    vvMatrixXd& qZ,            // Observations to cluster assignments
+    vector<W>& weights,        // Group weight distributions
+    vector<L>& classes,        // "Document" Class distributions
+    vector<C>& clusters,       // Cluster Distributions
+    const unsigned int T,      // Truncation level for number of classes
+    const double clusterprior, // Prior value for cluster distributions
+    const bool verbose         // Verbose output
     )
 {
   const unsigned int J = X.size();
@@ -496,7 +501,7 @@ template <class W, class L, class C> double ctopic (
 
     qZ[j].resize(Ij);
     for (unsigned int i = 0; i < Ij; ++i)
-      qZ[j][i] = MatrixXd::Ones(X[j][i].rows(), 1);
+      qZ[j][i].setOnes(X[j][i].rows(), 1);
 
     Itot += Ij;
   }
@@ -524,8 +529,8 @@ template <class W, class L, class C> double ctopic (
     if (issplit == false)  // Remove any empty classes
       emptyclasses = prune_classes<L>(qY, classes, verbose);
     else                   // Search for best split, augment qZ if found one
-      issplit = split_gr<W,L,C>(X, classes, clusters, F, qY, qZ, tally, verbose,
-                                clusterprior);
+      issplit = split_gr<W,L,C>(X, classes, clusters, qY, qZ, tally, F,
+                                clusterprior, verbose);
 
     if (verbose == true)
       cout << '>' << endl;      // Notify end search
@@ -552,12 +557,12 @@ double libcluster::learnTCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
-    vector<GDirichlet>& weights,      // Group weight distributions
-    vector<Dirichlet>& classes,       // "Document" Class distributions
-    vector<GaussWish>& clusters,      // Cluster Distributions
+    vector<GDirichlet>& weights,
+    vector<Dirichlet>& classes,
+    vector<GaussWish>& clusters,
     const unsigned int T,
-    const bool verbose,
-    const double clusterprior
+    const double clusterprior,
+    const bool verbose
     )
 {
 
@@ -567,7 +572,7 @@ double libcluster::learnTCM (
 
   // Model selection and Variational Bayes learning
   double F = ctopic<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
-                          weights, classes, clusters, T, verbose, clusterprior);
+                          weights, classes, clusters, T, clusterprior, verbose);
 
   return F;
 }

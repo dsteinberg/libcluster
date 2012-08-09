@@ -1,18 +1,16 @@
 #include "libcluster.h"
-#include "probutils.h"
+#include "distributions.h"
 #include "testdata.h"
-#include "test.h"
+
 
 //
 // Namespaces
 //
 
-
 using namespace std;
 using namespace Eigen;
 using namespace libcluster;
 using namespace distributions;
-using namespace probutils;
 
 
 //
@@ -26,8 +24,18 @@ int main()
 
   // Populate test data from testdata.h
   MatrixXd Xcat;
-  vvMatrixXd X(1);
-  makedata(Xcat, X[0]);
+  vMatrixXd X;
+  vvMatrixXd Xv(2);
+  makedata(Xcat, X);
+
+  // Dived up X into 2 meta datasets, in an alternating fashion
+  for (unsigned int j = 0; j < X.size(); ++j)
+  {
+    if ((j % 2) == 0)
+      Xv[0].push_back(X[j]);
+    else
+      Xv[1].push_back(X[j]);
+  }
 
   vector<GDirichlet> weights;
   vector<Dirichlet>  classes;
@@ -36,7 +44,7 @@ int main()
   vvMatrixXd qZ;
   clock_t start = clock();
 
-  learnTCM(X, qY, qZ, weights, classes, clusters, 4, true);
+  learnTCM(Xv, qY, qZ, weights, classes, clusters, 4, PRIORVAL, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Topic Elapsed time = " << stop << " sec." << endl;

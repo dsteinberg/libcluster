@@ -37,8 +37,6 @@
  *      in the interfaces here.
  *
  *  All of these algorithms infer the number of clusters present in the data.
- *  Also, the sufficient statistics of the clusters are returned, which can be
- *  subsequently used to initialise these models for incremental clustering.
  *
  * [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational
  *     Dirichlet process mixtures, Advances in Neural Information Processing
@@ -80,166 +78,9 @@ namespace libcluster
 
 const double PRIORVAL    = 1e-5;        //!< Default prior hyperparameter value
 const int    SPLITITER   = 15;          //!< Max number of iter. for split VBEM
-const double CONVERGE    = 1.0e-5;      //!< Convergence threshold
+const double CONVERGE    = 1e-5;        //!< Convergence threshold
 const double FENGYDEL    = CONVERGE/10; //!< Allowance for +ve F.E. steps
 const double ZEROCUTOFF  = 0.1;         //!< Obs. count cut off sparse updates
-
-
-//
-// The Sufficient Statistics container class (suffstat.cpp)
-//
-
-/*! \brief Sufficient statistics container class.
- *
- *  This class stores the cluster parameter sufficient statistics from the
- *  various clustering algorithms in this library. Most exponential family
- *  distributions can be created from sufficient statistics, and so the cluster
- *  parameters (for various distributions) can be directly computed from this
- *  class.
- *
- *  By storing sufficient statistics, and also free energy contributions, this
- *  class facilitates incremental/online clustering.
- */
-class SuffStat
-{
-public:
-
-  /*! \brief SuffStat constructor.
-   *  \param prior the prior value to use with the clustering model. This is
-   *         used to construct cluster distributions, and also for checking the
-   *         compatibility of these suff. stats. with other suff. stats.
-   */
-  SuffStat (double prior = PRIORVAL);
-
-  /*! \brief Set the sufficient statistics directly.
-   *  \param k the cluster number
-   *  \param N the number of observations in the cluster
-   *  \param suffstat1 the first sufficient statistic.
-   *  \param suffstat2 the second sufficient statistic.
-   *  \throws invalid_argument if incompatible sufficient statists are detected.
-   */
-  void setSS (
-      unsigned int k,
-      double N,
-      const Eigen::MatrixXd& suffstat1,
-      const Eigen::MatrixXd& suffstat2
-      );
-
-  /*! \brief Set the free energy contribution of these sufficient statistics
-   *  \param Fcontrib free energy contribution of these sufficient statistics
-   */
-  void setF (double Fcontrib) { this->F = Fcontrib; }
-
-  /*! \brief Get the number of clusters represented by this object.
-   *  \returns the number of clusters.
-   */
-  unsigned int getK () const { return this->K; }
-
-  /*! \brief Get the free energy corresponding to these sufficient stats.
-   *  \returns the free energy.
-   */
-  double getF () const { return this->F; }
-
-  /*! \brief Get the cluster prior value used for cluster creation.
-   *  \returns the prior value.
-   */
-  double getprior () const { return this->priorval; }
-
-  /*! \brief Get the number of observations summarised by these sufficient
-   *         stats. for a specific cluster.
-   *  \param k the cluster to get the observation count from.
-   *  \returns the observations count.
-   *  \throws invalid_argument if k < 0 or k >= K.
-   */
-  double getNk (const unsigned int k) const;
-
-  /*! \brief Get the first sufficient statistic corresponding to a particular
-   *         cluster
-   *  \param k the cluster to get the first suff. stat. from.
-   *  \returns the first suff. stat. from cluster k.
-   *  \throws invalid_argument if k < 0 or k >= K.
-   */
-  const Eigen::MatrixXd& getSS1 (const unsigned int k) const;
-
-  /*! \brief Get the second sufficient statistic corresponding to a particular
-   *         cluster
-   *  \param k the cluster to get the second suff. stat. from.
-   *  \returns the second suff. stat. from cluster k.
-   *  \throws invalid_argument if k < 0 or k >= K.
-   */
-  const Eigen::MatrixXd& getSS2 (const unsigned int k) const;
-
-  /*! \brief Add other sufficient statistics to these sufficient statistics.
-   *  \param SS another sufficient statistic object to add to this one.
-   *  \throws invalid_argument if incompatible sufficient statists are detected.
-   */
-  void addSS (const SuffStat& SS);
-
-  /*! \brief Subtract other sufficient statistics from these suff. stats.
-   *  \param SS another sufficient statistic object to subtract from this one.
-   *  \throws invalid_argument if incompatible sufficient statists are detected.
-   */
-  void subSS (const SuffStat& SS);
-
-  /*! \brief Add other sufficient statistics free energy contributions to these.
-   *  \param SS another sufficient statistic object to add to this one.
-   *  \throws invalid_argument if incompatible sufficient statists are detected.
-   */
-  void addF (const SuffStat& SS);
-
-  /*! \brief Subtract other sufficient statistics free energy contributions from
-   *         these.
-   *  \param SS another sufficient statistic object to subtract from this one.
-   *  \throws invalid_argument if incompatible sufficient statists are detected.
-   */
-  void subF (const SuffStat& SS);
-
-  /*! \brief Remove cluster k, indexed from 0.
-   *  \throws invalid_argument if k is out of range.
-   */
-  void delk (const unsigned int k);
-
-  /*! \brief Virtual destructor to ensure derived classes clean up properly */
-  virtual ~SuffStat () {}
-
-private:
-
-  bool compcheck (const SuffStat& SS);
-
-  unsigned int K;   // Number of clusters
-  double F;         // Contribution to modelf Free energy.
-  double priorval;  // Prior value associated with suff. stats
-
-  std::vector<double> N_k;              // The number of obs. in cluster k
-  std::vector<Eigen::MatrixXd> SS1;     // Suff. Stat. 1
-  std::vector<Eigen::MatrixXd> SS2;     // Suff. Stat. 2
-
-};
-
-
-/*! \brief Sufficient statistic stream operator.
- *
- *  The output of this operator will look something like:
- *
- *  \verbatim
-      K = 2
-      Nk = [19.1 30.9]
-
-      Suff. Stat. 1(1) =
-        <Eigen Matrix Type>
-      Suff. Stat. 1(2) =
-        <Eigen Matrix Type>
-      Suff. Stat. 2(1) =
-        <Eigen Matrix Type>
-      Suff. Stat. 2(2) =
-        <Eigen Matrix Type>
-    \endverbatim
- *
- *  \param s the stream to stream the suff. stat. object to.
- *  \param SS the sufficient statistic object.
- *  \returns a stream with SS.
- */
-std::ostream& operator<< (std::ostream& s, const SuffStat& SS);
 
 
 //
@@ -248,9 +89,6 @@ std::ostream& operator<< (std::ostream& s, const SuffStat& SS);
 
 //! Vector of double matricies
 typedef std::vector<Eigen::MatrixXd>                  vMatrixXd;
-
-//! Vector of Sufficient Stats
-typedef std::vector<SuffStat>                         vSuffStat;
 
 //! Vector of vectors of double matricies
 typedef std::vector< std::vector<Eigen::MatrixXd> >   vvMatrixXd;
@@ -274,8 +112,12 @@ typedef std::vector< std::vector<Eigen::MatrixXd> >   vvMatrixXd;
  *  \param qZ is an NxK matrix of the variational posterior approximation to
  *         p(Z|X). This will always be overwritten to start with one
  *         cluster.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the clusters.
+ *  \param weights is the distributions over the mixture weights of the model.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -287,14 +129,13 @@ typedef std::vector< std::vector<Eigen::MatrixXd> >   vvMatrixXd;
  *  \throws std::runtime_error if there are runtime issues with the VDP
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS from a previous model, this can be used to
- *        initialise this model for incremental clustering.
  */
 double learnVDP (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    SuffStat& SS,
+    distributions::StickBreak& weights,
+    std::vector<distributions::GaussWish>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -311,8 +152,12 @@ double learnVDP (
  *  \param qZ is an NxK matrix of the variational posterior approximation to
  *         p(Z|X). This will always be overwritten to start with one
  *         cluster.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the clusters.
+ *  \param weights is the distributions over the mixture weights of the model.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -324,14 +169,13 @@ double learnVDP (
  *  \throws std::runtime_error if there are runtime issues with the VDP
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS from a previous model, this can be used to
- *        initialise this model for incremental clustering.
  */
 double learnBGMM (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    SuffStat& SS,
+    distributions::Dirichlet& weights,
+    std::vector<distributions::GaussWish>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -349,8 +193,12 @@ double learnBGMM (
  *  \param qZ is an NxK matrix of the variational posterior approximation to
  *         p(Z|X). This will always be overwritten to start with one
  *         cluster.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the clusters.
+ *  \param weights is the distributions over the mixture weights of the model.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -362,14 +210,13 @@ double learnBGMM (
  *  \throws std::runtime_error if there are runtime issues with the VDP
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS from a previous model, this can be used to
- *        initialise this model for incremental clustering.
  */
 double learnDGMM (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    SuffStat& SS,
+    distributions::Dirichlet& weights,
+    std::vector<distributions::NormGamma>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -388,8 +235,12 @@ double learnDGMM (
  *  \param qZ is an NxK matrix of the variational posterior approximation to
  *         p(Z|X). This will always be overwritten to start with one
  *         cluster.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the clusters.
+ *  \param weights is the distributions over the mixture weights of the model.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -400,14 +251,13 @@ double learnDGMM (
  *  \throws std::runtime_error if there are runtime issues with the VDP
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS from a previous model, this can be used to
- *        initialise this model for incremental clustering.
  */
 double learnBEMM (
     const Eigen::MatrixXd& X,
     Eigen::MatrixXd& qZ,
-    SuffStat& SS,
+    distributions::Dirichlet& weights,
+    std::vector<distributions::ExpGamma>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -426,10 +276,13 @@ double learnBEMM (
  *  \param qZ is a vector of N_jxK matrices of the variational posterior
  *         approximations to p(z_j|X_j). K is the number of model clusters.
  *         This will always be overwritten to start with one cluster.
- *  \param SSgroups a mutable SuffStat object to store the sufficient statistics
- *         of the group cluster contributions.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the model clusters.
+ *  \param weights is a vector of distributions over the mixture weights of the
+ *         model, for each group of data, J.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -445,15 +298,13 @@ double learnBEMM (
  *  \throws std::runtime_error if there are runtime issues with the GMC
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS and optinally SSgroups from a previous model,
- *        these can be used to initialise this model for incremental clustering.
  */
 double learnGMC (
     const vMatrixXd& X,
     vMatrixXd& qZ,
-    vSuffStat& SSgroups,
-    SuffStat& SS,
+    std::vector<distributions::GDirichlet>& weights,
+    std::vector<distributions::GaussWish>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -474,10 +325,13 @@ double learnGMC (
  *  \param qZ is a vector of N_jxK matrices of the variational posterior
  *         approximations to p(z_j|X_j). K is the number of model clusters.
  *         This will always be overwritten to start with one cluster.
- *  \param SSgroups a mutable SuffStat object to store the sufficient statistics
- *         of the group cluster contributions.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the model clusters.
+ *  \param weights is a vector of distributions over the mixture weights of the
+ *         model, for each group of data, J.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -493,15 +347,13 @@ double learnGMC (
  *  \throws std::runtime_error if there are runtime issues with the GMC
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS and optinally SSgroups from a previous model,
- *        these can be used to initialise this model for incremental clustering.
  */
 double learnSGMC (
     const vMatrixXd& X,
     vMatrixXd& qZ,
-    vSuffStat& SSgroups,
-    SuffStat& SS,
+    std::vector<distributions::Dirichlet>& weights,
+    std::vector<distributions::GaussWish>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -523,10 +375,13 @@ double learnSGMC (
  *  \param qZ is a vector of N_jxK matrices of the variational posterior
  *         approximations to p(z_j|X_j). K is the number of model clusters.
  *         This will always be overwritten to start with one cluster.
- *  \param SSgroups a mutable SuffStat object to store the sufficient statistics
- *         of the group cluster contributions.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the model clusters.
+ *  \param weights is a vector of distributions over the mixture weights of the
+ *         model, for each group of data, J.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -542,15 +397,13 @@ double learnSGMC (
  *  \throws std::runtime_error if there are runtime issues with the GMC
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS and optinally SSgroups from a previous model,
- *        these can be used to initialise this model for incremental clustering.
  */
 double learnDGMC (
     const vMatrixXd& X,
     vMatrixXd& qZ,
-    vSuffStat& SSgroups,
-    SuffStat& SS,
+    std::vector<distributions::GDirichlet>& weights,
+    std::vector<distributions::NormGamma>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -571,10 +424,13 @@ double learnDGMC (
  *  \param qZ is a vector of N_jxK matrices of the variational posterior
  *         approximations to p(z_j|X_j). K is the number of model clusters.
  *         This will always be overwritten to start with one cluster.
- *  \param SSgroups a mutable SuffStat object to store the sufficient statistics
- *         of the group cluster contributions.
- *  \param SS a mutable SuffStat object to store the sufficient statistics of
- *         the model clusters.
+ *  \param weights is a vector of distributions over the mixture weights of the
+ *         model, for each group of data, J.
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -589,15 +445,13 @@ double learnDGMC (
  *  \throws std::runtime_error if there are runtime issues with the GMC
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- *  \note if you already have SS and optinally SSgroups from a previous model,
- *        these can be used to initialise this model for incremental clustering.
  */
 double learnEGMC (
     const vMatrixXd& X,
     vMatrixXd& qZ,
-    vSuffStat& SSgroups,
-    SuffStat& SS,
+    std::vector<distributions::GDirichlet>& weights,
+    std::vector<distributions::ExpGamma>& clusters,
+    const double clusterprior = PRIORVAL,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -609,20 +463,60 @@ double learnEGMC (
 //
 
 
-/*
- * TODO
+/*! \brief The learning algorithm for the "Topic Clustering Model".
+ *
+ * This function implements the "Topic Clustering Model" algorithm
+ * as specified by [TODO]. The TCM uses a Generalised Dirichlet prior on the
+ * group mixture weights over the classes, a Dirichlet prior on the classes
+ * (or "document" clusters) and Gaussian cluster distributions for observations
+ * within documents (with Gausian-Wishart priors).
+ *
+ *  \param X the observation matrices. A vector of length J (for each group),
+ *         of vectors of length Ij (for each "document") of N_jixD matrices.
+ *         Here N_ji is the number of observations in each document, Ij, in
+ *         group, j, and D is the number of dimensions.
+ *  \param qZ the probablistic label. It is a vector of length J (for each
+ *         group), of vectors of length Ij (for each "document") of N_jixK
+ *         matrices of the variational posterior approximations to p(z_j|X_j).
+ *         K is the number of model clusters. This will always be overwritten
+ *         to start with one cluster.
+ *  \param weights is a vector of distributions over the class mixture weights
+ *          of the model, for each group of data, J.
+ *  \param classes is a vector of distributions over the class parameters (or
+ *         document clusters) -- these serve as the cluster mixture weights for
+ *         each class, this will be of size T* (see parameter T).
+ *  \param clusters is a vector of distributions over the cluster parameters
+ *         of the model, this will be size K.
+ *  \param T the maximum number of classes to look for. Usually, if T is set
+ *         large, T* < T classes will be found.
+ *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *         parameter distributions. This effects how many clusters will be
+ *         found.
+ *  \param verbose flag for triggering algorithm status messages. Default is
+ *         0 = silent.
+ *  \returns Final free energy
+ *  \throws std::logic_error if there are invalid argument calls such as
+ *          non-PSD matrix calculations.
+ *  \throws std::runtime_error if there are runtime issues with the GMC
+ *          algorithm such as negative free energy steps, unexpected empty
+ *          clusters etc.
+ *
+ * \todo Make a sparse clustering option like the GMC for both cluster and
+ *       classes?
+ * \todo nthreads sets the number of threads for the clustering algorithm to
+ *       use. The group cluster algorithms take fuller advantage of this. The
+ *       default value is automatically determined by OpenMP.
  */
-
 double learnTCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
-    std::vector<distributions::GDirichlet>& weights,       // Group weight distributions
-    std::vector<distributions::Dirichlet>& classes,       // "Document" Class distributions
-    std::vector<distributions::GaussWish>& clusters,      // Cluster Distributions
+    std::vector<distributions::GDirichlet>& weights,
+    std::vector<distributions::Dirichlet>& classes,
+    std::vector<distributions::GaussWish>& clusters,
     const unsigned int T,
-    const bool verbose = false,
-    const double clusterprior = PRIORVAL   // Prior value for cluster distributions
+    const double clusterprior = PRIORVAL,
+    const bool verbose = false
     );
 
 }

@@ -1,14 +1,9 @@
-// TODO
-//  - Neaten up static interfaces.
-//  - Can I make an even more generic suff. stats. interface??
-
 #ifndef DISTRIBUTIONS_H
 #define DISTRIBUTIONS_H
 
 #include <Eigen/Dense>
 #include <vector>
 #include <stdexcept>
-#include "probutils.h"
 
 
 /*! Namespace that implements weight and cluster distributions. */
@@ -27,11 +22,18 @@ const double APRIOR      = 1.0;      //!< a prior value (Exponential)
 
 
 //
+// Useful Typedefs
+//
+
+typedef Eigen::Array<bool, Eigen::Dynamic, 1> ArrayXb; //!< Boolean Array
+
+
+//
 // Weight Parameter Distribution classes
 //
 
-/*! \brief To make a new cluster weight class that will work with the algorithm
- *         templates your class must have this as the minimum interface.
+/*! \brief To make a new weight class that will work with the algorithm
+ *         templates, your class must have this as the minimum interface.
  */
 class WeightDist
 {
@@ -65,7 +67,7 @@ public:
 
 protected:
 
-  /*! \brief Default Constructor - sets empty observation array.
+  /*! \brief Default constructor to set an empty observation array.
    */
   WeightDist () : Nk(Eigen::ArrayXd::Zero(1)) {}
 
@@ -120,6 +122,9 @@ public:
   void update (const Eigen::ArrayXd& Nk);
 
   double fenergy () const;
+
+  virtual ~GDirichlet () {}
+
 };
 
 
@@ -160,41 +165,6 @@ protected:
 /*! \brief To make a new cluster distribution class that will work with the
  *         algorithm templates your class must have this as the minimum
  *         interface.
- *
- *   In addition to the vitual member functions requiring implementation, the
- *   following STATIC member functions require definition:
- *
- *   Make sufficient statistics given observations X, and observation
- *   assignments q(Z = k), or qZk:
- *
- *    \code
- *      static void makeSS (
- *        const Eigen::VectorXd& qZk,
- *        const Eigen::MatrixXd& X,
- *        Eigen::MatrixXd& SuffStat1,
- *        Eigen::MatrixXd& SuffStat2
- *        );
- *    \endcode
- *
- *    Where qZk is the observation assignment probabilities of observations, X,
- *    to this cluster. SuffStat1 must return this clusters first sufficient
- *    statistic, and SuffStat2 must return the second.
- *
- *    Return the size of the sufficient statistics, given the observations X:
- *
- *    \code
- *      static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
- *          const Eigen::MatrixXd& X
- *          );
- *    \endcode
- *
- *    Where the returning pair must be of the form:
- *
- *        pair.first(0)  = number of rows of SuffStat1,
- *        pair.first(1)  = number of cols of SuffStat1,
- *        pair.second(0) = number of rows of SuffStat2,
- *        pair.second(1) = number of cols of SuffStat2
- *
  */
 class ClusterDist
 {
@@ -202,8 +172,10 @@ public:
 
   /*! \brief Add observations to the cluster without updating the parameters
    *         (i.e. add to the sufficient statistics)
-   *  \param qZk the observation indicators for this cluster, corresponding to X
-   *  \param X the observations to add to this cluster according to qZk.
+   *  \param qZk the observation indicators for this cluster, corresponding to
+   *              X.
+   *  \param X the observations [obs x dims], to add to this cluster according
+   *           to qZk.
    */
   virtual void addobs (
       const Eigen::VectorXd& qZk,
@@ -220,19 +192,8 @@ public:
    */
   virtual void clearobs () = 0;
 
-  /*! \brief Update the distribution.
-   *  \param N an array of observations counts belonging to this cluster
-   *  \param suffstat1 sufficient statistic 1, made by makeSS()
-   *  \param suffstat2 sufficient statistic 2, made by makeSS()
-   */
-  virtual void update (
-      const double N,
-      const Eigen::MatrixXd& suffstat1,
-      const Eigen::MatrixXd& suffstat2
-      ) = 0;
-
   /*! \brief Evaluate the log marginal likelihood of the observations.
-   *  \param X a matrix of observations, [obs, dims].
+   *  \param X a matrix of observations, [obs x dims].
    *  \returns An array of likelihoods for the observations given this dist.
    */
   virtual Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const = 0;
@@ -243,12 +204,12 @@ public:
   virtual double fenergy () const = 0;
 
   /*! \brief Propose a split for the observations given these cluster parameters
-   *  \param X a matrix of observations, [obs, dims], to split.
+   *  \param X a matrix of observations, [obs x dims], to split.
    *  \returns a binary array of split assignments.
    *  \note this needs to consistently split observations between multiple
    *        subsequent calls, but can change after each update().
    */
-  virtual probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const = 0;
+  virtual ArrayXb splitobs (const Eigen::MatrixXd& X) const = 0;
 
   /*! \brief Return the number of observations belonging to this cluster.
    *  \returns the number of observations belonging to this cluster.
@@ -297,26 +258,9 @@ public:
 
   void clearobs ();
 
-  static void makeSS (
-      const Eigen::VectorXd& qZk,
-      const Eigen::MatrixXd& X,
-      Eigen::MatrixXd& x_s,       //!< [1xD] Row Vector sufficient stat.
-      Eigen::MatrixXd& xx_s       //!< [DxD] Matrix sufficient stats.
-      );
-
-  static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
-      const Eigen::MatrixXd& X
-      );
-
-  void update (
-        const double N,
-        const Eigen::MatrixXd& x_s, //!< [1xD] Row Vector sufficient stat.
-        const Eigen::MatrixXd& xx_s //!< [DxD] Matrix sufficient stats.
-      );
-
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
 
-  probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
 
   double fenergy () const;
 
@@ -330,6 +274,7 @@ public:
    */
   Eigen::MatrixXd getcov () const { return this->iW/this->nu; }
 
+  virtual ~GaussWish () {}
 
 private:
 
@@ -377,29 +322,23 @@ public:
 
   void clearobs ();
 
-  static void makeSS (
-      const Eigen::VectorXd& qZk,
-      const Eigen::MatrixXd& X,
-      Eigen::MatrixXd& x_s,   //!< [1xD] Row Vector sufficient stat.
-      Eigen::MatrixXd& xx_s   //!< [1xD] Row Vector sufficient stat.
-      );
-
-  static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
-      const Eigen::MatrixXd& X
-      );
-
-  void update (
-        const double N,
-        const Eigen::MatrixXd& x_s, //!< [1xD] Row Vector sufficient stat.
-        const Eigen::MatrixXd& xx_s //!< [1xD] Row Vector sufficient stat.
-      );
-
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
 
-  probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
 
   double fenergy () const;
 
+  /*! \brief Get the estimated cluster mean.
+   *  \returns the expected cluster mean.
+   */
+  const Eigen::RowVectorXd& getmean () const { return this->m; }
+
+  /*! \brief Get the estimated cluster covariance.
+   *  \returns the expected cluster covariance (just the diagonal elements).
+   */
+  Eigen::RowVectorXd getcov () const { return this->L*this->nu; }
+
+  virtual ~NormGamma () {}
 
 private:
 
@@ -447,28 +386,19 @@ public:
 
   void clearobs ();
 
-  static void makeSS (
-      const Eigen::VectorXd& qZk,
-      const Eigen::MatrixXd& X,
-      Eigen::MatrixXd& x_s,  //!< [1xD] Row Vector sufficient stat.
-      Eigen::MatrixXd& emp   //!< [0x0] unused sufficient stat.
-      );
-
-  static std::pair<Eigen::Array2i, Eigen::Array2i> dimSS (
-      const Eigen::MatrixXd& X
-      );
-
-  void update (
-        const double N,
-        const Eigen::MatrixXd& x_s,  //!< [1xD] Row Vector sufficient stat.
-        const Eigen::MatrixXd& emp   //!< [0x0] unused sufficient stat.
-      );
-
   Eigen::VectorXd Eloglike (const Eigen::MatrixXd& X) const;
 
-  probutils::ArrayXb splitobs (const Eigen::MatrixXd& X) const;
+  ArrayXb splitobs (const Eigen::MatrixXd& X) const;
 
   double fenergy () const;
+
+  /*! \brief Get the estimated cluster rate parameter, i.e. Exp(E[lambda]),
+   *         where lambda is the rate parameter.
+   *  \returns the expected cluster rate parameter.
+   */
+  Eigen::RowVectorXd getrate () { return this->a*this->ib; }
+
+  virtual ~ExpGamma () {}
 
 private:
 
