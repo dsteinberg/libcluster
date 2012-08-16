@@ -9,44 +9,120 @@
 #include "libcluster.h"
 
 
-// Globals and Symbolics
+//
+// Helper classes and structures
+//
 
-enum single_algs { VDP = 0, BGMM = 1, DGMM = 2, BEMM = 3 };
-enum group_algs  { GMC = 0, SGMC = 1, DGMC = 2, EGMC = 3 };
-enum topic_algs  { TCM = 0 };
-
-// Mex stream buffer class, prints using mexPrintf()
+/*! \brief Mex stream buffer class, prints using mexPrintf() and can be used to
+ *         replace the normal cout stream buffer.
+ *  \see hijack()
+ *  \see restore()
+ */
 class mexstreambuf : public std::streambuf
 {
 public:
+
+  /*! \brief Default Constructor */
+  mexstreambuf () : coutbak(0) {}
+
+  /*! \brief Hijack the cout stream buffer and replace it with this one. */
+  void hijack ();
+
+  /*! \brief Restore the cout stream buffer if it has been hijacked. */
+  void restore ();
+
+  /*! \brief Destructor returns cout to its normal state */
+  ~mexstreambuf ();
+
 protected:
-	virtual std::streamsize xsputn (const char* s, std::streamsize n);
-	virtual int overflow (int c = EOF);
-    virtual int sync ();
+
+  virtual std::streamsize xsputn (const char* s, std::streamsize n);
+
+  virtual int overflow (int c = EOF);
+
+  virtual int sync ();
+
+private:
+
+  std::streambuf *coutbak; //!< pointer to normal cout stream buffer.
+
 };
 
 
-// Convert 2D double Eigen matrix to 2D double mxArray
-mxArray* eig2mat(const Eigen::MatrixXd& X);
+/*! \brief Options structure for setting default, and parsing options from
+ *         Matlab to the clustering algorithms.
+ */
+struct Options
+{
+public:
+
+  /*! \brief Default Constructor, sets default options */
+  Options ()
+    : verbose(false),
+      sparse(false),
+      prior(libcluster::PRIORVAL),
+      trunc(libcluster::TRUNC),
+      threads(omp_get_max_threads())
+  {}
+
+  /*! \brief Parses an mxArray structure for the relevant fields, if they are
+   *         not found, then the defaults are used.
+   *
+   *  \param optsstruct is a matlab structure array - errors out if its not.
+   */
+  void parseopts (const mxArray* optsstruct);
+
+  bool verbose;           //!< Verbose output flag
+  bool sparse;            //!< Use sparse clustering flag
+  double prior;           //!< The cluster prior parameter
+  unsigned int trunc;     //!< Truncation level for max number of classes
+  unsigned int threads;   //!< Number of threads to use
+};
 
 
-// SuffStat object to matlab struct
-//  The matlab struct will be of the form:
-//      SS.K        = scalar double number of clusters
-//      SS.priorval = prior cluster hyperparameter
-//      SS.N_k      = {1xK} array of observation counts
-//      SS.x_k      = {1x[1xD]} array of observation sums
-//      SS.xx_k     = {1x[DxD]} array of observation sum outer products
-mxArray* SS2str (const libcluster::SuffStat& SS);
+//
+// Helper Functions
+//
+
+/*! \brief Copy a 2D double Eigen matrix to 2D double mxArray.
+ *
+ *  \param X eigen matrix.
+ *  \returns a pointer to a mxArray with the copied elements.
+ */
+mxArray* eig2mat (const Eigen::MatrixXd& X);
 
 
-// Matlab struct to SuffStat object
-//  The matlab struct will be of the form:
-//      SS.K        = scalar double number of clusters
-//      SS.priorval = prior cluster hyperparameter
-//      SS.N_k      = {1xK} array of observation counts
-//      SS.x_k      = {1x[1xD]} array of observation sums
-//      SS.xx_k     = {1x[DxD]} array of observation sum outer products
-libcluster::SuffStat str2SS (const mxArray* SS);
+/*! \brief Map a cell array of matlab matrices to a vector of Eigen matrices.
+ *
+ *  \param X is a cell array of (double) matrices.
+ *  \returns a reference to a vector of mapped eigen double matrices.
+ */
+libcluster::vMatrixXd cell2vec (const mxArray* X);
+
+
+/*! \brief Map a cell array of cell arrays of matlab matrices to a vector of
+ *         vectors Eigen matrices.
+ *
+ *  \param X is a cell array of cell arrays of (double) matrices.
+ *  \returns a reference to a vector of vectors of mapped eigen double matrices.
+ */
+libcluster::vvMatrixXd cellcell2vecvec (const mxArray* X);
+
+
+/*! \brief Copy a vector of Eigen matrices to a cell array of Matlab matrices.
+ *
+ *  \param X is a vector of (double) matrices.
+ *  \returns a cell array of double matrices.
+ */
+mxArray* vec2cell (const libcluster::vMatrixXd& X);
+
+
+/*! \brief Copy a vector of vectors of Eigen matrices to a cell array cell
+ *         arrays of Matlab matrices.
+ *
+ *  \param X is a vector of vectors (double) matrices.
+ *  \returns a cell array of cell arrays of double matrices.
+ */
+mxArray* vecvec2cellcell (const libcluster::vvMatrixXd& X);
 
 #endif // INTFCTNS_H

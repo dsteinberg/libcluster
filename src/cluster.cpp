@@ -1,8 +1,3 @@
-// TODO:
-//  - Get rid of the vbmaximisationj() function, like in ctopic?
-//  - Get rid of the copying in the learnVDP etc functions.
-//  - Some copying still in split()
-
 #include <limits>
 #include "libcluster.h"
 #include "probutils.h"
@@ -199,13 +194,13 @@ template <class W, class C> double vbem (
       clusters[k].update();
 
     // VBE
-    double Fxz = 0;
-    #pragma omp parallel for schedule(guided) reduction(+ : Fxz)
+    double Fz = 0;
+    #pragma omp parallel for schedule(guided) reduction(+ : Fz)
     for (int j = 0; j < J; ++j)
-      Fxz += vbexpectation<W,C>(X[j], weights[j], clusters, qZ[j], sparse);
+      Fz += vbexpectation<W,C>(X[j], weights[j], clusters, qZ[j], sparse);
 
     // Calculate free energy of model
-    F = fenergy<W,C>(weights, clusters, Fxz);
+    F = fenergy<W,C>(weights, clusters, Fz);
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > FENGYDEL)
@@ -539,11 +534,11 @@ template <class W, class C> double cluster (
     const unsigned int nthreads   // Number of threads for OpenMP to use
     )
 {
-  const unsigned int J = X.size();
-
   if (nthreads < 1)
     throw invalid_argument("Must specify at least one thread for execution!");
   omp_set_num_threads(nthreads);
+
+  const unsigned int J = X.size();
 
   // Initialise indicator variables to just one cluster
   qZ.resize(J);

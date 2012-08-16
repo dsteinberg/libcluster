@@ -1,8 +1,5 @@
-//
-// Includes and symbolic constants
-//
-
 #include "intfctns.h"
+
 
 //
 // Namespaces
@@ -14,127 +11,197 @@ using namespace libcluster;
 
 
 //
-// Functions
+// Class and Struct definitions
 //
+
+void mexstreambuf::hijack ()
+{
+  // redirect cout
+  this->coutbak = cout.rdbuf();
+  cout.rdbuf(this);
+}
+
+
+void mexstreambuf::restore ()
+{
+  if (this->coutbak != 0)
+  {
+    cout.rdbuf(this->coutbak);
+    this->coutbak = 0;
+  }
+}
+
+
+mexstreambuf::~mexstreambuf ()
+{
+  // make sure cout restored in case it was hijacked and not retored explicitly
+  this->restore();
+}
+
 
 streamsize mexstreambuf::xsputn (const char *s, streamsize n)
 {
-	mexPrintf("%.*s", n, s);
-	return n;
+  mexPrintf("%.*s", n, s);
+  return n;
 }
 
 
 int mexstreambuf::overflow (int c)
 {
-	if (c != EOF)
-    	mexPrintf("%.1s", &c);
-	return 1;
+  if (c != EOF)
+    mexPrintf("%.1s", &c);
+  return 1;
 }
 
 
 int mexstreambuf::sync ()
 {
-    if (pbase() == pptr()) // If the buffers is syncronised, do nothing
-    {
-    	mexEvalString("drawnow;");  // print to the console now
-        return 1;
-    }
-    else // Else try and write the contents of the buffer
-    {
-        int cnwrite = mexPrintf(pbase());
-        mexEvalString("drawnow;");  // print to the console now
-        return cnwrite ? 0 : 1;
-    }
+  if (pbase() == pptr()) // If the buffers is syncronised, do nothing
+  {
+    mexEvalString("drawnow;");  // print to the console now
+    return 1;
+  }
+  else // Else try and write the contents of the buffer
+  {
+    int cnwrite = mexPrintf(pbase());
+    mexEvalString("drawnow;");  // print to the console now
+    return cnwrite ? 0 : 1;
+  }
 }
 
+
+void Options::parseopts (const mxArray* optsstruct)
+{
+  if (mxIsStruct(optsstruct) == false)
+    mexErrMsgTxt("optsstruct must be a matlab structure!");
+
+  // Look for the "verbose" field
+  mxArray* vbfield = mxGetField(optsstruct, 0, "verbose");
+  if (vbfield != 0)
+    this->verbose = (bool) *mxGetPr(vbfield);
+
+  // Look for the "sparse" field
+  mxArray* spfield = mxGetField(optsstruct, 0, "sparse");
+  if (spfield != 0)
+    this->sparse = (bool) *mxGetPr(spfield);
+
+  // Look for the "threads" field
+  mxArray* thfield = mxGetField(optsstruct, 0, "threads");
+  if (thfield != 0)
+    this->threads = (unsigned int) *mxGetPr(thfield);
+
+  // Look for the "prior" field
+  mxArray* prfield = mxGetField(optsstruct, 0, "prior");
+  if (prfield != 0)
+    this->prior = (double) *mxGetPr(prfield);
+
+  // Look for the "trunc" field
+  mxArray* trfield = mxGetField(optsstruct, 0, "trunc");
+  if (trfield != 0)
+    this->trunc = (unsigned int) *mxGetPr(trfield);
+}
+
+
+//
+// Functions
+//
 
 mxArray* eig2mat(const MatrixXd& X)
 {
-    mxArray *rmat = mxCreateDoubleMatrix(X.rows(), X.cols(), mxREAL);
-    double *rmatptr = mxGetPr(rmat);
+  const unsigned int Ntot = X.cols() * X.rows();
 
-    // Do a lame as element-wise copy -- is there a better way?
-    // Column Major copy
-    for (int j=0; j<X.cols(); ++j)
-        for (int i=0, coloff=(j*X.rows()); i<X.rows(); ++i)
-            rmatptr[coloff+i] = X(i,j);
+  // Create a new mxArray to return
+  mxArray *rX = mxCreateDoubleMatrix(X.rows(), X.cols(), mxREAL);
 
-    return rmat;
+  // Create pointers to the underlying col major data structures.
+  const double *Xptr = X.data();
+  double *rXptr = mxGetPr(rX);
+
+  // Copy
+  for (unsigned int n = 0; n < Ntot; ++n)
+    rXptr[n] = Xptr[n];
+
+  return rX; // return copy
 }
 
 
-mxArray* SS2str (const SuffStat& SS)
+vMatrixXd cell2vec(const mxArray* X)
 {
-    const char** fnames = new const char*[6];
-    fnames[0] = "K";
-    fnames[1] = "priorval";
-    fnames[2] = "F";
-    fnames[3] = "N_k";
-    fnames[4] = "ss1";
-    fnames[5] = "ss2";
+  // Initial cell array checking
+  if (mxIsCell(X) == false)
+    mexErrMsgTxt("X must be a matlab cell array!");
+  if ( (mxGetN(X) > 1) && (mxGetM(X) > 1) )
+    mexErrMsgTxt("X must be either a {1xJ} or {Jx1} array!");
+  if ( (mxGetN(X) == 0) || (mxGetM(X) == 0) )
+    mexErrMsgTxt("X is empty, need some data!");
 
-    mxArray* SSstr = mxCreateStructMatrix(1, 1, 6, fnames);
-    delete[] fnames;
+  const unsigned int J = mxGetN(X) > mxGetM(X) ? mxGetN(X) : mxGetM(X);
+  const unsigned int D = mxGetN(mxGetCell(X, 0));
 
-    unsigned int K = SS.getK();
+  // More detailed array checking
+  for (unsigned int j = 0; j < J; ++j)
+  {
+    if (mxIsDouble(mxGetCell(X, j)) == false)
+      mexErrMsgTxt("X must be all array double precision matrices!");
+    if (mxGetN(mxGetCell(X, j)) != D)
+      mexErrMsgTxt("X must contain matrices with the same number of columns!");
+  }
 
-    // Copy SS suff. stat. vectors to cell arrays
-    mxArray *N_k = mxCreateCellMatrix(1, K);
-    mxArray *ss1 = mxCreateCellMatrix(1, K);
-    mxArray *ss2 = mxCreateCellMatrix(1, K);
+  // Map each matrix in the array
+  vMatrixXd rX;
+  for (unsigned int j = 0; j < J; ++j)
+    rX.push_back(Map<MatrixXd>(mxGetPr(mxGetCell(X, j)),
+                              mxGetM(mxGetCell(X, j)), D));
 
-    for (unsigned int k = 0; k < K; ++k)
-    {
-        mxSetCell(N_k, k, mxCreateDoubleScalar(SS.getN_k(k)));
-        mxSetCell(ss1, k, eig2mat(SS.getSS1(k)));
-        mxSetCell(ss2, k, eig2mat(SS.getSS2(k)));
-    }
-
-    // Copy these cell arrays to a structure. We do this because I don't want to
-    //  touch ND arrays with this mex library! I'll leave it for matlab code...
-    mxSetFieldByNumber(SSstr, 0, 0, mxCreateDoubleScalar(K));
-    mxSetFieldByNumber(SSstr, 0, 1, mxCreateDoubleScalar(SS.getprior()));
-    mxSetFieldByNumber(SSstr, 0, 2, mxCreateDoubleScalar(SS.getF()));
-    mxSetFieldByNumber(SSstr, 0, 3, N_k);
-    mxSetFieldByNumber(SSstr, 0, 4, ss1);
-    mxSetFieldByNumber(SSstr, 0, 5, ss2);
-
-    return SSstr;
+  return rX;
 }
 
 
-SuffStat str2SS (const mxArray* SS)
+vvMatrixXd cellcell2vecvec (const mxArray* X)
 {
-    // Get D, K, the hyper-prior and F
-    unsigned int K  = (unsigned int) *mxGetPr(mxGetField(SS, 0, "K"));
-    double priorval = (double) *mxGetPr(mxGetField(SS, 0, "priorval"));
-    double F        = (double) *mxGetPr(mxGetField(SS, 0, "F"));
+  // Initial cell array checking
+  if (mxIsCell(X) == false)
+    mexErrMsgTxt("X must be a matlab cell array!");
+  if ( (mxGetN(X) > 1) && (mxGetM(X) > 1) )
+    mexErrMsgTxt("X must be either a {1xJ} or {Jx1} array!");
+  if ( (mxGetN(X) == 0) || (mxGetM(X) == 0) )
+    mexErrMsgTxt("X is empty, need some data!");
 
-    // Initialise the SS object
-    SuffStat SSr(priorval);
-    
-    // Populate SS object if required
-    if (K > 0)
-    {
-        // Get dimensions of suff. stats.
-        const int* ss1D = mxGetDimensions(mxGetCell(
-                            mxGetField(SS, 0, "ss1"), 0));
-        const int* ss2D = mxGetDimensions(mxGetCell(
-                            mxGetField(SS, 0, "ss2"), 0));
+  const unsigned int J = mxGetN(X) > mxGetM(X) ? mxGetN(X) : mxGetM(X);
 
-        for (unsigned int k = 0; k < K; ++k)
-        {
-            double N_k = (double) *mxGetPr(mxGetCell(
-                            mxGetField(SS, 0, "N_k"), k));
-            MatrixXd ss1 = Map<MatrixXd>(mxGetPr(mxGetCell(
-                            mxGetField(SS, 0, "ss1"), k)), ss1D[0], ss1D[1]);
-            MatrixXd ss2 = Map<MatrixXd>(mxGetPr(mxGetCell(
-                            mxGetField(SS, 0, "ss2"), k)), ss2D[0], ss2D[1]);
+  vvMatrixXd rX;
+  for (unsigned int j = 0; j < J; ++j)
+    rX.push_back(cell2vec(mxGetCell(X, j)));
 
-            SSr.setSS(k, N_k, ss1, ss2);
-            SSr.setF(F);
-        }
-    }
+  return rX;
+}
 
-    return SSr;
+
+mxArray* vec2cell (const vMatrixXd& X)
+{
+  const unsigned int J = X.size();
+
+  // Allocate a new Cell array
+  mxArray *rX = mxCreateCellMatrix(1, J);
+
+  // Copy Matrices
+  for (unsigned int j = 0; j < J; ++j)
+    mxSetCell(rX, j, eig2mat(X[j]));
+
+  return rX; // return copy
+}
+
+
+mxArray* vecvec2cellcell (const vvMatrixXd& X)
+{
+  const unsigned int J = X.size();
+
+  // Allocate a new Cell array
+  mxArray *rX = mxCreateCellMatrix(1, J);
+
+  // Copy Cell Arrays
+  for (unsigned int j = 0; j < J; ++j)
+    mxSetCell(rX, j, vec2cell(X[j]));
+
+  return rX; // return copy
 }

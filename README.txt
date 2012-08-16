@@ -4,7 +4,7 @@ Author: Daniel Steinberg
         Australian Centre for Field Robotics
         The University of Sydney
 
-Date:   12/04/2012
+Date:   16/08/2012
 
 This library implements the following algorithms, classes and functions:
 
@@ -16,6 +16,9 @@ This library implements the following algorithms, classes and functions:
 
     - The Symmetric Grouped Mixtures Clustering (S-GMC) model [3]
     
+    - Topic Clustering Model for Multinomial Documents, and Gaussian 
+      Observations
+    
     - And more clustering algorithms based on diagonal Gaussian, and 
       Exponential distributions.
 
@@ -23,8 +26,6 @@ This library implements the following algorithms, classes and functions:
       primary eigenvalues etc of data.
 
     - Various tools, including AUV post-processing pipeline tools.
-
-All algorithms can be run in an incremental fashion.
 
  [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational
      Dirichlet process mixtures, Advances in Neural Information Processing
@@ -96,6 +97,7 @@ NOTE:
       This uses the greedy cluster split heuristic instead of the exhaustive
       heuristic. It is MUCH faster, but does give different results. I have yet
       to determine whether this is actually worse than the exhaustive method.
+      The TCM uses a greedy split heuristic by default at this stage.
       
    BUILD_PIPELINE_TOOLS (toggle ON or OFF, default ON)
       This builds the AUV pipeline tools - which at this stage is basically just
@@ -125,31 +127,23 @@ need to make sure that:
 
 To build the Matlab interface:
 
-  1) In Matlab, navigate to {where you checked out the source}/matlab.
-
-  2) If Eigen is installed at 
-
-        /usr/include/eigen3
-
-     type MakeFile.m and enter. Otherwise specify the location of Eigen in 
-     MakeFile.m and execute.
-
-  3) If compilation succeeds, you will be prompted if you want to copy the
-     binaries and .m files to a location of your choice, and update Matlab's 
-     path. If you answer no, you will have to do this manually.
-
-  4) Done! Have a look at the .m files for documentation on how to use the
-     interface.
+  1) Make sure you have matlab installed and the mex binary is in the system 
+     path.
+     
+  2) In the build drectory from step 3 above, run 
+   
+      make matint
+      
+     This generates the Matlab binaries in the "matlab" directory where you 
+     checked out the source. You can copy or link them to Matlab's path as you 
+     wish.
 
 Notes:
 
- - I have included the scripts SS2GMM.m and SS2EMM.m to turn the Sufficient 
-   Statistics structure (SS) into Gaussian mixture model and Exponential mixture
-   model structure respectively.
-
  - Either the build will warn you, or running the .m files will fail if your
-   compiler is not compatible with Matlab. To fix this with Ubuntu 10.10 and
-   11.04 I did the following:
+   compiler is not compatible with Matlab. If you get the warning, you may not
+   need to do anything (see below if running the code after compilation fails).
+   To fix this with Ubuntu 10.10 and 11.04 I did the following:
 
    1) run $ sudo apt-get install gcc-4.x-base g++-4.x-base libstdc++6-4.x-dev
       Where 'x' is the version number that Matlab uses (or close too 4.3 for
@@ -162,11 +156,10 @@ Notes:
       with
 
       CC=gcc-4.x CXX=g++-4.x cmake ..
+      
+   3) rebuild the mex interface.
 
-   3) Built the Matlab interface using the above instructions, but changed the
-      'compiler' string in MakeFile.m to 'CXX=g++-4.x CC=g++-4.x LD=g++-4.x'
-
- - If you are issued with a warning something along the lines of:
+ - If you are issued with a warning/error something along the lines of:
 
     ??? Invalid MEX-file '.../vdpcluster_mex.mexa64':
     /../sys/os/glnxa64/libstdc++.so.6: version `GLIBCXX_3.4.11' not found
@@ -192,7 +185,7 @@ Notes:
   system heaters, have a look at ~/.matlab/R20xxx/mexopts.sh and change all 
   lines:
 
-	    SDKROOT='/Developer/SDKs/MacOSX10.X.sdk'
+	   SDKROOT='/Developer/SDKs/MacOSX10.X.sdk'
       MACOSX_DEPLOYMENT_TARGET='10.X'
 
   To your version of OS X, e.g. 10.7.
@@ -208,6 +201,8 @@ this:
    ---<==>
    --------x<=>
    --------------<====>
+   ----<*>
+   ---<>
    Finished!
    Number of clusters = 4
    Free Energy = 41225
@@ -218,15 +213,15 @@ What this means:
    '=' found a valid candidate split
    '>' chosen candidate split and testing for inclusion into model
    'x' clusters have been deleted because they became devoid of observations
+   '*' classes (image/document clusters) that are empty have been removed. 
 
 For best clustering results, I have found the following tips may help:
 
 0)  If clustering runs REALLY slowly then it may be because of hyper-threading.
-    OpenMP will by default use as many cores available to it as possible, this 
-    includes virtual hyper-threading cores. Unfortunately this nearly always
-    results in large slow-downs, so try only allowing these functions to use
-    a number of threads less than or equal to the number of PHYSICAL cores on 
-    your machine.
+    OpenMP will by default use as many cores available to it as possible, this
+    includes virtual hyper-threading cores. Unfortunately this may result in
+    large slow-downs, so try only allowing these functions to use a number of
+    threads less than or equal to the number of PHYSICAL cores on your machine.
 
 1)  Garbage in = garbage out. Make sure your assumptions about the data are 
     reasonable for the type of cluster distribution you use. For instance, if  
@@ -243,11 +238,12 @@ For best clustering results, I have found the following tips may help:
     where C is some constant (optional) and the mean and std are for each 
     column of X.
     
-    You may obtain even better results by using PCA or ZCA whitening on X:
+    You may obtain even better results by using PCA or ZCA whitening on X 
+    (assuming ZERO MEAN data), using Matlab syntax:
     
       [U, S, V] = svd(cov(X));
     
-      X_w = X * U * diag(1./sqrt(diag(S))) * U';   % ZCA Whitening
+      X_w = X * U * diag(1./sqrt(diag(S)));   % PCA Whitening
       
     Such that cov(X_w) = I_D.
     

@@ -33,6 +33,8 @@
  *      observations, see learnDGMC().
  *    - Groups of Mixtures Clustering model for Exponential observations, see
  *      learnEGMC().
+ *    - Topic Clustering Model for Multinomial Documents, and Gaussian
+ *      Observations.
  *    - A myriad  of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
@@ -64,7 +66,7 @@
  *         Australian Centre for Field Robotics
  *         The University of Sydney
  *
- * \date   02/04/2012
+ * \date   16/08/2012
  *
  * \todo Make this library more generic so discrete distributions can be used.
  */
@@ -76,11 +78,12 @@ namespace libcluster
 // Namespace constants
 //
 
-const double PRIORVAL    = 1e-5;        //!< Default prior hyperparameter value
-const int    SPLITITER   = 15;          //!< Max number of iter. for split VBEM
-const double CONVERGE    = 1e-5;        //!< Convergence threshold
-const double FENGYDEL    = CONVERGE/10; //!< Allowance for +ve F.E. steps
-const double ZEROCUTOFF  = 0.1;         //!< Obs. count cut off sparse updates
+const double       PRIORVAL   = 1e-5f;   //!< Default prior hyperparameter value
+const unsigned int TRUNC      = 100;     //!< Truncation level for classes
+const unsigned int SPLITITER  = 15;      //!< Max number of iter. for split VBEM
+const double       CONVERGE   = 1e-5f;       //!< Convergence threshold
+const double       FENGYDEL   = CONVERGE/10; //!< Allowance for +ve F.E. steps
+const double       ZEROCUTOFF = 0.1f;    //!< Obs. count cut off sparse updates
 
 
 //
@@ -494,6 +497,9 @@ double learnEGMC (
  *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
+ *  \param nthreads sets the number of threads for the clustering algorithm to
+ *         use. The group cluster algorithms take fuller advantage of this. The
+ *         default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls such as
  *          non-PSD matrix calculations.
@@ -503,9 +509,6 @@ double learnEGMC (
  *
  * \todo Make a sparse clustering option like the GMC for both cluster and
  *       classes?
- * \todo nthreads sets the number of threads for the clustering algorithm to
- *       use. The group cluster algorithms take fuller advantage of this. The
- *       default value is automatically determined by OpenMP.
  */
 double learnTCM (
     const vvMatrixXd& X,
@@ -514,9 +517,10 @@ double learnTCM (
     std::vector<distributions::GDirichlet>& weights,
     std::vector<distributions::Dirichlet>& classes,
     std::vector<distributions::GaussWish>& clusters,
-    const unsigned int T,
+    const unsigned int T = TRUNC,
     const double clusterprior = PRIORVAL,
-    const bool verbose = false
+    const bool verbose = false,
+    const unsigned int nthreads = omp_get_max_threads()
     );
 
 }

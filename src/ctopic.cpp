@@ -1,8 +1,6 @@
 // TODO:
 //  - Is the new LL in split_gr right? I.e. the qY and qZ interaction??
-//  - Make this multithreaded over documents where available, or groups.
 //  - Make a sparse flag for the clusters and classes?
-//  - Neaten up the split_gr() function.
 //  - Add in an optional split_ex() function.
 
 #include <limits>
@@ -90,10 +88,10 @@ template <class L, class C> double vbeZ (
             T   = classes.size();
 
   // Make cluster global weights from weighted label parameters
-  ArrayXd E_logqYljt = ArrayXd::Zero(K);
+  RowVectorXd E_logqYljt = RowVectorXd::Zero(K);
 
   for (int t = 0; t < T; ++t)
-    E_logqYljt += qYji(t) * classes[t].Elogweight();
+    E_logqYljt.noalias() += qYji(t) * classes[t].Elogweight().matrix();
 
   // Find Expectations of log joint observation probs
   MatrixXd logqZji = MatrixXd::Zero(Nji, K);
@@ -178,9 +176,9 @@ template <class W, class L, class C> double vbem (
   clusters.resize(K, C(clusterprior, X[0][0].cols()));
 
   // Get size of docs
-  ArrayXd Ij(J);
+  vector<unsigned int> Ij(J);
   for (unsigned int j = 0; j < J; ++j)
-    Ij(j) = X[j].size();
+    Ij[j] = X[j].size();
 
   // Other loop variables for initialisation
   int it = 0;
@@ -197,34 +195,42 @@ template <class W, class L, class C> double vbem (
 
     // Get Sufficient stats from groups/documents
     for (unsigned int j = 0; j < J; ++j)
-      for(unsigned int i = 0; i < Ij(j); ++i)
+    {
+      for(unsigned int i = 0; i < Ij[j]; ++i)
       {
-        Ntk += qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
+        Ntk.noalias() += qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
         for (unsigned int k = 0; k < K; ++k)
           clusters[k].addobs(qZ[j][i].col(k), X[j][i]);
       }
+    }
 
     // VBM for class weights
+    //#pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
       weights[j].update(qY[j].colwise().sum());
 
     // VBM for class parameters
+    #pragma omp parallel for schedule(guided)
     for (unsigned int t = 0; t < T; ++t)
       classes[t].update(Ntk.row(t));  // Weighted multinomials.
 
     // VBM for cluster parameters
+    #pragma omp parallel for schedule(guided)
     for (unsigned int k = 0; k < K; ++k)
       clusters[k].update();
 
     double Fz = 0, Fyz = 0;
 
+    // VBE for class indicators
+    //#pragma omp parallel for schedule(guided) reduction(+ : Fyz)
     for (unsigned int j = 0; j < J; ++j)
-    {
-      // VBE for class indicators
       Fyz += vbeY<W,L>(qZ[j], weights[j], classes, qY[j]);
 
-      // VBE for cluster indicators
-      for (unsigned int i = 0; i < Ij(j); ++i)
+    // VBE for cluster indicators
+    for (unsigned int j = 0; j < J; ++j)
+    {
+      #pragma omp parallel for schedule(guided) reduction(+ : Fz)
+      for (unsigned int i = 0; i < Ij[j]; ++i)
         Fz += vbeZ<L,C>(X[j][i], qY[j].row(i), classes, clusters, qZ[j][i]);
     }
 
@@ -289,7 +295,7 @@ template <class W, class L, class C> bool split_gr (
     ord[k].Fk    = clusters[k].fenergy();
   }
 
-  ArrayXd Ij(J);
+  vector<unsigned int> Ij(J);
 
   // Get cluster weights from class params
   MatrixXd logpi(T, K);
@@ -297,21 +303,19 @@ template <class W, class L, class C> bool split_gr (
     logpi.row(t) = classes[t].Elogweight();
 
   // Get cluster likelihoods
-//  #pragma omp parallel for schedule(guided)
   for (unsigned int j = 0; j < J; ++j)
   {
-    Ij(j) = X[j].size();
+    Ij[j] = X[j].size();
 
     // Add in cluster log-likelihood, weighted by global responsability
-    for (unsigned int i = 0; i < Ij(j); ++i)
+    #pragma omp parallel for schedule(guided)
+    for (unsigned int i = 0; i <  Ij[j]; ++i)
       for (unsigned int k = 0; k < K; ++k)
       {
-        // DO I NEED TO ACCOUNT FOR THE FREE ENERGY CROSS TERM BETWEEN Z AND Y?
-
         double LL = (1 - qZ[j][i].col(k).sum()) * qY[j].row(i) * logpi.col(k)
                      + qZ[j][i].col(k).dot(clusters[k].Eloglike(X[j][i]));
 
-  //      #pragma omp atomic
+        #pragma omp atomic
         ord[k].Fk -= LL;
       }
   }
@@ -338,16 +342,16 @@ template <class W, class L, class C> bool split_gr (
     // Now split observations and qZ.
     int scount = 0, Mtot = 0;
 
-//    #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
     for (unsigned int j = 0; j < J; ++j)
     {
-      mapidx[j].resize(Ij(j));
-      qZref[j].resize(Ij(j));
-      qZaug[j].resize(Ij(j));
-      Xk[j].resize(Ij(j));
-      qYref[j] = MatrixXd::Ones(Ij(j), 1);
+      mapidx[j].resize(Ij[j]);
+      qZref[j].resize(Ij[j]);
+      qZaug[j].resize(Ij[j]);
+      Xk[j].resize(Ij[j]);
+      qYref[j] = MatrixXd::Ones(Ij[j], 1);
 
-      for (unsigned int i = 0; i < Ij(j); ++i)
+      #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
+      for (unsigned int i = 0; i < Ij[j]; ++i)
       {
         // Make COPY of the observations with only relevant data points, p > 0.5
         mapidx[j][i] = partX(X[j][i], (qZ[j][i].col(k).array()>0.5), Xk[j][i]);
@@ -378,11 +382,13 @@ template <class W, class L, class C> bool split_gr (
       continue;
 
     // Map the refined splits back to original whole-data problem
-//    #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
-      for (unsigned int i = 0; i < Ij(j); ++i)
+    {
+      #pragma omp parallel for schedule(guided)
+      for (unsigned int i = 0; i < Ij[j]; ++i)
         qZaug[j][i] = augmentqZ(k, mapidx[j][i],
                                 (qZref[j][i].col(1).array()>0.5), qZ[j][i]);
+    }
 
     // Calculate free energy of this split with ALL data (and refine a bit)
     vMatrixXd qYaug = qY;                             // Copy :-(
@@ -473,17 +479,22 @@ template <class L> bool prune_classes (
  *  throws: runtime_error if free energy increases.
  */
 template <class W, class L, class C> double ctopic (
-    const vvMatrixXd& X,       // Observations
-    vMatrixXd& qY,             // Class assignments
-    vvMatrixXd& qZ,            // Observations to cluster assignments
-    vector<W>& weights,        // Group weight distributions
-    vector<L>& classes,        // "Document" Class distributions
-    vector<C>& clusters,       // Cluster Distributions
-    const unsigned int T,      // Truncation level for number of classes
-    const double clusterprior, // Prior value for cluster distributions
-    const bool verbose         // Verbose output
+    const vvMatrixXd& X,        // Observations
+    vMatrixXd& qY,              // Class assignments
+    vvMatrixXd& qZ,             // Observations to cluster assignments
+    vector<W>& weights,         // Group weight distributions
+    vector<L>& classes,         // "Document" Class distributions
+    vector<C>& clusters,        // Cluster Distributions
+    const unsigned int T,       // Truncation level for number of classes
+    const double clusterprior,  // Prior value for cluster distributions
+    const bool verbose,         // Verbose output
+    const unsigned int nthreads // Number of threads for OpenMP to use
     )
 {
+  if (nthreads < 1)
+    throw invalid_argument("Must specify at least one thread for execution!");
+  omp_set_num_threads(nthreads);
+
   const unsigned int J = X.size();
   unsigned int Itot = 0;
 
@@ -562,7 +573,8 @@ double libcluster::learnTCM (
     vector<GaussWish>& clusters,
     const unsigned int T,
     const double clusterprior,
-    const bool verbose
+    const bool verbose,
+    const unsigned int nthreads
     )
 {
 
@@ -572,7 +584,7 @@ double libcluster::learnTCM (
 
   // Model selection and Variational Bayes learning
   double F = ctopic<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
-                          weights, classes, clusters, T, clusterprior, verbose);
+                weights, classes, clusters, T, clusterprior, verbose, nthreads);
 
   return F;
 }

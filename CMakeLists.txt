@@ -24,13 +24,14 @@ endif(INSOURCE)
 
 # Some compilation options (changeable from ccmake)
 option(BUILD_PIPELINE_TOOLS "Build clustering tools for the AUV pipeline" on)
-option(BUILD_GREEDY_SPLIT "Use the greedy (fast) cluster split heuristic" off)
+option(BUILD_GREEDY_SPLIT "Use the greedy (fast) cluster split heuristic" on)
 
 # Locations for source code
-set(LIB_SOURCE_DIR   ${PROJECT_SOURCE_DIR}/src)
-set(LIB_INCLUDE_DIR  ${PROJECT_SOURCE_DIR}/include)
-set(TEST_SOURCE_DIR  ${PROJECT_SOURCE_DIR}/test)
-set(TOOLS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/tools)
+set(LIB_SOURCE_DIR    ${PROJECT_SOURCE_DIR}/src)
+set(LIB_INCLUDE_DIR   ${PROJECT_SOURCE_DIR}/include)
+set(TEST_SOURCE_DIR   ${PROJECT_SOURCE_DIR}/test)
+set(TOOLS_SOURCE_DIR  ${PROJECT_SOURCE_DIR}/tools)
+set(MATLAB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/matlab)
 
 # Locations for binary files
 set(LIBRARY_OUTPUT_PATH     ${PROJECT_SOURCE_DIR}/lib)
@@ -38,7 +39,7 @@ set(EXECUTABLE_OUTPUT_PATH  ${PROJECT_SOURCE_DIR}/build)
 
 # Automatically or from command line set build type
 if(NOT CMAKE_BUILD_TYPE)
-  set( CMAKE_BUILD_TYPE Release CACHE STRING
+  set(CMAKE_BUILD_TYPE Release CACHE STRING
        "Build type options are: None Debug Release RelWithDebInfo MinSizeRel."
        FORCE
      )
@@ -57,7 +58,7 @@ endif(NOT AUVLIB_PREFIX)
 
 # If we want to use the greedy splitting heuristic, define it here
 if(BUILD_GREEDY_SPLIT)
-  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGREEDY_SPLIT" )
+  set( MAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGREEDY_SPLIT" )
 endif(BUILD_GREEDY_SPLIT)
 
 #--------------------------------#
@@ -68,7 +69,7 @@ endif(BUILD_GREEDY_SPLIT)
 include_directories(${LIB_INCLUDE_DIR})
 
 # Library build instructions
-add_library(cluster SHARED
+add_library(${PROJECT_NAME} SHARED
   ${LIB_INCLUDE_DIR}/libcluster.h
   ${LIB_INCLUDE_DIR}/probutils.h
   ${LIB_INCLUDE_DIR}/distributions.h
@@ -86,11 +87,11 @@ add_definitions("-Wall")
 # Library Install Instructions   #
 #--------------------------------#
 
-if(NOT CMAKE_INSTALL_PREFIX )
+if(NOT CMAKE_INSTALL_PREFIX)
    set(CMAKE_INSTALL_PREFIX "/usr/local" )
-endif(NOT CMAKE_INSTALL_PREFIX )
+endif(NOT CMAKE_INSTALL_PREFIX)
 
-install(TARGETS cluster DESTINATION lib)
+install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 install(FILES
   ${LIB_INCLUDE_DIR}/libcluster.h
   ${LIB_INCLUDE_DIR}/probutils.h
@@ -102,4 +103,4 @@ install(FILES
 # Subdirectories to recurse to   #
 #--------------------------------#
 
-subdirs(test tools)
+subdirs(test tools matlab)

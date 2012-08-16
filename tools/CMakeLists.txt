@@ -7,7 +7,7 @@
 
 # Build against a pre-compiled library
 add_executable(vdp_cluster ${TOOLS_SOURCE_DIR}/vdp_cluster.cpp)
-target_link_libraries(vdp_cluster cluster)
+target_link_libraries(vdp_cluster ${PROJECT_NAME})
 
 # Install instructions
 #install(TARGETS vdp_cluster DESTINATION bin) # Not actually using this anymore
@@ -40,7 +40,7 @@ if(BUILD_PIPELINE_TOOLS)
   add_executable(vdp_labels vdp_labels.cpp)
 
   target_link_libraries(vdp_labels
-    cluster
+    ${PROJECT_NAME}
     seabedcommon
     plankton
     adt
