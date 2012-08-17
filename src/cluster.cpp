@@ -230,7 +230,7 @@ template <class W, class C> double vbem (
  *    throws: invalid_argument rethrown from other functions
  *    throws: runtime_error from its internal VBEM calls
  */
-#ifndef GREEDY_SPLIT
+#ifdef EXHAUST_SPLIT
 template <class W, class C> bool split_ex (
     const vMatrixXd& X,         // Observations
     const vector<C>& clusters,  // Cluster Distributions
@@ -335,7 +335,7 @@ template <class W, class C> bool split_ex (
  *    throws: invalid_argument rethrown from other functions
  *    throws: runtime_error from its internal VBEM calls
  */
-#ifdef GREEDY_SPLIT
+#ifndef EXHAUST_SPLIT
 template <class W, class C> bool split_gr (
     const vMatrixXd& X,         // Observations
     const vector<W>& weights,   // Group weight distributions
@@ -374,10 +374,11 @@ template <class W, class C> bool split_gr (
     // Add in cluster log-likelihood, weighted by responsability
     for (unsigned int k = 0; k < K; ++k)
     {
-      double L = logpi(k) + qZ[j].col(k).dot(clusters[k].Eloglike(X[j]));
+      double LL = qZ[j].col(k).dot((logpi(k)
+                                + clusters[k].Eloglike(X[j]).array()).matrix());
 
       #pragma omp atomic
-      ord[k].Fk -= L;
+      ord[k].Fk -= LL;
     }
   }
 
@@ -549,7 +550,7 @@ template <class W, class C> double cluster (
   bool   issplit = true;
   double F;
 
-  #ifdef GREEDY_SPLIT
+  #ifndef EXHAUST_SPLIT
   vector<int> tally;
   #endif
 
@@ -567,11 +568,11 @@ template <class W, class C> double cluster (
       cout << '<' << flush;  // Notify start splitting
 
     // Search for best split, augment qZ if found one
-    #ifdef GREEDY_SPLIT
+    #ifdef EXHAUST_SPLIT
+    issplit = split_ex<W,C>(X, clusters, qZ, F, clusterprior, sparse, verbose);
+    #else
     issplit = split_gr<W,C>(X, weights, clusters, qZ, tally, F, clusterprior,
                             sparse, verbose);
-    #else
-    issplit = split_ex<W,C>(X, clusters, qZ, F, clusterprior, sparse, verbose);
     #endif
 
     if (verbose == true)

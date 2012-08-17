@@ -95,19 +95,19 @@ public:
 protected:
 
   // Prior hyperparameters, expectations etc
-  double alpha1_p;
-  double alpha2_p;
-  double F_p;
+  double alpha1_p;  //!< First prior param \f$ Beta(\alpha_1,\alpha_2) \f$
+  double alpha2_p;  //!< Second prior param \f$ Beta(\alpha_1,\alpha_2) \f$
+  double F_p;       //!< Free energy component dependent on priors only
 
   // Posterior hyperparameters and expectations
-  Eigen::ArrayXd alpha1;
-  Eigen::ArrayXd alpha2;
-  Eigen::ArrayXd E_logv;
-  Eigen::ArrayXd E_lognv;
-  Eigen::ArrayXd E_logpi;
+  Eigen::ArrayXd alpha1; //!< First posterior param corresp to \f$ \alpha_1 \f$
+  Eigen::ArrayXd alpha2; //!< Second posterior param corresp to \f$ \alpha_2 \f$
+  Eigen::ArrayXd E_logv; //!< Stick breaking log expectation
+  Eigen::ArrayXd E_lognv; //!< Inverse stick breaking log expectation
+  Eigen::ArrayXd E_logpi; //!< Expected log weights
 
   // Order tracker
-  std::vector< std::pair<int,double> > ordvec;
+  std::vector< std::pair<int,double> > ordvec; //!< For order specific updates
 };
 
 
@@ -145,15 +145,15 @@ public:
 
   virtual ~Dirichlet () {}
 
-protected:
+private:
 
   // Prior hyperparameters, expectations etc
-  double alpha_p;
-  double F_p;
+  double alpha_p; // Symmetric Dirichlet prior \f$ Dir(\alpha) \f$
+  double F_p;     // Free energy component dependent on priors only
 
   // Posterior hyperparameters and expectations
-  Eigen::ArrayXd alpha;
-  Eigen::ArrayXd E_logpi;
+  Eigen::ArrayXd alpha;   // Posterior param corresp to \f$ \alpha \f$
+  Eigen::ArrayXd E_logpi; // Expected log weights
 
 };
 

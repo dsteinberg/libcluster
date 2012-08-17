@@ -34,7 +34,7 @@
  *    - Groups of Mixtures Clustering model for Exponential observations, see
  *      learnEGMC().
  *    - Topic Clustering Model for Multinomial Documents, and Gaussian
- *      Observations.
+ *      Observations, see learnTCM().
  *    - A myriad  of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
@@ -478,11 +478,16 @@ double learnEGMC (
  *         of vectors of length Ij (for each "document") of N_jixD matrices.
  *         Here N_ji is the number of observations in each document, Ij, in
  *         group, j, and D is the number of dimensions.
- *  \param qZ the probablistic label. It is a vector of length J (for each
- *         group), of vectors of length Ij (for each "document") of N_jixK
- *         matrices of the variational posterior approximations to p(z_j|X_j).
- *         K is the number of model clusters. This will always be overwritten
- *         to start with one cluster.
+ *  \param qY the probabilistic label of documents/images to classes. It is a
+ *         vector of length J (for each group), of IjxT matrices of the soft
+ *         assignments of each document/image (i) to a class label (t). It is
+ *         the variational posterior to p(y_j|Z_j). This is randomly
+ *         initialised, and uses the parameter T for max number of classes.
+ *  \param qZ the probabilistic label of observations to clusters. It is a
+ *         vector of length J (for each group), of vectors of length Ij (for
+ *         each "document") of N_jixK matrices of the variational posterior
+ *         approximations to p(z_ji|X_ji). K is the number of model clusters.
+ *         This will always be overwritten to start with one cluster.
  *  \param weights is a vector of distributions over the class mixture weights
  *          of the model, for each group of data, J.
  *  \param classes is a vector of distributions over the class parameters (or

@@ -1,5 +1,4 @@
 // TODO:
-//  - Is the new LL in split_gr right? I.e. the qY and qZ interaction??
 //  - Make a sparse flag for the clusters and classes?
 //  - Add in an optional split_ex() function.
 
@@ -269,7 +268,6 @@ template <class W, class L, class C> double vbem (
  */
 template <class W, class L, class C> bool split_gr (
     const vvMatrixXd& X,            // Observations
-    const vector<L>& classes,       // "Document" Class distributions
     const vector<C>& clusters,      // Cluster Distributions
     vMatrixXd& qY,                  // Class Probabilities qY
     vvMatrixXd& qZ,                 // Cluster Probabilities qZ
@@ -280,8 +278,7 @@ template <class W, class L, class C> bool split_gr (
     )
 {
   const unsigned int J = X.size(),
-                     K = clusters.size(),
-                     T = classes.size();
+                     K = clusters.size();
 
   // Split order chooser and cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
@@ -297,11 +294,6 @@ template <class W, class L, class C> bool split_gr (
 
   vector<unsigned int> Ij(J);
 
-  // Get cluster weights from class params
-  MatrixXd logpi(T, K);
-  for (unsigned int t = 0; t < T; ++t)
-    logpi.row(t) = classes[t].Elogweight();
-
   // Get cluster likelihoods
   for (unsigned int j = 0; j < J; ++j)
   {
@@ -312,8 +304,7 @@ template <class W, class L, class C> bool split_gr (
     for (unsigned int i = 0; i <  Ij[j]; ++i)
       for (unsigned int k = 0; k < K; ++k)
       {
-        double LL = (1 - qZ[j][i].col(k).sum()) * qY[j].row(i) * logpi.col(k)
-                     + qZ[j][i].col(k).dot(clusters[k].Eloglike(X[j][i]));
+        double LL = qZ[j][i].col(k).dot(clusters[k].Eloglike(X[j][i]));
 
         #pragma omp atomic
         ord[k].Fk -= LL;
@@ -540,8 +531,8 @@ template <class W, class L, class C> double ctopic (
     if (issplit == false)  // Remove any empty classes
       emptyclasses = prune_classes<L>(qY, classes, verbose);
     else                   // Search for best split, augment qZ if found one
-      issplit = split_gr<W,L,C>(X, classes, clusters, qY, qZ, tally, F,
-                                clusterprior, verbose);
+      issplit = split_gr<W,L,C>(X, clusters, qY, qZ, tally, F, clusterprior,
+                                verbose);
 
     if (verbose == true)
       cout << '>' << endl;      // Notify end search

@@ -24,7 +24,7 @@ endif(INSOURCE)
 
 # Some compilation options (changeable from ccmake)
 option(BUILD_PIPELINE_TOOLS "Build clustering tools for the AUV pipeline" on)
-option(BUILD_GREEDY_SPLIT "Use the greedy (fast) cluster split heuristic" on)
+option(BUILD_EXHAUST_SPLIT "Use the exhaustive cluster split heuristic" off)
 
 # Locations for source code
 set(LIB_SOURCE_DIR    ${PROJECT_SOURCE_DIR}/src)
@@ -47,8 +47,8 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # Search for OpenMP support for multi-threading
 if(OPENMP_FOUND)
-  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
-  set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}" )
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}" )
 endif(OPENMP_FOUND)
 
 # Path to AUV libs
@@ -57,9 +57,9 @@ if(NOT AUVLIB_PREFIX)
 endif(NOT AUVLIB_PREFIX)
 
 # If we want to use the greedy splitting heuristic, define it here
-if(BUILD_GREEDY_SPLIT)
-  set( MAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGREEDY_SPLIT" )
-endif(BUILD_GREEDY_SPLIT)
+if(BUILD_EXHAUST_SPLIT)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEXHAUST_SPLIT" )
+endif(BUILD_EXHAUST_SPLIT)
 
 #--------------------------------#
 # Library Build Instructions     #
