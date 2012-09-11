@@ -1,11 +1,11 @@
-% The Topic Clustering Model (TCM) clustering algorithm.
-%  This function uses the Topic Clustering Model [1] to simultaneously cluster 
-%  words/segments and documents/images while also sharing these between 
+% The Simulaneous Clustering Model (SCM) clustering algorithm.
+%  This function uses the Simultaneous Clustering Model [1] to simultaneously 
+%  cluster words/segments and documents/images while also sharing these between 
 %  datasets. It uses a Generalised Dirichlet prior over the group mixture 
 %  weights, a Dirichlet prior over the document/image clusters, and a 
 %  Gaussian-Wishart prior over the word/segment cluster parameters.
 %
-%  [qY, qZ, weights, classes, means, covariances] = learnTCM (X, options)
+%  [qY, qZ, weights, classes, means, covariances] = learnSCM (X, options)
 %
 % Arguments:
 %  - X, {Jx{Ijx[NijxD]}} nested cells of observation matrices, j over the 

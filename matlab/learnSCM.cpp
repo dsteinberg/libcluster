@@ -19,8 +19,8 @@ using namespace distributions;
 // Interface
 //
 
-/*! \brief Matlab interface to the Topic Clustering Model (TCM) model clustering
- *         algorithm.
+/*! \brief Matlab interface to the Simultaneous Clustering Model (TCM) model 
+ *       clustering algorithm.
  *
  * \param nlhs number of outputs.
  * \param plhs outputs:
@@ -67,7 +67,7 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   try
   {
-    learnTCM(X, qY, qZ, weights, classes, clusters, opts.trunc, opts.prior,
+    learnSCM(X, qY, qZ, weights, classes, clusters, opts.trunc, opts.prior,
              opts.verbose, opts.threads);
   }
   catch (exception e)

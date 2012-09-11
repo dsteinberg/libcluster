@@ -44,7 +44,7 @@ int main()
   vvMatrixXd qZ;
   clock_t start = clock();
 
-  learnTCM(Xv, qY, qZ, weights, classes, clusters, 4, PRIORVAL, true);
+  learnSCM(Xv, qY, qZ, weights, classes, clusters, 4, PRIORVAL, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Topic Elapsed time = " << stop << " sec." << endl;

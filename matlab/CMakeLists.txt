@@ -15,7 +15,7 @@ set(COMPILE_LIST
     learnVDP.cpp
     learnBGMM.cpp
     learnGMC.cpp
-    learnTCM.cpp
+    learnSCM.cpp
 )
 
 #--------------------------------#

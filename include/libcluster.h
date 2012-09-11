@@ -466,10 +466,10 @@ double learnEGMC (
 //
 
 
-/*! \brief The learning algorithm for the "Topic Clustering Model".
+/*! \brief The learning algorithm for the "Simultaneous Clustering Model".
  *
- * This function implements the "Topic Clustering Model" algorithm
- * as specified by [TODO]. The TCM uses a Generalised Dirichlet prior on the
+ * This function implements the "Simultaneous Clustering Model" algorithm
+ * as specified by [TODO]. The SCM uses a Generalised Dirichlet prior on the
  * group mixture weights over the classes, a Dirichlet prior on the classes
  * (or "document" clusters) and Gaussian cluster distributions for observations
  * within documents (with Gausian-Wishart priors).
@@ -515,7 +515,7 @@ double learnEGMC (
  * \todo Make a sparse clustering option like the GMC for both cluster and
  *       classes?
  */
-double learnTCM (
+double learnSCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,

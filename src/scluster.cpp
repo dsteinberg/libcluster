@@ -469,7 +469,7 @@ template <class L> bool prune_classes (
  *  throws: invalid_argument from other functions.
  *  throws: runtime_error if free energy increases.
  */
-template <class W, class L, class C> double ctopic (
+template <class W, class L, class C> double scluster (
     const vvMatrixXd& X,        // Observations
     vMatrixXd& qY,              // Class assignments
     vvMatrixXd& qZ,             // Observations to cluster assignments
@@ -555,7 +555,7 @@ template <class W, class L, class C> double ctopic (
 // Public Functions
 //
 
-double libcluster::learnTCM (
+double libcluster::learnSCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
@@ -574,7 +574,7 @@ double libcluster::learnTCM (
     cout << "Learning TCM..." << endl;
 
   // Model selection and Variational Bayes learning
-  double F = ctopic<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
+  double F = scluster<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
                 weights, classes, clusters, T, clusterprior, verbose, nthreads);
 
   return F;
