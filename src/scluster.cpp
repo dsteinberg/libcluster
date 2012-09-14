@@ -571,7 +571,7 @@ double libcluster::learnSCM (
 
   // Model selection and Variational Bayes learning
   if (verbose == true)
-    cout << "Learning TCM..." << endl;
+    cout << "Learning SCM..." << endl;
 
   // Model selection and Variational Bayes learning
   double F = scluster<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
