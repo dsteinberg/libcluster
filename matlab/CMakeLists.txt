@@ -22,16 +22,14 @@ set(COMPILE_LIST
 # Mex compile settings           #
 #--------------------------------#
 
-# C++ FLAGS for compiling the mex files
-set(MAT_FLAGS
-    ${CMAKE_CXX_FLAGS}
-    ${CMAKE_EXE_LINKER_FLAGS}
-)
+# C++ FLAGS for compiling the mex files (this doesn't like defines - WHY?)
+set(MAT_FLAGS " ${OpenMP_CXX_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
+#set(MAT_FLAGS " ${CMAKE_CXX_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
 
 # Includes required for the mex files
 set(MAT_INCS
-    -I${EIGEN_INCLUDE_DIRS}
-    -I${LIB_INCLUDE_DIR}
+      -I${EIGEN_INCLUDE_DIRS}
+      -I${LIB_INCLUDE_DIR}
 )
 
 # Location of static objects required for linking to the mex files

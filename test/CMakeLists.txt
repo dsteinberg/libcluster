@@ -9,9 +9,9 @@ add_executable(cluster_test
 target_link_libraries(cluster_test ${PROJECT_NAME})
 
 # Make Topic models batch test executable
-add_executable(topic_test
+add_executable(scluster_test
   ${TEST_SOURCE_DIR}/scluster_test.cpp
   ${TEST_SOURCE_DIR}/testdata.h
 )
 
-target_link_libraries(topic_test ${PROJECT_NAME})
+target_link_libraries(scluster_test ${PROJECT_NAME})

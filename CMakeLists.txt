@@ -45,21 +45,21 @@ if(NOT CMAKE_BUILD_TYPE)
      )
 endif(NOT CMAKE_BUILD_TYPE)
 
+# If we want to use the greedy splitting heuristic, define it here
+if(BUILD_EXHAUST_SPLIT)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEXHAUST_SPLIT")
+endif(BUILD_EXHAUST_SPLIT)
+
 # Search for OpenMP support for multi-threading
 if(OPENMP_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}" )
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif(OPENMP_FOUND)
 
 # Path to AUV libs
 if(NOT AUVLIB_PREFIX)
    set(AUVLIB_PREFIX /usr/local/)
 endif(NOT AUVLIB_PREFIX)
-
-# If we want to use the greedy splitting heuristic, define it here
-if(BUILD_EXHAUST_SPLIT)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEXHAUST_SPLIT" )
-endif(BUILD_EXHAUST_SPLIT)
 
 #--------------------------------#
 # Library Build Instructions     #
