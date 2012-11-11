@@ -27,5 +27,5 @@
 % Date:   14/08/2012
 %
 % References:
-%  [1] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Clustering Groups of
-%      Related Visual Datasets," unpublished, 2011.
+%  [1] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+%      Thesis, 2012.

@@ -34,8 +34,8 @@ This library implements the following algorithms, classes and functions:
  [2] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
      Springer Science+Business Media, 2006.
      
- [3] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Clustering Groups of
-     Related Visual Datasets," unpublished, 2011.
+ [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+     Thesis, 2012.
 
 
 DEPENDENCIES -------------------------------------------------------------------

@@ -32,4 +32,5 @@
 % Date:   16/08/2012
 %
 % References:
-%  [1] ???
+%  [1] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+%      Thesis, 2012.

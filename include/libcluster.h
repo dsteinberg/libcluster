@@ -48,8 +48,8 @@
  *     for HDP. Advances in Neural Information Processing Systems,
  *     20:1481–1488, 2008.
  *
- * [3] D. M. Steinberg, "An Unsupervised Approach to Modelling Visual Data,"
- *     PhD Thesis, 2012.
+ * [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD 
+ *     Thesis, 2012.
  *
  * [4] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
  *     Springer Science+Business Media, 2006.
