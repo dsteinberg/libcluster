@@ -48,15 +48,15 @@
  *     for HDP. Advances in Neural Information Processing Systems,
  *     20:1481–1488, 2008.
  *
- * [3] D. M. Steinberg, O. Pizarro, and S. B. Williams, "Clustering Groups of
- *     Related Visual Datasets," unpublished, 2011.
+ * [3] D. M. Steinberg, "An Unsupervised Approach to Modelling Visual Data,"
+ *     PhD Thesis, 2012.
  *
  * [4] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
  *     Springer Science+Business Media, 2006.
  *
- * \note The cluster splitting heuristic is different from that presented in [1]
- *       in that it is much faster, but may not choose the "best" cluster to
- *       split first.
+ * \note The greedy cluster splitting heuristic is different from that presented
+ *       in [1] in that it is much faster, but may not choose the "best" cluster
+ *       to split first.
  *
  * \note The code is generic enough to allow new clustering algorithms to be
  *       implemented quickly, since all of the algorithms use templated
@@ -82,7 +82,7 @@ const double       PRIORVAL   = 1e-5f;   //!< Default prior hyperparameter value
 const unsigned int TRUNC      = 100;     //!< Truncation level for classes
 const unsigned int SPLITITER  = 15;      //!< Max number of iter. for split VBEM
 const double       CONVERGE   = 1e-5f;       //!< Convergence threshold
-const double       FENGYDEL   = CONVERGE/10; //!< Allowance for +ve F.E. steps
+const double       FENGYDEL   = CONVERGE/10;  //!< Allowance for +ve F.E. steps
 const double       ZEROCUTOFF = 0.1f;    //!< Obs. count cut off sparse updates
 
 

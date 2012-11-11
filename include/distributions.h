@@ -5,6 +5,8 @@
 #include <vector>
 #include <stdexcept>
 
+//TODO: make all protected variables private and accessed by protected functions
+//      to improve encapsulation??
 
 /*! Namespace that implements weight and cluster distributions. */
 namespace distributions

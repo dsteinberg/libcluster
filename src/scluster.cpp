@@ -339,7 +339,7 @@ template <class W, class L, class C> bool split_gr (
       qZref[j].resize(Ij[j]);
       qZaug[j].resize(Ij[j]);
       Xk[j].resize(Ij[j]);
-      qYref[j] = MatrixXd::Ones(Ij[j], 1);
+      qYref[j].setOnes(Ij[j], 1);
 
       #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
       for (unsigned int i = 0; i < Ij[j]; ++i)

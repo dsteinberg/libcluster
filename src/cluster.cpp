@@ -466,11 +466,13 @@ template <class W, class C> bool split_gr (
  *
  *    returns: true if any clusters have been deleted, false if all are kept.
  *    mutable: qZ may have columns deleted if there are empty clusters found.
+ *    mutable: weights if there are empty clusters found.
  *    mutable: clusters if there are empty clusters found.
  */
-template <class C> bool prune_clusters (
+template <class W, class C> bool prune_clusters (
     vMatrixXd& qZ,        // Probabilities qZ
-    vector<C>& clusters,  // classes distributions
+    vector<W>& weights,   // weights distributions
+    vector<C>& clusters,  // cluster distributions
     bool verbose = false  // print status
     )
 {
@@ -507,6 +509,8 @@ template <class C> bool prune_clusters (
     newqZ[j].setZero(qZ[j].rows(), newK);
     for (unsigned int k = 0; k < newK; ++k)
       newqZ[j].col(k) = qZ[j].col(fidx(k));
+
+    weights[j].update(newqZ[j].colwise().sum()); // new weights
   }
 
   qZ = newqZ;
@@ -561,7 +565,7 @@ template <class W, class C> double cluster (
     F = vbem<W,C>(X, qZ, weights, clusters, clusterprior, -1, sparse, verbose);
 
     // Remove any empty clusters
-    prune_clusters<C>(qZ, clusters, verbose);
+    prune_clusters<W,C>(qZ, weights, clusters, verbose);
 
     // Start cluster splitting
     if (verbose == true)
