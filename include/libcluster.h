@@ -69,6 +69,9 @@
  * \date   16/08/2012
  *
  * \todo Make this library more generic so discrete distributions can be used.
+ * \todo I think there may be a bug in the sparse group variants.
+ * \todo Should probably get rid of all the vector copies in splitting functions
+ *       and interface functions.
  */
 namespace libcluster
 {
@@ -78,7 +81,7 @@ namespace libcluster
 // Namespace constants
 //
 
-const double       PRIORVAL   = 1e-5f;   //!< Default prior hyperparameter value
+const double       PRIORVAL   = 1.0;     //!< Default prior hyperparameter value
 const unsigned int TRUNC      = 100;     //!< Truncation level for classes
 const unsigned int SPLITITER  = 15;      //!< Max number of iter. for split VBEM
 const double       CONVERGE   = 1e-5f;       //!< Convergence threshold
@@ -469,35 +472,35 @@ double learnEGMC (
 /*! \brief The learning algorithm for the "Simultaneous Clustering Model".
  *
  * This function implements the "Simultaneous Clustering Model" algorithm
- * as specified by [TODO]. The SCM uses a Generalised Dirichlet prior on the
- * group mixture weights over the classes, a Dirichlet prior on the classes
- * (or "document" clusters) and Gaussian cluster distributions for observations
- * within documents (with Gausian-Wishart priors).
+ * as specified by [3]. The SCM uses a Generalised Dirichlet prior on the
+ * group mixture weights, a Dirichlet prior on the image clusters and Gaussian
+ * segment cluster distributions for observations within images (with
+ * Gausian-Wishart priors).
  *
  *  \param X the observation matrices. A vector of length J (for each group),
- *         of vectors of length Ij (for each "document") of N_jixD matrices.
- *         Here N_ji is the number of observations in each document, Ij, in
- *         group, j, and D is the number of dimensions.
- *  \param qY the probabilistic label of documents/images to classes. It is a
- *         vector of length J (for each group), of IjxT matrices of the soft
- *         assignments of each document/image (i) to a class label (t). It is
- *         the variational posterior to p(y_j|Z_j). This is randomly
+ *         of vectors of length Ij (for each image or "document") of N_jixD
+ *         matrices. Here N_ji is the number of observations in each document,
+ *         Ij, in group, j, and D is the number of dimensions.
+ *  \param qY the probabilistic label of documents/images to image clusters. It
+ *         is a vector of length J (for each group), of IjxT matrices of the
+ *         soft assignments of each document/image (i) to a class label (t). It
+ *         is the variational posterior to p(y_j|Z_j). This is randomly
  *         initialised, and uses the parameter T for max number of classes.
- *  \param qZ the probabilistic label of observations to clusters. It is a
- *         vector of length J (for each group), of vectors of length Ij (for
+ *  \param qZ the probabilistic label of observations to segment clusters. It is
+ *         a vector of length J (for each group), of vectors of length Ij (for
  *         each "document") of N_jixK matrices of the variational posterior
- *         approximations to p(z_ji|X_ji). K is the number of model clusters.
+ *         approximations to p(z_ji|X_ji). K is the number of segment clusters.
  *         This will always be overwritten to start with one cluster.
- *  \param weights is a vector of distributions over the class mixture weights
- *          of the model, for each group of data, J.
- *  \param classes is a vector of distributions over the class parameters (or
- *         document clusters) -- these serve as the cluster mixture weights for
- *         each class, this will be of size T* (see parameter T).
- *  \param clusters is a vector of distributions over the cluster parameters
- *         of the model, this will be size K.
- *  \param T the maximum number of classes to look for. Usually, if T is set
- *         large, T* < T classes will be found.
- *  \param clusterprior is the prior 'tuning' parameter for the cluster
+ *  \param iweights is a vector of distributions over the image cluster mixture
+ *         weights of the model, for each group of data, J.
+ *  \param sweights is a vector of distributions over the segment cluster
+ *         weights parameters (or document clusters) -- this will be of size T*
+ *         (see parameter T).
+ *  \param clusters is a vector of distributions over the segment cluster
+ *         parameters of the model, this will be size K.
+ *  \param T the maximum number of image clusters to look for. Usually, if T is
+ *         set large, T* < T classes will be found.
+ *  \param clusterprior is the prior 'tuning' parameter for the segment cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
@@ -519,14 +522,34 @@ double learnSCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
-    std::vector<distributions::GDirichlet>& weights,
-    std::vector<distributions::Dirichlet>& classes,
+    std::vector<distributions::GDirichlet>& iweights,
+    std::vector<distributions::Dirichlet>& sweights,
     std::vector<distributions::GaussWish>& clusters,
     const unsigned int T = TRUNC,
     const double clusterprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
+
+
+/*! \brief The learning algorithm for the "Multiple Clustering Model".
+ *
+ */
+double learnMCM (
+    const vMatrixXd& O,
+    const vvMatrixXd& X,
+    vMatrixXd& qY,
+    vvMatrixXd& qZ,
+    std::vector<distributions::GDirichlet>& iweights,
+    std::vector<distributions::Dirichlet>& sweights,
+    std::vector<distributions::GaussWish>& iclusters,
+    std::vector<distributions::GaussWish>& sclusters,
+    const double iclusterprior = PRIORVAL,
+    const double sclusterprior = PRIORVAL,
+    const bool verbose = false,
+    const unsigned int nthreads = omp_get_max_threads()
+    );
+
 
 }
 #endif // LIBCLUSTER_H

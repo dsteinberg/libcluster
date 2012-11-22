@@ -218,6 +218,11 @@ public:
    */
   double getN () const { return this->N; }
 
+  /*! \brief Return the cluster prior value.
+   *  \returns the cluster prior value.
+   */
+  double getprior () const { return this->prior; }
+
   /*! \brief virtual destructor.
    */
   virtual ~ClusterDist() {}

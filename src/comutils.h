@@ -66,10 +66,22 @@ void arrfind (
  *  mutable: Xk, MxD matrix of observations that have a correspoding 1 in Xpart.
  *  returns: an Mx1 array of the locations of Xk in X.
  */
-Eigen::ArrayXi partX (
+Eigen::ArrayXi partobs (
     const Eigen::MatrixXd& X,            // NxD matrix of observations.
     const distributions::ArrayXb& Xpart, // Nx1 indicator vector to partition X.
     Eigen::MatrixXd& Xk          // MxD matrix of obs. beloning to new partition
+    );
+
+
+/* Partition the observations, X according to a logical array.
+ *
+ *  mutable: Xk, MxD matrix of observations that have a correspoding 1 in Xpart.
+ *  returns: an Mx1 array of the locations of Xk in X.
+ */
+Eigen::ArrayXi partvvobs (
+    const libcluster::vMatrixXd& X,     // J-Ij length vector of observations.
+    const distributions::ArrayXb& Xpart, // Nx1 indicator vector to partition X.
+    libcluster::vMatrixXd& Xk // J-Ij' matrix of obs. beloning to new partition
     );
 
 
@@ -79,7 +91,7 @@ Eigen::ArrayXi partX (
  *  returns: The new observation assignments, [Nx(K+1)].
  *  throws: std::invalid_argument if map.size() != Zsplit.size().
  */
-Eigen::MatrixXd  augmentqZ (
+Eigen::MatrixXd  auglabels (
     const double k,               // Cluster to split (i.e. which column of qZ)
     const Eigen::ArrayXi& map,    // Mapping from array of partitioned obs to qZ
     const distributions::ArrayXb& Zsplit, // Boolean array of assignments.

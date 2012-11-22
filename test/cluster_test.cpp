@@ -21,14 +21,14 @@ int main()
   // Populate test data from testdata.h
   MatrixXd Xcat;
   vMatrixXd X;
-  makedata(Xcat, X);
+  makeXdata(Xcat, X);
 
   // GMC
   vector<GDirichlet> weights;
   vector<GaussWish>  clusters;
   vMatrixXd qZgroup;
   clock_t start = clock();
-  learnGMC (X, qZgroup, weights, clusters, PRIORVAL, true, true);
+  learnGMC (X, qZgroup, weights, clusters, PRIORVAL, false, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "GMC Elapsed time = " << stop << " sec." << endl;

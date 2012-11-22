@@ -1,3 +1,6 @@
+// TODO:
+//  - sparse updates sometimes create positive free energy steps.
+
 #include <limits>
 #include "libcluster.h"
 #include "probutils.h"
@@ -236,7 +239,6 @@ template <class W, class C> bool split_ex (
     const vector<C>& clusters,  // Cluster Distributions
     vMatrixXd& qZ,              // Probabilities qZ
     const double F,             // Current model free energy
-    const double clusterprior,  // Prior value for cluster distributions
     const bool sparse,          // Do sparse updates to groups
     const bool verbose          // Verbose output
     )
@@ -283,7 +285,7 @@ template <class W, class C> bool split_ex (
     // Refine the split
     vector<W> wspl;
     vector<C> cspl;
-    vbem<W,C>(Xk, qZref, wspl, cspl, clusterprior, SPLITITER, sparse);
+    vbem<W,C>(Xk, qZref, wspl, cspl, clusters[0].getprior(), SPLITITER, sparse);
 
     if (anyempty<C>(cspl) == true) // One cluster only
       continue;
@@ -294,7 +296,8 @@ template <class W, class C> bool split_ex (
       qZaug[j] = augmentqZ(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
 
     // Calculate free energy of this split with ALL data (and refine a bit)
-    double Fsplit = vbem<W,C>(X, qZaug, wspl, cspl, clusterprior, 1, sparse);
+    double Fsplit = vbem<W,C>(X, qZaug, wspl, cspl,  clusters[0].getprior(), 1,
+                              sparse);
 
     if (anyempty<C>(cspl) == true) // One cluster only
       continue;
@@ -343,7 +346,6 @@ template <class W, class C> bool split_gr (
     vMatrixXd& qZ,              // Probabilities qZ
     vector<int>& tally,         // Count of unsuccessful splits
     const double F,             // Current model free energy
-    const double clusterprior,  // Prior value for cluster distributions
     const bool sparse,          // Do sparse updates to groups
     const bool verbose          // Verbose output
     )
@@ -407,7 +409,7 @@ template <class W, class C> bool split_gr (
     for (unsigned int j = 0; j < J; ++j)
     {
       // Make COPY of the observations with only relevant data points, p > 0.5
-      mapidx[j] = partX(X[j], (qZ[j].col(k).array()>0.5), Xk[j]);  // Copy :-(
+      mapidx[j] = partobs(X[j], (qZ[j].col(k).array()>0.5), Xk[j]);  // Copy :-(
       Mtot += Xk[j].rows();
 
       // Initial cluster split
@@ -427,7 +429,7 @@ template <class W, class C> bool split_gr (
     // Refine the split
     vector<W> wspl;
     vector<C> cspl;
-    vbem<W,C>(Xk, qZref, wspl, cspl, clusterprior, SPLITITER, sparse);
+    vbem<W,C>(Xk, qZref, wspl, cspl, clusters[0].getprior(), SPLITITER, sparse);
 
     if (anyempty<C>(cspl) == true) // One cluster only
       continue;
@@ -435,10 +437,11 @@ template <class W, class C> bool split_gr (
     // Map the refined splits back to original whole-data problem
     #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
-      qZaug[j] = augmentqZ(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
+      qZaug[j] = auglabels(k, mapidx[j], (qZref[j].col(1).array()>0.5), qZ[j]);
 
     // Calculate free energy of this split with ALL data (and refine a bit)
-    double Fsplit = vbem<W,C>(X, qZaug, wspl, cspl, clusterprior, 1, sparse);
+    double Fsplit = vbem<W,C>(X, qZaug, wspl, cspl,  clusters[0].getprior(), 1,
+                              sparse);
 
     if (anyempty<C>(cspl) == true) // One cluster only
       continue;
@@ -573,10 +576,10 @@ template <class W, class C> double cluster (
 
     // Search for best split, augment qZ if found one
     #ifdef EXHAUST_SPLIT
-    issplit = split_ex<W,C>(X, clusters, qZ, F, clusterprior, sparse, verbose);
+    issplit = split_ex<W,C>(X, clusters, qZ, F, sparse, verbose);
     #else
-    issplit = split_gr<W,C>(X, weights, clusters, qZ, tally, F, clusterprior,
-                            sparse, verbose);
+    issplit = split_gr<W,C>(X, weights, clusters, qZ, tally, F, sparse,
+                            verbose);
     #endif
 
     if (verbose == true)
