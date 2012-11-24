@@ -9,7 +9,7 @@
 % Arguments:
 %  - X, {Jx[NxD]} cell array of observation matrices (one cell for each group)
 %  - options, structure with members (all are optional):
-%     + prior, [double] prior cluster value (1e-5 default)
+%     + prior, [double] prior cluster value (1 default)
 %     + verbose, [bool] verbose output flag (false default)
 %     + sparse, [bool] do fast but approximate sparse VB updates (false default)
 %     + threads, [unsigned int] number of threads to use (automatic default)

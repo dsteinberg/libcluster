@@ -536,7 +536,7 @@ double learnSCM (
  *
  */
 double learnMCM (
-    const vMatrixXd& O,
+    const vMatrixXd& W,
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,

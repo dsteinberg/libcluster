@@ -61,6 +61,7 @@ public:
     : verbose(false),
       sparse(false),
       prior(libcluster::PRIORVAL),
+      prior2(libcluster::PRIORVAL),
       trunc(libcluster::TRUNC),
       threads(omp_get_max_threads())
   {}
@@ -75,6 +76,7 @@ public:
   bool verbose;           //!< Verbose output flag
   bool sparse;            //!< Use sparse clustering flag
   double prior;           //!< The cluster prior parameter
+  double prior2;          //!< Another cluster prior parameter
   unsigned int trunc;     //!< Truncation level for max number of classes
   unsigned int threads;   //!< Number of threads to use
 };

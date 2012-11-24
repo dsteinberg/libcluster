@@ -27,7 +27,7 @@ using namespace libcluster;
 /* The Variational Bayes Expectation step for weights in each group.
  *
  *  mutable: Image cluster assignment probabilities, qYj
- *  returns: The complete-data  free energy, Y and Y+Z dep. terms, for group j.
+ *  returns: The complete-data free energy, Y and Y+Z dep. terms, for group j.
  *  throws: invalid_argument rethrown from other functions.
  */
 template <class IW, class SW> double vbeY (
@@ -55,16 +55,16 @@ template <class IW, class SW> double vbeY (
   for (unsigned int t = 0; t < T; ++t)
   {
     qZjiLike.col(t) = Njik * sweights[t].Elogweight().matrix();
-    logqYj.col(t) = E_logwj(t) + qZjiLike.col(t);
+    logqYj.col(t)   = E_logwj(t) + qZjiLike.col(t);
   }
 
   // Log normalisation constant of log observation likelihoods
-  VectorXd logZy = logsumexp(logqYj);
+  VectorXd logZyj = logsumexp(logqYj);
 
   // Normalise and Compute Responsibilities
-  qYj = (logqYj.colwise() - logZy).array().exp().matrix();
+  qYj = (logqYj.colwise() - logZyj).array().exp().matrix();
 
-  return ((qYj.array() * qZjiLike).rowwise().sum() - logZy.array()).sum();
+  return ((qYj.array() * qZjiLike).rowwise().sum() - logZyj.array()).sum();
 }
 
 

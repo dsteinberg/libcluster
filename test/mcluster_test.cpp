@@ -24,10 +24,10 @@ int main()
 
   // Populate test data from testdata.h
   MatrixXd Xcat, Ocat;
-  vMatrixXd X, O;
+  vMatrixXd X, W;
   vvMatrixXd Xv(2);
   makeXdata(Xcat, X);
-  makeOdata(Ocat, O);
+  makeOdata(Ocat, W);
 
   // Divide up X into 2 meta datasets
   for (unsigned int j = 0; j < X.size(); ++j)
@@ -46,7 +46,7 @@ int main()
   vvMatrixXd qZ;
   clock_t start = clock();
 
-  learnMCM(O, Xv, qY, qZ, iweights, sweights, iclusters, sclusters, PRIORVAL,
+  learnMCM(W, Xv, qY, qZ, iweights, sweights, iclusters, sclusters, PRIORVAL,
            PRIORVAL, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;

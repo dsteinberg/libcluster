@@ -95,6 +95,11 @@ void Options::parseopts (const mxArray* optsstruct)
   if (prfield != 0)
     this->prior = (double) *mxGetPr(prfield);
 
+  // Look for the "prior2" field
+  mxArray* prfield2 = mxGetField(optsstruct, 0, "prior2");
+  if (prfield2 != 0)
+    this->prior2 = (double) *mxGetPr(prfield2);
+
   // Look for the "trunc" field
   mxArray* trfield = mxGetField(optsstruct, 0, "trunc");
   if (trfield != 0)

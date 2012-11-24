@@ -19,7 +19,7 @@ using namespace distributions;
 // Interface
 //
 
-/*! \brief Matlab interface to the Simultaneous Clustering Model (TCM) model 
+/*! \brief Matlab interface to the Simultaneous Clustering Model (TCM) model
  *       clustering algorithm.
  *
  * \param nlhs number of outputs.
@@ -27,7 +27,7 @@ using namespace distributions;
  *          - plhs[0], qY, {Jx[IjxT]} cell array of class assignments
  *          - plhs[1], qZ, {Jx{Ijx[NijxK]}} nested cells of cluster assignments
  *          - plhs[2], weights, {Jx[1xT]} Group class weights
- *          - plhs[3], classes, [TxK] Class parameters (weights)
+ *          - plhs[3], proportions, [TxK] Image cluster segment proportions
  *          - plhs[4], means, {Kx[1xD]} Gaussian cluster means
  *          - plhs[5], covariances, {Kx[DxD]} Gaussian cluster covariances
  * \param nrhs number of input arguments.
@@ -71,7 +71,10 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
              opts.verbose, opts.threads);
   }
   catch (exception e)
-    { mexErrMsgTxt(e.what()); }
+  {
+    mexout.restore();
+    mexErrMsgTxt(e.what());
+  }
 
   // Restore cout
   mexout.restore();
@@ -90,14 +93,14 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (unsigned int j = 0; j < J; ++j)
     mxSetCell(plhs[2], j, eig2mat(weights[j].Elogweight().exp()));
 
-  // Class Parameters
+  // Image Cluster Parameters
   const unsigned int T = classes.size();
   plhs[3] = mxCreateCellMatrix(1, T);
 
   for (unsigned int t = 0; t < T; ++t)
     mxSetCell(plhs[3], t, eig2mat(classes[t].Elogweight().exp()));
 
-  // Cluster Parameters
+  // Segment Cluster Parameters
   const unsigned int K = clusters.size();
   plhs[4] = mxCreateCellMatrix(1, K);
   plhs[5] = mxCreateCellMatrix(1, K);

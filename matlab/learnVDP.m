@@ -8,7 +8,7 @@
 % Arguments:
 %  - X, [NxD] observation matrix
 %  - options, structure with members (all are optional):
-%     + prior, [double] prior cluster value (1e-5 default)
+%     + prior, [double] prior cluster value (1 default)
 %     + verbose, [bool] verbose output flag (false default)
 %     + threads, [unsigned int] number of threads to use (automatic default)
 %

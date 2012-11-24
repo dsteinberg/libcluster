@@ -19,7 +19,7 @@ using namespace distributions;
 // Interface
 //
 
-/*! \brief Matlab interface to the Symmetric Grouped Mixtures Clustering (S-GMC) 
+/*! \brief Matlab interface to the Symmetric Grouped Mixtures Clustering (S-GMC)
  *    model clustering algorithm.
  *
  * \param nlhs number of outputs.
@@ -66,7 +66,10 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
              opts.threads);
   }
   catch (exception e)
-    { mexErrMsgTxt(e.what()); }
+  {
+    mexout.restore();
+    mexErrMsgTxt(e.what());
+  }
 
   // Restore cout
   mexout.restore();

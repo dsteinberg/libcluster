@@ -17,6 +17,7 @@ set(COMPILE_LIST
     learnGMC.cpp
     learnSGMC.cpp
     learnSCM.cpp
+    learnMCM.cpp
 )
 
 #--------------------------------#

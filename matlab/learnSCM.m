@@ -12,7 +12,7 @@
 %       groups, Ij over the documents/images, Nij over the words/segments.
 %  - options, structure with members (all are optional):
 %     + trunc, [unsigned int] the max number of classes to find (100 default)
-%     + prior, [double] prior cluster value (1e-5 default)
+%     + prior, [double] prior cluster value (1 default)
 %     + verbose, [bool] verbose output flag (false default)
 %     + sparse, [bool] do fast but approximate sparse VB updates (false default)
 %     + threads, [unsigned int] number of threads to use (automatic default)
