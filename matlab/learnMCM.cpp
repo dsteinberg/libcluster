@@ -37,7 +37,7 @@ using namespace distributions;
  *          - prhs[0], W, {Jx[IjxD1]} nested cells of observation matrices
  *          - prhs[1], X, {Jx{Ijx[NijxD2]}} nested cells of observation matrices
  *          - prhs[2], options structure, with members:
- *              + trunc, [unsigned int] truncation level for classes
+ *              + trunc, [unsigned int] truncation level for image clusters
  *              + prior, [double] prior value corresponsing to W
  *              + prior2, [double] prior value corresponding to X
  *              + verbose, [bool] verbose output flag
@@ -74,7 +74,7 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   try
   {
     learnMCM(W, X, qY, qZ, iweights, sweights, iclusters, sclusters,
-             opts.prior, opts.prior2, opts.verbose, opts.threads);
+             opts.trunc, opts.prior, opts.prior2, opts.verbose, opts.threads);
   }
   catch (exception e)
   {

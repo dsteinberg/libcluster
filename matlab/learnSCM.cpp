@@ -34,7 +34,7 @@ using namespace distributions;
  * \param prhs input arguments:
  *          - prhs[0], X, {Jx{Ijx[NijxD]}} nested cells of observation matrices
  *          - prhs[1], options structure, with members:
- *              + trunc, [unsigned int] truncation level for classes
+ *              + trunc, [unsigned int] truncation level for image clusters
  *              + prior, [double] prior value
  *              + verbose, [bool] verbose output flag
  *              + sparse, [bool] do fast but approximate sparse VB updates

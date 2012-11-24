@@ -1,3 +1,6 @@
+// TODO
+//  - Sort out good parallelisation
+
 #include <limits>
 #include "libcluster.h"
 #include "probutils.h"
@@ -38,6 +41,10 @@ template <class IW, class SW, class IC> double vbeY (
   const unsigned int T  = sweights.size(),
                      Ij = qZj.size(),
                      K  = qZj[0].cols();
+
+  // No observations (may happen when splitting)
+  if (Ij == 0)
+    return 0;
 
   // Get log marginal weight likelihoods
   const ArrayXd E_logwj = weightsj.Elogweight();
@@ -84,6 +91,10 @@ template <class SW, class SC> double vbeZ (
   const int K   = sclusters.size(),
             Nji = Xji.rows(),
             T   = sweights.size();
+
+  // No observations (may happen when splitting)
+  if (Nji == 0)
+    return 0;
 
   // Make image cluster global weights from weighted label parameters
   RowVectorXd E_logqYljt = RowVectorXd::Zero(K);
@@ -213,19 +224,20 @@ template<class IW, class SW, class IC, class SC> double vbem (
     }
 
     // VBM for image cluster weights
+    //#pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
       iweights[j].update(qY[j].colwise().sum());
 
     // VBM for image cluster parameters and proportions
-//    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(guided)
     for (unsigned int t = 0; t < T; ++t)
     {
-      sweights[t].update(Ntk.row(t));  // Segment cluster count multinomials.
-      iclusters[t].update();           // Gaussian image observations
+      sweights[t].update(Ntk.row(t));  // Segment cluster counts.
+      iclusters[t].update();           // image observations
     }
 
     // VBM for segment cluster parameters
-//    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(guided)
     for (unsigned int k = 0; k < K; ++k)
       sclusters[k].update();
 
@@ -233,6 +245,7 @@ template<class IW, class SW, class IC, class SC> double vbem (
     double Fz = 0, Fyz = 0;
 
     // VBE for image cluster indicators
+    #pragma omp parallel for schedule(guided) reduction(+ : Fyz)
     for (unsigned int j = 0; j < J; ++j)
       Fyz += vbeY<IW,SW,IC>(W[j], qZ[j], iweights[j], sweights, iclusters,
                             qY[j]);
@@ -240,15 +253,13 @@ template<class IW, class SW, class IC, class SC> double vbem (
     // VBE for segment cluster indicators
     for (unsigned int j = 0; j < J; ++j)
     {
-//      #pragma omp parallel for schedule(guided) reduction(+ : Fz)
+      #pragma omp parallel for schedule(guided) reduction(+ : Fz)
       for (unsigned int i = 0; i < X[j].size(); ++i)
         Fz += vbeZ<SW,SC>(X[j][i], qY[j].row(i), sweights, sclusters, qZ[j][i]);
     }
 
     // Calculate free energy of model
     F = fenergy<IW,SW,IC,SC>(iweights, sweights, iclusters, sclusters, Fyz, Fz);
-
-//    cout << "F:" << F << ", Fy:" << Fy << ", Fz:" << Fz << endl;
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
@@ -268,154 +279,6 @@ template<class IW, class SW, class IC, class SC> double vbem (
 //  Model Selection and Heuristics Private Functions
 //
 
-/*  Search in a greedy fashion for an image cluster split that lowers model free
- *    energy, or return false. An attempt is made at looking for good, untried,
- *    split candidates first, as soon as a split canditate is found that lowers
- *    model F, it is returned. This may not be the "best" split, but it is
- *    certainly faster than an exhaustive search for the "best" split.
- *
- *    returns: true if a split was found, false if no splits can be found
- *    mutable: qY is augmented with a new split if one is found, otherwise left
- *    mutable: qZ is updated split if one is found, otherwise left
- *    mutable tally is a tally time a cluster has been unsuccessfully split
- *    throws: invalid_argument rethrown from other functions
- *    throws: runtime_error from its internal VBEM calls
- */
-template <class IW, class SW, class IC, class SC> bool isplit (
-    const vMatrixXd& W,          // Image Observations
-    const vvMatrixXd& X,         // Segment observations
-    const vector<IW>& iweights,  // Group weight distributions
-    const vector<SW>& sweights,  // Group weight distributions
-    const vector<IC>& iclusters, // Image cluster distributions
-    const vector<SC>& sclusters, // Segment cluster distributions
-    vMatrixXd& qY,               // Probabilities qY
-    vvMatrixXd& qZ,              // Probabilities qY
-    vector<int>& tally,          // Count of unsuccessful splits
-    const double F,              // Current model free energy
-    const bool verbose           // Verbose output
-    )
-{
-  const unsigned int J = W.size(),
-                     T = iclusters.size();
-
-  // Split order chooser and cluster parameters
-  tally.resize(T, 0); // Make sure tally is the right size
-  vector<GreedOrder> ord(T);
-
-  // Get cluster parameters and their free energy
-//  #pragma omp parallel for schedule(guided)
-  for (unsigned int t = 0; t < T; ++t)
-  {
-    ord[t].k     = t;
-    ord[t].tally = tally[t];
-    ord[t].Fk    = iclusters[t].fenergy() + sweights[t].fenergy();
-  }
-
-  // Get cluster likelihoods
-//  #pragma omp parallel for schedule(guided)
-  for (unsigned int j = 0; j < J; ++j)
-  {
-    // Get cluster weights
-    ArrayXd logpi = iweights[j].Elogweight();
-
-    // Add in cluster log-likelihood, weighted by responsability
-    for (unsigned int t = 0; t < T; ++t)
-    {
-      double LL = qY[j].col(t).dot((logpi(t)
-                               + iclusters[t].Eloglike(W[j]).array()).matrix());
-
-//      #pragma omp atomic
-      ord[t].Fk -= LL;
-    }
-  }
-
-  // Sort clusters by split tally, then free energy contributions
-  sort(ord.begin(), ord.end(), greedcomp);
-
-  // Pre allocate big objects for loops (this makes a runtime difference)
-  vector<ArrayXi> mapidx(J, ArrayXi());
-  vMatrixXd qYref(J, MatrixXd()), qYaug(J,MatrixXd()), Ot(J,MatrixXd());
-  vvMatrixXd Xt(J), qZt(J);
-
-  // Loop through each potential cluster in order and split it
-  for (vector<GreedOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
-  {
-    const int t = i->k;
-
-    ++tally[t]; // increase this cluster's unsuccessful split tally by default
-
-    // Don't waste time with clusters that can't really be split min (2:2)
-    if (iclusters[t].getN() < 4)
-      continue;
-
-    // Now split observations and qZ.
-    int scount = 0, Mtot = 0;
-
-//    #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
-    for (unsigned int j = 0; j < J; ++j)
-    {
-      // Make COPY of the observations with only relevant data points, p > 0.5
-      ArrayXb partind = (qY[j].col(t).array()>0.5);
-      mapidx[j] = partobs(W[j], partind, Ot[j]);  // Copy :-(
-      partvvobs(X[j], partind, Xt[j]);            // Copy :-(
-      partvvobs(qZ[j], partind, qZt[j]);          // Copy :-(
-      Mtot += Ot[j].rows();
-
-      // Initial cluster split
-      ArrayXb splitt = iclusters[t].splitobs(Ot[j]);
-      qYref[j].setZero(Ot[j].rows(), 2);
-      qYref[j].col(0) = (splitt == true).cast<double>();  // Init qZ for split
-      qYref[j].col(1) = (splitt == false).cast<double>();
-
-      // keep a track of number of splits
-      scount += splitt.count();
-    }
-
-    // Don't waste time with clusters that haven't been split sufficiently
-    if ( (scount < 2) || (scount > (Mtot-2)) )
-      continue;
-
-    // Refine the split
-    vector<IW> iwspl;
-    vector<IC> icspl;
-    vector<SW> swspl;
-    vector<SC> scspl;
-    vbem<IW,SW,IC,SC>(Ot, Xt, qYref, qZt, iwspl, swspl, icspl, scspl,
-                   iclusters[0].getprior(), sclusters[0].getprior(), SPLITITER);
-
-    if (anyempty<IC>(icspl) == true) // One cluster only
-      continue;
-
-    // Map the refined splits back to original whole-data problem
-//    #pragma omp parallel for schedule(guided)
-    for (unsigned int j = 0; j < J; ++j)
-      qYaug[j] = auglabels(t, mapidx[j], (qYref[j].col(1).array()>0.5), qY[j]);
-
-    // Calculate free energy of this split with ALL data (and refine a bit)
-    vvMatrixXd qZaug = qZ;      // copy :-(
-    double Fsplit = vbem<IW,SW,IC,SC>(W, X, qYaug, qZaug, iwspl, swspl, icspl,
-            scspl, iclusters[0].getprior(), sclusters[0].getprior(), SPLITITER);
-
-    if (anyempty<IC>(icspl) == true) // One cluster only
-      continue;
-
-    // Only notify here of split candidates
-    if (verbose == true)
-      cout << '=' << flush;
-
-    // Test whether this cluster split is a keeper
-    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
-    {
-      qY = qYaug;
-      qZ = qZaug;
-      tally[t] = 0;   // Reset tally if successfully split
-      return true;
-    }
-  }
-
-  // Failed to find splits
-  return false;
-}
 
 
 /*  Search in a greedy fashion for an segment cluster split that lowers model
@@ -461,13 +324,13 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
   for (unsigned int j = 0; j < J; ++j)
   {
     // Add in cluster log-likelihood, weighted by global responsability
-//    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(guided)
     for (unsigned int i = 0; i < X[j].size(); ++i)
       for (unsigned int k = 0; k < K; ++k)
       {
         double LL = qZ[j][i].col(k).dot(sclusters[k].Eloglike(X[j][i]));
 
-//        #pragma omp atomic
+        #pragma omp atomic
         ord[k].Fk -= LL;
       }
   }
@@ -477,7 +340,6 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
 
   // Pre allocate big objects for loops (this makes a runtime difference)
   vector< vector<ArrayXi> > mapidx(J); // TODO: DOES THIS NEED TO BE A vv???
-//  vMatrixXd qYref(J);
   vvMatrixXd qZref(J), qZaug(J), Xk(J);
 
   // Loop through each potential cluster in order and split it
@@ -500,13 +362,13 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
       qZref[j].resize(X[j].size());
       qZaug[j].resize(X[j].size());
       Xk[j].resize(X[j].size());
-//      qYref[j].setOnes(X[j].size(), 1);
 
-//      #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
+      #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
       for (unsigned int i = 0; i < X[j].size(); ++i)
       {
         // Make COPY of the observations with only relevant data points, p > 0.5
-        mapidx[j][i] = partobs(X[j][i], (qZ[j][i].col(k).array()>0.5), Xk[j][i]);
+        mapidx[j][i] = partobs(X[j][i], (qZ[j][i].col(k).array()>0.5),
+                               Xk[j][i]);
         Mtot += Xk[j][i].rows();
 
         // Initial cluster split
@@ -539,7 +401,7 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
     // Map the refined splits back to original whole-data problem
     for (unsigned int j = 0; j < J; ++j)
     {
-//      #pragma omp parallel for schedule(guided)
+      #pragma omp parallel for schedule(guided)
       for (unsigned int i = 0; i < X[j].size(); ++i)
         qZaug[j][i] = auglabels(k, mapidx[j][i],
                                 (qZref[j][i].col(1).array() > 0.5), qZ[j][i]);
@@ -572,6 +434,63 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
 }
 
 
+/*  Find and remove all empty image clusters.
+ *
+ *    returns: true if any seights have been deleted, false if all are kept.
+ *    mutable: qZ may have columns deleted if there are empty weights found.
+ *    mutable: sweights if there are empty image clusters found.
+ */
+template <class SW, class IC> bool prune_sweights (
+    vMatrixXd& qY,         // Probabilities qY
+    vector<SW>& sweights,  // Image segment cluster proportions
+    vector<IC>& iclusters, // Image clusters
+    bool verbose = false   // print status
+    )
+{
+  const unsigned int T = sweights.size(),
+                     J = qY.size();
+
+  // Look for empty clusters
+  ArrayXd Nt(T);
+  for (unsigned int t = 0; t < T; ++t)
+    Nt(t) = sweights[t].getNk().sum();
+
+  // Find location of empty and full clusters
+  ArrayXi eidx, fidx;
+  arrfind(Nt.array() < ZEROCUTOFF, eidx, fidx);
+  const unsigned int nempty = eidx.size();
+
+  // If everything is not empty, return false
+  if (nempty == 0)
+    return false;
+
+  if (verbose == true)
+    cout << '*' << flush;
+
+  // Delete empty clusters
+  for (int i = (nempty - 1); i >= 0; --i)
+  {
+    sweights.erase(sweights.begin() + eidx(i));
+    iclusters.erase(iclusters.begin() + eidx(i));
+  }
+
+  // Delete empty cluster indicators by copying only full indicators
+  const unsigned int newT = fidx.size();
+  vMatrixXd newqY(J);
+
+  for (unsigned int j = 0; j < J; ++j)
+  {
+    newqY[j].setZero(qY[j].rows(), newT);
+    for (unsigned int t = 0; t < newT; ++t)
+      newqY[j].col(t) = qY[j].col(fidx(t));
+  }
+
+  qY = newqY;
+
+  return true;
+}
+
+
 template<class IW, class SW, class IC, class SC> double mcluster (
     const vMatrixXd& W,           // Image observations
     const vvMatrixXd& X,          // Segment observations
@@ -581,6 +500,7 @@ template<class IW, class SW, class IC, class SC> double mcluster (
     vector<SW>& sweights,         // Image segment weights
     vector<IC>& iclusters,        // Image cluster parameters
     vector<SC>& sclusters,        // Segment cluster parameters
+    const unsigned int T,         // Truncation level for image clusters
     const double iclusterprior,   // Image cluster prior
     const double sclusterprior,   // Segment cluster prior
     const bool verbose,           // Verbose output
@@ -607,47 +527,38 @@ template<class IW, class SW, class IC, class SC> double mcluster (
 
   for (unsigned int j = 0; j < J; ++j)
   {
-    qY[j].setOnes(X[j].size(), 1);
+    ArrayXXd randm = (ArrayXXd::Random(X[j].size(), T)).abs();
+    ArrayXd norm = randm.rowwise().sum();
+    qY[j] = (randm.log().colwise() - norm.log()).exp();
+
     qZ[j].resize(X[j].size());
 
     for (unsigned int i = 0; i < X[j].size(); ++i)
       qZ[j][i].setOnes(X[j][i].rows(), 1);
   }
 
-  bool i_split = true, s_split = true;
+  bool emptyclasses = true, s_split = true;
   double F = 0;
-  vector<int> stally, itally;
+  vector<int> stally;
 
   // Main loop
-  while ((i_split == true) || (s_split == true))
+  while ((s_split == true) || (emptyclasses == true))
   {
 
     F = vbem<IW,SW,IC,SC>(W, X, qY, qZ, iweights, sweights, iclusters,
                           sclusters, iclusterprior, sclusterprior, -1, verbose);
 
-    // Start model search heuristics
-    if (i_split == true)        // Image clusters
-    {
-      if (verbose == true)
-        cout << '<' << flush;   // Notify start image cluster search
+    if (verbose == true)
+      cout << '<' << flush; // Notify start segment cluster search
 
-      i_split = isplit<IW,SW,IC,SC>(W, X, iweights, sweights, iclusters,
-                                    sclusters, qY, qZ, itally, F, verbose);
-
-      if (verbose == true)
-        cout << '>' << endl;   // Notify end image cluster search
-    }
-    else                        // Segment clusters
-    {
-      if (verbose == true)
-        cout << '(' << flush;   // Notify start segment cluster search
-
+    if (s_split == false)   // Remove any empty weights
+      emptyclasses = prune_sweights<SW, IC>(qY, sweights, iclusters, verbose);
+    else
       s_split = ssplit<IW,SW,IC,SC>(W, X, iclusters, sclusters, qY, qZ, stally,
                                     F, verbose);
 
-      if (verbose == true)
-        cout << ')' << endl;    // Notify end segment cluster search
-    }
+    if (verbose == true)
+      cout << '>' << endl;  // Notify end segment cluster search
   }
 
   // Print finished notification if verbose
@@ -662,6 +573,7 @@ template<class IW, class SW, class IC, class SC> double mcluster (
   return F;
 }
 
+
 //
 // Public Functions
 //
@@ -675,6 +587,7 @@ double libcluster::learnMCM (
     vector<Dirichlet>& sweights,
     vector<GaussWish>& iclusters,
     vector<GaussWish>& sclusters,
+    const unsigned int T,
     const double iclusterprior,
     const double sclusterprior,
     const bool verbose,
@@ -687,8 +600,158 @@ double libcluster::learnMCM (
 
   // Model selection and Variational Bayes learning
   double F = mcluster<GDirichlet, Dirichlet, GaussWish, GaussWish>(W, X, qY, qZ,
-                iweights, sweights, iclusters, sclusters, iclusterprior,
+                iweights, sweights, iclusters, sclusters, T, iclusterprior,
                 sclusterprior, verbose, nthreads);
 
   return F;
 }
+
+
+/*  Search in a greedy fashion for an image cluster split that lowers model free
+ *    energy, or return false. An attempt is made at looking for good, untried,
+ *    split candidates first, as soon as a split canditate is found that lowers
+ *    model F, it is returned. This may not be the "best" split, but it is
+ *    certainly faster than an exhaustive search for the "best" split.
+ *
+ *    returns: true if a split was found, false if no splits can be found
+ *    mutable: qY is augmented with a new split if one is found, otherwise left
+ *    mutable: qZ is updated split if one is found, otherwise left
+ *    mutable tally is a tally time a cluster has been unsuccessfully split
+ *    throws: invalid_argument rethrown from other functions
+ *    throws: runtime_error from its internal VBEM calls
+ */
+//template <class IW, class SW, class IC, class SC> bool isplit (
+//    const vMatrixXd& W,          // Image Observations
+//    const vvMatrixXd& X,         // Segment observations
+//    const vector<IW>& iweights,  // Group weight distributions
+//    const vector<SW>& sweights,  // Group weight distributions
+//    const vector<IC>& iclusters, // Image cluster distributions
+//    const vector<SC>& sclusters, // Segment cluster distributions
+//    vMatrixXd& qY,               // Probabilities qY
+//    vvMatrixXd& qZ,              // Probabilities qY
+//    vector<int>& tally,          // Count of unsuccessful splits
+//    const double F,              // Current model free energy
+//    const bool verbose           // Verbose output
+//    )
+//{
+//  const unsigned int J = W.size(),
+//                     T = iclusters.size();
+
+//  // Split order chooser and cluster parameters
+//  tally.resize(T, 0); // Make sure tally is the right size
+//  vector<GreedOrder> ord(T);
+
+//  // Get cluster parameters and their free energy
+////  #pragma omp parallel for schedule(guided)
+//  for (unsigned int t = 0; t < T; ++t)
+//  {
+//    ord[t].k     = t;
+//    ord[t].tally = tally[t];
+//    ord[t].Fk    = iclusters[t].fenergy() + sweights[t].fenergy();
+//  }
+
+//  // Get cluster likelihoods
+////  #pragma omp parallel for schedule(guided)
+//  for (unsigned int j = 0; j < J; ++j)
+//  {
+//    // Get cluster weights
+//    ArrayXd logpi = iweights[j].Elogweight();
+
+//    // Add in cluster log-likelihood, weighted by responsability
+//    for (unsigned int t = 0; t < T; ++t)
+//    {
+//      double LL = qY[j].col(t).dot((logpi(t)
+//                               + iclusters[t].Eloglike(W[j]).array()).matrix());
+
+////      #pragma omp atomic
+//      ord[t].Fk -= LL;
+//    }
+//  }
+
+//  // Sort clusters by split tally, then free energy contributions
+//  sort(ord.begin(), ord.end(), greedcomp);
+
+//  // Pre allocate big objects for loops (this makes a runtime difference)
+//  vector<ArrayXi> mapidx(J, ArrayXi());
+//  vMatrixXd qYref(J, MatrixXd()), qYaug(J,MatrixXd()), Ot(J,MatrixXd());
+//  vvMatrixXd Xt(J), qZt(J);
+
+//  // Loop through each potential cluster in order and split it
+//  for (vector<GreedOrder>::iterator i = ord.begin(); i < ord.end(); ++i)
+//  {
+//    const int t = i->k;
+
+//    ++tally[t]; // increase this cluster's unsuccessful split tally by default
+
+//    // Don't waste time with clusters that can't really be split min (2:2)
+//    if (iclusters[t].getN() < 4)
+//      continue;
+
+//    // Now split observations and qZ.
+//    int scount = 0, Mtot = 0;
+
+////    #pragma omp parallel for schedule(guided) reduction(+ : Mtot, scount)
+//    for (unsigned int j = 0; j < J; ++j)
+//    {
+//      // Make COPY of the observations with only relevant data points, p > 0.5
+//      ArrayXb partind = (qY[j].col(t).array()>0.5);
+//      mapidx[j] = partobs(W[j], partind, Ot[j]);  // Copy :-(
+//      partvvobs(X[j], partind, Xt[j]);            // Copy :-(
+//      partvvobs(qZ[j], partind, qZt[j]);          // Copy :-(
+//      Mtot += Ot[j].rows();
+
+//      // Initial cluster split
+//      ArrayXb splitt = iclusters[t].splitobs(Ot[j]);
+//      qYref[j].setZero(Ot[j].rows(), 2);
+//      qYref[j].col(0) = (splitt == true).cast<double>();  // Init qZ for split
+//      qYref[j].col(1) = (splitt == false).cast<double>();
+
+//      // keep a track of number of splits
+//      scount += splitt.count();
+//    }
+
+//    // Don't waste time with clusters that haven't been split sufficiently
+//    if ( (scount < 2) || (scount > (Mtot-2)) )
+//      continue;
+
+//    // Refine the split
+//    vector<IW> iwspl;
+//    vector<IC> icspl;
+//    vector<SW> swspl;
+//    vector<SC> scspl;
+//    vbem<IW,SW,IC,SC>(Ot, Xt, qYref, qZt, iwspl, swspl, icspl, scspl,
+//                   iclusters[0].getprior(), sclusters[0].getprior(), SPLITITER);
+
+//    if (anyempty<IC>(icspl) == true) // One cluster only
+//      continue;
+
+//    // Map the refined splits back to original whole-data problem
+////    #pragma omp parallel for schedule(guided)
+//    for (unsigned int j = 0; j < J; ++j)
+//      qYaug[j] = auglabels(t, mapidx[j], (qYref[j].col(1).array()>0.5), qY[j]);
+
+//    // Calculate free energy of this split with ALL data (and refine a bit)
+//    vvMatrixXd qZaug = qZ;      // copy :-(
+//    double Fsplit = vbem<IW,SW,IC,SC>(W, X, qYaug, qZaug, iwspl, swspl, icspl,
+//            scspl, iclusters[0].getprior(), sclusters[0].getprior(), SPLITITER);
+
+//    if (anyempty<IC>(icspl) == true) // One cluster only
+//      continue;
+
+//    // Only notify here of split candidates
+//    if (verbose == true)
+//      cout << '=' << flush;
+
+//    // Test whether this cluster split is a keeper
+//    if ( (Fsplit < F) && (abs((F-Fsplit)/F) > CONVERGE) )
+//    {
+//      qY = qYaug;
+//      qZ = qZaug;
+//      tally[t] = 0;   // Reset tally if successfully split
+//      return true;
+//    }
+//  }
+
+//  // Failed to find splits
+//  return false;
+//}

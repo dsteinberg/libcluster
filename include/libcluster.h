@@ -544,6 +544,7 @@ double learnMCM (
     std::vector<distributions::Dirichlet>& sweights,
     std::vector<distributions::GaussWish>& iclusters,
     std::vector<distributions::GaussWish>& sclusters,
+    const unsigned int T = TRUNC,
     const double iclusterprior = PRIORVAL,
     const double sclusterprior = PRIORVAL,
     const bool verbose = false,

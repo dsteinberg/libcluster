@@ -17,7 +17,8 @@
 %       over the groups, Ij over the documents/images, Nij over the 
 %       words/segments.
 %  - options, structure with members (all are optional):
-%     + trunc, [unsigned int] the max number of classes to find (100 default)
+%     + trunc, [unsigned int] the max number of image clusters to find 
+%              (100 default)
 %     + prior, [double] prior cluster value (1 default)
 %     + prior2, [double] prior cluster value (1 default)
 %     + verbose, [bool] verbose output flag (false default)
