@@ -71,7 +71,9 @@
  *
  * \date   25/11/2012
  *
- * \todo Make this library more generic so discrete distributions can be used.
+ * \todo Make this library more generic so discrete distributions can be used?
+ * \todo Combine scluster.cpp and mcluster.cpp since they are so similar? Make W
+ *       optional?
  * \todo I think there may be a bug in the sparse group variants.
  * \todo Should probably get rid of all the vector copies in splitting functions
  *       and interface functions.
