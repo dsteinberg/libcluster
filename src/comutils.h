@@ -73,18 +73,6 @@ Eigen::ArrayXi partobs (
     );
 
 
-/* Partition the observations, X according to a logical array.
- *
- *  mutable: Xk, MxD matrix of observations that have a correspoding 1 in Xpart.
- *  returns: an Mx1 array of the locations of Xk in X.
- */
-Eigen::ArrayXi partvvobs (
-    const libcluster::vMatrixXd& X,     // J-Ij length vector of observations.
-    const distributions::ArrayXb& Xpart, // Nx1 indicator vector to partition X.
-    libcluster::vMatrixXd& Xk // J-Ij' matrix of obs. beloning to new partition
-    );
-
-
 /* Augment the assignment matrix, qZ with the split cluster entry.
  *
  * The new cluster assignments are put in the K+1 th column in the return matrix

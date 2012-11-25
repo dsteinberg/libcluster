@@ -1,6 +1,6 @@
 // TODO:
 //  - Make a sparse flag for the clusters and weights?
-//  - Add in an optional split_ex() function.
+//  - Parallelise better
 
 #include <limits>
 #include "libcluster.h"
@@ -256,7 +256,8 @@ template <class IW, class SW, class C> double vbem (
  *
  *    returns: true if a split was found, false if no splits can be found
  *    mutable: qZ is augmented with a new split if one is found, otherwise left
- *    mutable tally is a tally time a cluster has been unsuccessfully split
+ *    mutable: qY is updated if a new split if one is found, otherwise left
+ *    mutable tally is a tally of times a cluster has been unsuccessfully split
  *    throws: invalid_argument rethrown from other functions
  *    throws: runtime_error from its internal VBEM calls
  */
@@ -400,7 +401,7 @@ template <class IW, class SW, class C> bool split_gr (
 /*  Find and remove all empty image clusters.
  *
  *    returns: true if any seights have been deleted, false if all are kept.
- *    mutable: qZ may have columns deleted if there are empty weights found.
+ *    mutable: qY may have columns deleted if there are empty weights found.
  *    mutable: sweights if there are empty image clusters found.
  */
 template <class SW> bool prune_sweights (
@@ -453,10 +454,10 @@ template <class SW> bool prune_sweights (
 /* The model selection algorithm
  *
  *  returns: Free energy of the final model
- *  mutable: qY the probabilistic image to class assignments
- *  mutable: qZ the probabilistic observation to cluster assignments
- *  mutable: the image sufficient stats.
- *  mutable: the model sufficient stats.
+ *  mutable: qY the probabilistic image cluster assignments
+ *  mutable: qZ the probabilistic observation to segment cluster assignments
+ *  mutable: the image cluster weights and parameters.
+ *  mutable: the segment clusters weights and parameters.
  *  throws: invalid_argument from other functions.
  *  throws: runtime_error if free energy increases.
  */

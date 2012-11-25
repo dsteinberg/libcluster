@@ -52,25 +52,6 @@ ArrayXi comutils::partobs (
 }
 
 
-ArrayXi comutils::partvvobs (
-    const vMatrixXd &X,
-    const ArrayXb& Xpart,
-    vMatrixXd &Xk
-    )
-{
-  const int M = Xpart.count();
-
-  ArrayXi pidx, npidx;
-  comutils::arrfind(Xpart, pidx, npidx);
-
-  Xk.resize(M);
-  for (int m=0; m < M; ++m)           // index copy X to Xk
-    Xk[m] = X[pidx(m)];
-
-  return pidx;
-}
-
-
 MatrixXd  comutils::auglabels (
     const double k,
     const ArrayXi& map,

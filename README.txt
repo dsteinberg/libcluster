@@ -16,9 +16,12 @@ This library implements the following algorithms, classes and functions:
 
     - The Symmetric Grouped Mixtures Clustering (S-GMC) model [3]
     
-    - Topic Clustering Model for Multinomial Documents, and Gaussian 
-      Observations
-    
+    - Simultaneous Clustering Model for Multinomial Documents, and Gaussian 
+      Observations [3].
+
+    - Multiple Clustering Model (MCM) for clustering two observations, one of an
+      image/document, and mulltiple of segments/words simultaneously [3]. 
+
     - And more clustering algorithms based on diagonal Gaussian, and 
       Exponential distributions.
 
@@ -40,7 +43,7 @@ This library implements the following algorithms, classes and functions:
 
 DEPENDENCIES -------------------------------------------------------------------
 
-- Eigen version 3
+- Eigen version 3.0 or greater
 - Boost version 1.4.x or greater
 - For building the AUV pipeline tools (optional):
   + libplankton
@@ -213,7 +216,7 @@ What this means:
    '=' found a valid candidate split
    '>' chosen candidate split and testing for inclusion into model
    'x' clusters have been deleted because they became devoid of observations
-   '*' classes (image/document clusters) that are empty have been removed. 
+   '*' clusters (image/document clusters) that are empty have been removed. 
 
 For best clustering results, I have found the following tips may help:
 

@@ -33,8 +33,11 @@
  *      observations, see learnDGMC().
  *    - Groups of Mixtures Clustering model for Exponential observations, see
  *      learnEGMC().
- *    - Topic Clustering Model for Multinomial Documents, and Gaussian
- *      Observations, see learnTCM().
+ *    - Simultaneous Clustering Model (SCM) for Multinomial Documents, and
+ *      Gaussian Observations, see learnSCM() and [3].
+ *    - Multiple Clustering Model (MCM) for clustering two observations, one of
+ *      an image/document, and mulltiple of segments/words simultaneously, see
+ *      learnMCM() and [3].
  *    - A myriad  of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
@@ -66,7 +69,7 @@
  *         Australian Centre for Field Robotics
  *         The University of Sydney
  *
- * \date   16/08/2012
+ * \date   25/11/2012
  *
  * \todo Make this library more generic so discrete distributions can be used.
  * \todo I think there may be a bug in the sparse group variants.
@@ -465,7 +468,7 @@ double learnEGMC (
 
 
 //
-// Topic models for Clustering (ctopic.cpp)
+// Simultaneous Clustering Models (scluster.cpp)
 //
 
 
@@ -478,16 +481,16 @@ double learnEGMC (
  * Gausian-Wishart priors).
  *
  *  \param X the observation matrices. A vector of length J (for each group),
- *         of vectors of length Ij (for each image or "document") of N_jixD
+ *         of vectors of length I_j (for each image or "document") of N_jixD
  *         matrices. Here N_ji is the number of observations in each document,
- *         Ij, in group, j, and D is the number of dimensions.
+ *         I_j, in group, j, and D is the number of dimensions.
  *  \param qY the probabilistic label of documents/images to image clusters. It
- *         is a vector of length J (for each group), of IjxT matrices of the
+ *         is a vector of length J (for each group), of I_jxT matrices of the
  *         soft assignments of each document/image (i) to a class label (t). It
  *         is the variational posterior to p(y_j|Z_j). This is randomly
  *         initialised, and uses the parameter T for max number of classes.
  *  \param qZ the probabilistic label of observations to segment clusters. It is
- *         a vector of length J (for each group), of vectors of length Ij (for
+ *         a vector of length J (for each group), of vectors of length I_j (for
  *         each "document") of N_jixK matrices of the variational posterior
  *         approximations to p(z_ji|X_ji). K is the number of segment clusters.
  *         This will always be overwritten to start with one cluster.
@@ -514,9 +517,6 @@ double learnEGMC (
  *  \throws std::runtime_error if there are runtime issues with the GMC
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
- *
- * \todo Make a sparse clustering option like the GMC for both cluster and
- *       classes?
  */
 double learnSCM (
     const vvMatrixXd& X,
@@ -532,8 +532,64 @@ double learnSCM (
     );
 
 
+//
+// Multiple Observation Clustering Models (scluster.cpp)
+//
+
+
 /*! \brief The learning algorithm for the "Multiple Clustering Model".
  *
+ * This function implements the "Multiple Clustering Model" algorithm as
+ * specified by [3]. This model jointly cluster both image/document level
+ * observations, and segment/word observations. The MCM uses a Generalised
+ * Dirichlet prior on the group mixture weights, a Gaussian image obervation
+ * clusters, a Dirichlet prior on the image cluster segment cluster proportions,
+ * and Gaussian segment cluster distributions for observations within images.
+ *
+ *  \param W the image observations. A vector of length J (for each group),
+ *         of of I_jxD1 matrices. Here I_j is the number of Images in each
+ *         group, and D1 is the number of dimensions.
+ *  \param X segment observation matrices. A vector of length J (for each group),
+ *         of vectors of length I_j (for each image or "document") of N_jixD2
+ *         matrices. Here N_ji is the number of observations in each document,
+ *         I_j, in group, j, and D2 is the number of dimensions.
+ *  \param qY the probabilistic label of documents/images to image clusters. It
+ *         is a vector of length J (for each group), of I_jxT matrices of the
+ *         soft assignments of each document/image (i) to a class label (t). It
+ *         is the variational posterior to p(y_j|Z_j). This is randomly
+ *         initialised, and uses the parameter T for max number of classes.
+ *  \param qZ the probabilistic label of segments to segment clusters. It is
+ *         a vector of length J (for each group), of vectors of length I_j (for
+ *         each "document") of N_jixK matrices of the variational posterior
+ *         approximations to p(z_ji|X_ji). K is the number of segment clusters.
+ *         This will always be overwritten to start with one cluster.
+ *  \param iweights is a vector of distributions over the image cluster mixture
+ *         weights of the model, for each group of data, J.
+ *  \param sweights is a vector of distributions over the segment cluster
+ *         weights parameters -- this will be of size T* (see parameter T).
+ *  \param iclusters is a vector of distributions over the image clusters
+ *         parameters of the model (corresponding to W), this will be size T*.
+ *  \param sclusters is a vector of distributions over the segment cluster
+ *         parameters of the model (corresponding to X), this will be size K.
+ *  \param T the maximum number of image clusters to look for. Usually, if T is
+ *         set large, T* < T classes will be found.
+ *  \param iclusterprior is the prior 'tuning' parameter for the image cluster
+ *         parameter distributions (W). This effects how many image clusters
+ *         will be found.
+ *  \param sclusterprior is the prior 'tuning' parameter for the segment cluster
+ *         parameter distributions (X). This effects how many segment clusters
+ *         will be found.
+ *  \param verbose flag for triggering algorithm status messages. Default is
+ *         0 = silent.
+ *  \param nthreads sets the number of threads for the clustering algorithm to
+ *         use. The group cluster algorithms take fuller advantage of this. The
+ *         default value is automatically determined by OpenMP.
+ *  \returns Final free energy
+ *  \throws std::logic_error if there are invalid argument calls such as
+ *          non-PSD matrix calculations.
+ *  \throws std::runtime_error if there are runtime issues with the GMC
+ *          algorithm such as negative free energy steps, unexpected empty
+ *          clusters etc.
  */
 double learnMCM (
     const vMatrixXd& W,
