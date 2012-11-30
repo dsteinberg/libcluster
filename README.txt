@@ -19,8 +19,9 @@ This library implements the following algorithms, classes and functions:
     - Simultaneous Clustering Model for Multinomial Documents, and Gaussian 
       Observations [3].
 
-    - Multiple Clustering Model (MCM) for clustering two observations, one of an
-      image/document, and mulltiple of segments/words simultaneously [3]. 
+    - Multiple-source Clustering Model (MCM) for clustering two observations,
+      one of an image/document, and mulltiple of segments/words simultaneously
+      [3]. 
 
     - And more clustering algorithms based on diagonal Gaussian, and 
       Exponential distributions.

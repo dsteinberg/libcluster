@@ -1,6 +1,6 @@
-% The Multiple Clustering Model (MCM) clustering algorithm.
+% The Multiple-source Clustering Model (MCM) clustering algorithm.
 %
-%  This function uses the Multiple Clustering Model [1] to simultaneously
+%  This function uses the Multiple-source Clustering Model [1] to simultaneously
 %  cluster words/segment observations and documents/image observations while
 %  also sharing these between datasets. It uses a Generalised Dirichlet prior
 %  over the group mixture weights, a Dirichlet prior over the document/image

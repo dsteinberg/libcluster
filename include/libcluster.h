@@ -35,9 +35,11 @@
  *      learnEGMC().
  *    - Simultaneous Clustering Model (SCM) for Multinomial Documents, and
  *      Gaussian Observations, see learnSCM() and [3].
- *    - Multiple Clustering Model (MCM) for clustering two observations, one of
- *      an image/document, and mulltiple of segments/words simultaneously, see
- *      learnMCM() and [3].
+ * 
+ *    - Multiple-source Clustering Model (MCM) for clustering two observations,
+ *      one of an image/document, and mulltiple of segments/words 
+ *      simultaneously, see learnMCM() and [3].
+ *
  *    - A myriad  of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
@@ -539,7 +541,7 @@ double learnSCM (
 //
 
 
-/*! \brief The learning algorithm for the "Multiple Clustering Model".
+/*! \brief The learning algorithm for the "Multiple-source Clustering Model".
  *
  * This function implements the "Multiple Clustering Model" algorithm as
  * specified by [3]. This model jointly cluster both image/document level

@@ -19,7 +19,7 @@ using namespace distributions;
 // Interface
 //
 
-/*! \brief Matlab interface to the Multiple Clustering Model (MCM) model
+/*! \brief Matlab interface to the Multiple-source Clustering Model (MCM) model
  *       clustering algorithm.
  *
  * \param nlhs number of outputs.
