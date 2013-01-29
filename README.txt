@@ -264,17 +264,10 @@ For best clustering results, I have found the following tips may help:
     leads to better convergence.
 
 
-COMMAND LINE INTERFACES --------------------------------------------------------
+TODO ---------------------------------------------------------------------------
 
-WARNING: This is only a really rough and ready version.
+1) Seperate the pipeline-tools into a seperate project, this should only be a
+    library.
 
-The command line interface is:
+2) Remove the command line interface, again this is only a library.
 
-    $ vdp_cluster [feature file] [cluster result file]
-
-    e.g. try
-
-    $ vdp_cluster {source}/test/scott25.data  cresults.dat
-
-So far this just reads text files of the type in {source}/test and outputs other
-text files.
