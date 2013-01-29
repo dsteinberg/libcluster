@@ -23,14 +23,12 @@ endif(INSOURCE)
 #--------------------------------#
 
 # Some compilation options (changeable from ccmake)
-option(BUILD_PIPELINE_TOOLS "Build clustering tools for the AUV pipeline" on)
 option(BUILD_EXHAUST_SPLIT "Use the exhaustive cluster split heuristic" off)
 
 # Locations for source code
 set(LIB_SOURCE_DIR    ${PROJECT_SOURCE_DIR}/src)
 set(LIB_INCLUDE_DIR   ${PROJECT_SOURCE_DIR}/include)
 set(TEST_SOURCE_DIR   ${PROJECT_SOURCE_DIR}/test)
-set(TOOLS_SOURCE_DIR  ${PROJECT_SOURCE_DIR}/tools)
 set(MATLAB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/matlab)
 
 # Locations for binary files
@@ -55,11 +53,6 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif(OPENMP_FOUND)
-
-# Path to AUV libs
-if(NOT AUVLIB_PREFIX)
-   set(AUVLIB_PREFIX /usr/local/)
-endif(NOT AUVLIB_PREFIX)
 
 #--------------------------------#
 # Library Build Instructions     #
@@ -104,4 +97,4 @@ install(FILES
 # Subdirectories to recurse to   #
 #--------------------------------#
 
-subdirs(test tools matlab)
+subdirs(test matlab)

@@ -29,8 +29,6 @@ This library implements the following algorithms, classes and functions:
     - Various functions for evaluating means, standard deviations, covariance,
       primary eigenvalues etc of data.
 
-    - Various tools, including AUV post-processing pipeline tools.
-
  [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational
      Dirichlet process mixtures, Advances in Neural Information Processing
      Systems, vol. 19, p. 761, 2007.
@@ -46,10 +44,6 @@ DEPENDENCIES -------------------------------------------------------------------
 
 - Eigen version 3.0 or greater
 - Boost version 1.4.x or greater
-- For building the AUV pipeline tools (optional):
-  + libplankton
-  + auv_data_tools
-  + seabed_slam_file_io.hpp
 
 
 INSTALL INSTRUCTIONS (Linux/OS X) ----------------------------------------------
@@ -73,8 +67,7 @@ To build libcluster:
     mkdir build
     cd build
 
-4) To build libcluster INCLUDING the AUV pipeline tools, run the following from
-    the build directory:
+4) To build libcluster, run the following from the build directory:
 
         cmake ..
         make
@@ -82,11 +75,9 @@ To build libcluster:
 
    This installs:
         libcluster.h    /usr/local/include
+        distributions.h /usr/local/include
         probutils.h     /usr/local/include
         libcluster.*    /usr/local/lib          (* this is either .dylib or .so)
-        vdp_label       /usr/local/bin       (config options in vdp_cluster.cfg)
-        
-   To build without the AUV pipeline tools, see the notes below.
 
 5) Use the doxyfile in {where you checked out the source}/doc to make the
    documentation with doxygen:
@@ -102,11 +93,6 @@ NOTE:
       heuristic. It is MUCH faster, but does give different results. I have yet
       to determine whether this is actually worse than the exhaustive method.
       The TCM uses a greedy split heuristic by default at this stage.
-      
-   BUILD_PIPELINE_TOOLS (toggle ON or OFF, default ON)
-      This builds the AUV pipeline tools - which at this stage is basically just
-      an interface for the VDP clustering algorithm. This has EXTRA 
-      dependencies.
       
    CMAKE_INSTALL_PREFIX (default /usr/local)
       The default prefix for installing the library and binaries.
@@ -189,8 +175,8 @@ Notes:
   system heaters, have a look at ~/.matlab/R20xxx/mexopts.sh and change all 
   lines:
 
-	   SDKROOT='/Developer/SDKs/MacOSX10.X.sdk'
-      MACOSX_DEPLOYMENT_TARGET='10.X'
+    SDKROOT='/Developer/SDKs/MacOSX10.X.sdk'
+    MACOSX_DEPLOYMENT_TARGET='10.X'
 
   To your version of OS X, e.g. 10.7.
 
@@ -262,12 +248,4 @@ For best clustering results, I have found the following tips may help:
     The clustering solution may also be sensitive to the prior. I find usually 
     using a prior value that has the approximate magnitude of your data or more
     leads to better convergence.
-
-
-TODO ---------------------------------------------------------------------------
-
-1) Seperate the pipeline-tools into a seperate project, this should only be a
-    library.
-
-2) Remove the command line interface, again this is only a library.
 
