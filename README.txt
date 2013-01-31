@@ -20,7 +20,7 @@ Author: Daniel Steinberg
         Australian Centre for Field Robotics
         The University of Sydney
 
-Date:   16/08/2012
+Date:   31/01/2013
 
 This library implements the following algorithms, classes and functions:
 
@@ -53,7 +53,7 @@ This library implements the following algorithms, classes and functions:
      Springer Science+Business Media, 2006.
      
  [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
-     Thesis, 2012.
+     Thesis, 2013.
 
 
 DEPENDENCIES -------------------------------------------------------------------

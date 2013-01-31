@@ -72,7 +72,7 @@
  *     20:1481–1488, 2008.
  *
  * [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
- *     Thesis, 2012.
+ *     Thesis, 2013.
  *
  * [4] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
  *     Springer Science+Business Media, 2006.
@@ -91,9 +91,8 @@
  *
  * \date   25/11/2012
  *
+ * \todo Find a better way to parallelise the vanilla clustering algorithms.
  * \todo Make this library more generic so discrete distributions can be used?
- * \todo Combine scluster.cpp and mcluster.cpp since they are so similar? Make W
- *       optional?
  * \todo I think there may be a bug in the sparse group variants.
  * \todo Should probably get rid of all the vector copies in splitting functions
  *       and interface functions.
