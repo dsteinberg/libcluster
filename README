@@ -54,6 +54,14 @@ This library implements the following algorithms, classes and functions:
      
  [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
      Thesis, 2013.
+     
+Please consider citing reference [3] or 
+
+     D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
+     nonparametric approach to clustering data from underwater robotic surveys.
+     In International Symposium on Robotics Research, Flagstaff, AZ, Aug. 2011.
+
+if you use this code. Thanks!
 
 
 DEPENDENCIES -------------------------------------------------------------------
@@ -173,10 +181,15 @@ Notes:
 
     try one of the following:
 
-    a) change the symbolic link ~/.maltab/bin/gcc to point to the version of gcc
+    a) Run matlab as follows (can use a script for this)
+      
+        $ LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6:/usr/local/lib/libcluster.so\
+          /usr/local/MATLAB/R201XX/bin/matlab -desktop
+
+    b) change the symbolic link ~/.maltab/bin/gcc to point to the version of gcc
        you are using in /usr/bin/gcc-4.x
 
-    b) if no such directory exists you can remove the symlinks in Matlab's root 
+    c) if no such directory exists you can remove the symlinks in Matlab's root 
        to its own copy's of the C and C++ libraries, so it will then use your 
        systems,
 
