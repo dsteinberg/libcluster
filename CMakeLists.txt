@@ -23,13 +23,15 @@ endif(INSOURCE)
 #--------------------------------#
 
 # Some compilation options (changeable from ccmake)
-option(BUILD_EXHAUST_SPLIT "Use the exhaustive cluster split heuristic" off)
+option(BUILD_EXHAUST_SPLIT "Use the exhaustive cluster split heuristic?" off)
+option(BUILD_PYTHON_INTERFACE "Build the python interface?" off)
 
 # Locations for source code
 set(LIB_SOURCE_DIR    ${PROJECT_SOURCE_DIR}/src)
 set(LIB_INCLUDE_DIR   ${PROJECT_SOURCE_DIR}/include)
 set(TEST_SOURCE_DIR   ${PROJECT_SOURCE_DIR}/test)
 set(MATLAB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/matlab)
+set(PYTHON_SOURCE_DIR ${PROJECT_SOURCE_DIR}/python)
 
 # Locations for binary files
 set(LIBRARY_OUTPUT_PATH     ${PROJECT_SOURCE_DIR}/lib)
@@ -97,4 +99,4 @@ install(FILES
 # Subdirectories to recurse to   #
 #--------------------------------#
 
-subdirs(test matlab)
+subdirs(test matlab python)

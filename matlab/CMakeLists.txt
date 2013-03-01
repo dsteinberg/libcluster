@@ -37,7 +37,7 @@ set(MAT_INCS
 # Location of static objects required for linking to the mex files
 set(MAT_LINKS
       $<TARGET_LINKER_FILE:${PROJECT_NAME}>
-      intfctns.cpp
+      mintfctns.cpp
 )
 
 #--------------------------------#
@@ -56,7 +56,7 @@ endforeach(mexfile)
 # Custom target for builing the Matlab interface - calls all custom commands
 add_custom_target(matint
   DEPENDS ${PROJECT_NAME} ${COMPILE_LIST}
-  SOURCES intfctns.cpp ${COMPILE_LIST}
+  SOURCES mintfctns.cpp ${COMPILE_LIST}
 )
 
 #--------------------------------#

@@ -18,8 +18,8 @@
 
 // Interfaces for commonly used functions/classes between the various mex files.
 
-#ifndef INTFCTNS_H
-#define INTFCTNS_H
+#ifndef MINTFCTNS_H
+#define MINTFCTNS_H
 
 #include <Eigen/Dense>
 #include <iostream>

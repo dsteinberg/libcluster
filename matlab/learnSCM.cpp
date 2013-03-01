@@ -20,7 +20,7 @@
 #include "mex.h"
 #include "libcluster.h"
 #include "distributions.h"
-#include "intfctns.h"
+#include "mintfctns.h"
 
 
 //
