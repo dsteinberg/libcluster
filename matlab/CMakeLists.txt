@@ -54,10 +54,14 @@ foreach(mexfile ${COMPILE_LIST})
 endforeach(mexfile)
 
 # Custom target for builing the Matlab interface - calls all custom commands
-add_custom_target(matint
-  DEPENDS ${PROJECT_NAME} ${COMPILE_LIST}
-  SOURCES mintfctns.cpp ${COMPILE_LIST}
-)
+if(BUILD_PYTHON_INTERFACE)
+  message( STATUS "Disabling matlab target")
+else(BUILD_PYTHON_INTERFACE)
+  add_custom_target(matint
+    DEPENDS ${PROJECT_NAME} ${COMPILE_LIST}
+    SOURCES mintfctns.cpp ${COMPILE_LIST}
+  )
+endif(BUILD_PYTHON_INTERFACE)
 
 #--------------------------------#
 # Mex clean instructions, TODO   #
