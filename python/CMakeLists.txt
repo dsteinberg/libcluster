@@ -2,6 +2,7 @@ if(BUILD_PYTHON_INTERFACE)
 
   message(STATUS "Will build the python interface")
 
+  # Python needs row major matrices (for convenience)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DEFAULT_TO_ROW_MAJOR")
 
   #--------------------------------#

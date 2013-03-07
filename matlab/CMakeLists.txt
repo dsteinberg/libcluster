@@ -26,7 +26,6 @@ set(COMPILE_LIST
 
 # C++ FLAGS for compiling the mex files (this doesn't like defines - WHY?)
 set(MAT_FLAGS " ${OpenMP_CXX_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
-#set(MAT_FLAGS " ${CMAKE_CXX_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
 
 # Includes required for the mex files
 set(MAT_INCS
@@ -55,8 +54,9 @@ endforeach(mexfile)
 
 # Custom target for builing the Matlab interface - calls all custom commands
 if(BUILD_PYTHON_INTERFACE)
-  message( STATUS "Disabling matlab target")
+  message(STATUS "Disabling matlab target")
 else(BUILD_PYTHON_INTERFACE)
+  message(STATUS "Enabling matlab target")
   add_custom_target(matint
     DEPENDS ${PROJECT_NAME} ${COMPILE_LIST}
     SOURCES mintfctns.cpp ${COMPILE_LIST}
