@@ -5,7 +5,9 @@ cmake_minimum_required(VERSION 2.6)
 # Includes                       #
 #--------------------------------#
 
-include(${PROJECT_SOURCE_DIR}/FindBoost1.cmake REQUIRED)
+#include(${PROJECT_SOURCE_DIR}/FindBoost1.cmake REQUIRED)
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
 include(${PROJECT_SOURCE_DIR}/FindEigen3.cmake REQUIRED)
 include(FindOpenMP)
 
@@ -49,6 +51,10 @@ endif(NOT CMAKE_BUILD_TYPE)
 if(BUILD_EXHAUST_SPLIT)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEXHAUST_SPLIT")
 endif(BUILD_EXHAUST_SPLIT)
+
+if(BUILD_PYTHON_INTERFACE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DEFAULT_TO_ROW_MAJOR")
+endif(BUILD_PYTHON_INTERFACE)
 
 # Search for OpenMP support for multi-threading
 if(OPENMP_FOUND)
