@@ -88,10 +88,10 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     learnSCM(X, qY, qZ, weights, classes, clusters, opts.trunc, opts.prior,
              opts.verbose, opts.threads);
   }
-  catch (exception e)
+  catch (exception& e)
   {
-    mexout.restore();
     mexErrMsgTxt(e.what());
+    mexout.restore();
   }
 
   // Restore cout

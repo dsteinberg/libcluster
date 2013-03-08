@@ -94,10 +94,10 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     learnMCM(W, X, qY, qZ, iweights, sweights, iclusters, sclusters,
              opts.trunc, opts.prior, opts.prior2, opts.verbose, opts.threads);
   }
-  catch (exception e)
+  catch (exception& e)
   {
-    mexout.restore();
     mexErrMsgTxt(e.what());
+    mexout.restore();
   }
 
   // Restore cout

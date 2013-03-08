@@ -83,10 +83,10 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   {
     learnBGMM(X, qZ, weights, clusters, opts.prior, opts.verbose, opts.threads);
   }
-  catch (exception e)
+  catch (exception& e)
   {
-    mexout.restore();
     mexErrMsgTxt(e.what());
+    mexout.restore();
   }
 
   // Restore cout
