@@ -216,48 +216,48 @@ template<class IW, class SW, class IC, class SC> double vbem (
   {
     Fold = F;
 
-    // Clear Sufficient Stats
-    MatrixXd Ntk = MatrixXd::Zero(T, K); // seg cluster per image cluster count
-
-    for (unsigned int k = 0; k < K; ++k)
-      sclusters[k].clearobs();
-
-    for (unsigned int t = 0; t < T; ++t)
-      iclusters[t].clearobs();
-
-    // Accumulate sufficient stats from segments and images
-    for (unsigned int j = 0; j < J; ++j)
-    {
-      // Image clusters
-      for (unsigned int t = 0; t < T; ++t)
-        iclusters[t].addobs(qY[j].col(t), W[j]);
-
-      // Segment clusters and counts per images cluster
-      for(unsigned int i = 0; i < X[j].size(); ++i)
-      {
-        Ntk.noalias() += qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
-        for (unsigned int k = 0; k < K; ++k)
-          sclusters[k].addobs(qZ[j][i].col(k), X[j][i]);
-      }
-    }
+    MatrixXd Ntk = MatrixXd::Zero(T, K); // Clear Sufficient Stats
 
     // VBM for image cluster weights
-    //#pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
+    {
+      // Accumulate suff. stats for segment cluster counts
+      for(unsigned int i = 0; i < X[j].size(); ++i)
+      {
+        MatrixXd Ntkji = qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
+        #pragma omp critical
+        Ntk += Ntkji;
+      }
+
       iweights[j].update(qY[j].colwise().sum());
+    }
 
     // VBM for image cluster parameters and proportions
     #pragma omp parallel for schedule(guided)
     for (unsigned int t = 0; t < T; ++t)
     {
-      sweights[t].update(Ntk.row(t));  // Segment cluster counts.
-      iclusters[t].update();           // image observations
+      iclusters[t].clearobs();                  // Clear Sufficient Stats
+
+      for (unsigned int j = 0; j < J; ++j)      // Accumulate sufficient stats
+        iclusters[t].addobs(qY[j].col(t), W[j]);
+
+      sweights[t].update(Ntk.row(t));           // Segment cluster counts.
+      iclusters[t].update();                    // image observations
     }
 
     // VBM for segment cluster parameters
     #pragma omp parallel for schedule(guided)
     for (unsigned int k = 0; k < K; ++k)
-      sclusters[k].update();
+    {
+      sclusters[k].clearobs();                  // Clear Sufficient Stats
+
+      for (unsigned int j = 0; j < J; ++j)      // Accumulate sufficient stats
+        for(unsigned int i = 0; i < X[j].size(); ++i)
+          sclusters[k].addobs(qZ[j][i].col(k), X[j][i]);
+
+      sclusters[k].update();                    // Segment observations
+    }
 
     // Free energy data fit term accumulators
     double Fz = 0, Fyz = 0;
