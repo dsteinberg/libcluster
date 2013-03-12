@@ -199,24 +199,14 @@ template <class IW, class SW, class C> double vbem (
   {
     Fold = F;
 
-    // Clear Sufficient Stats
+    // Get segment cluster per image cluster counts
     MatrixXd Ntk = MatrixXd::Zero(T, K);
-    for (unsigned int k = 0; k < K; ++k)
-      clusters[k].clearobs();
-
-    // Get Sufficient stats from images/images
     for (unsigned int j = 0; j < J; ++j)
-    {
       for(unsigned int i = 0; i < X[j].size(); ++i)
-      {
         Ntk.noalias() += qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
-        for (unsigned int k = 0; k < K; ++k)
-          clusters[k].addobs(qZ[j][i].col(k), X[j][i]);
-      }
-    }
 
     // VBM for image cluster weights
-    //#pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
       iweights[j].update(qY[j].colwise().sum());
 
@@ -228,12 +218,20 @@ template <class IW, class SW, class C> double vbem (
     // VBM for segment cluster parameters
     #pragma omp parallel for schedule(guided)
     for (unsigned int k = 0; k < K; ++k)
+    {
+      clusters[k].clearobs();
+
+      for (unsigned int j = 0; j < J; ++j)
+        for(unsigned int i = 0; i < X[j].size(); ++i)
+          clusters[k].addobs(qZ[j][i].col(k), X[j][i]);
+
       clusters[k].update();
+    }
 
     double Fz = 0, Fyz = 0;
 
     // VBE for image cluster indicators
-    //#pragma omp parallel for schedule(guided) reduction(+ : Fyz)
+    #pragma omp parallel for schedule(guided) reduction(+ : Fyz)
     for (unsigned int j = 0; j < J; ++j)
       Fyz += vbeY<IW,SW>(qZ[j], iweights[j], sweights, qY[j]);
 

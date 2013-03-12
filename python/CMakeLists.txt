@@ -5,6 +5,7 @@ if(BUILD_PYTHON_INTERFACE)
   # Python needs row major matrices (for convenience)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DEFAULT_TO_ROW_MAJOR")
 
+
   #--------------------------------#
   # Includes                       #
   #--------------------------------#
@@ -29,5 +30,19 @@ if(BUILD_PYTHON_INTERFACE)
       ${Boost_LIBRARIES}
       ${PROJECT_NAME}
   )
+
+
+  #--------------------------------#
+  # Install Instructions           #
+  #--------------------------------#
+
+  # Get python path
+  execute_process(COMMAND python -c
+    "from distutils.sysconfig import get_python_lib; print get_python_lib()"
+    OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  # Install target
+  install(TARGETS ${PROJECT_NAME}py DESTINATION ${PYTHON_SITE_PACKAGES})
 
 endif(BUILD_PYTHON_INTERFACE)

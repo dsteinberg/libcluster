@@ -1,15 +1,16 @@
 project(cluster)
 cmake_minimum_required(VERSION 2.6)
 
+
 #--------------------------------#
 # Includes                       #
 #--------------------------------#
 
-#include(${PROJECT_SOURCE_DIR}/FindBoost1.cmake REQUIRED)
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 include(${PROJECT_SOURCE_DIR}/FindEigen3.cmake REQUIRED)
 include(FindOpenMP)
+
 
 #--------------------------------#
 # Enforce an out-of-source build #
@@ -17,8 +18,9 @@ include(FindOpenMP)
 
 string(COMPARE EQUAL "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}" INSOURCE)
 if(INSOURCE)
-  message(FATAL_ERROR "This project requires an out of source build. This is handled by the Makefile. Please type 'make'.")
+  message(FATAL_ERROR "This project requires an out of source build.")
 endif(INSOURCE)
+
 
 #--------------------------------#
 # Compiler environment Setup     #
@@ -60,8 +62,11 @@ endif(BUILD_PYTHON_INTERFACE)
 # Search for OpenMP support for multi-threading
 if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS
+    "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}"
+  )
 endif(OPENMP_FOUND)
+
 
 #--------------------------------#
 # Library Build Instructions     #
@@ -86,6 +91,7 @@ add_library(${PROJECT_NAME} SHARED
 
 add_definitions("-Wall")
 
+
 #--------------------------------#
 # Library Install Instructions   #
 #--------------------------------#
@@ -101,6 +107,7 @@ install(FILES
   ${LIB_INCLUDE_DIR}/distributions.h
   DESTINATION include/libcluster
 )
+
 
 #--------------------------------#
 # Subdirectories to recurse to   #
