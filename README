@@ -162,13 +162,13 @@ To build the Matlab interface:
   1) Make sure you have matlab installed and the mex binary is in the system 
      path.
      
-  2) In the build drectory from step 3 above, run 
+  2) In the build directory from step 3 above, run 
    
       make matint
       
      This generates the Matlab binaries in the "matlab" directory where you 
      checked out the source. You can copy or link them to Matlab's path as you 
-     wish.
+     wish. This will fail if you have enabled the python interface.
 
 Notes:
 
