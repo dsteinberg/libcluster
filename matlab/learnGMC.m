@@ -2,7 +2,8 @@
 %  This function uses the Grouped Mixtures Clustering model [1] to cluster
 %  multiple datasets simultaneously with cluster sharing between datasets. It
 %  uses a Generalised Dirichlet prior over the group mixture weights, and a 
-%  Gaussian-Wishart prior over the cluster parameters.
+%  Gaussian-Wishart prior over the cluster parameters. This algorithm is similar
+%  to a one-level Hierarchical Dirichlet process with Gaussian observations.
 %
 %  [qZ, weights, means, covariances] = learnGMC (X, options)
 %

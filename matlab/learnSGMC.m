@@ -2,7 +2,9 @@
 %   function uses the Symmetric Grouped Mixtures Clustering model [1] to 
 %   cluster multiple datasets simultaneously with cluster sharing between 
 %   datasets. It uses a symmetric Dirichlet prior over the group mixture 
-%   weights, and a Gaussian-Wishart prior over the cluster parameters.
+%   weights, and a Gaussian-Wishart prior over the cluster parameters. This
+%   algorithm is similar to latent Dirichlet allocation with Gaussian
+%   observations.
 %
 %  [qZ, weights, means, covariances] = learnSGMC (X, options)
 %

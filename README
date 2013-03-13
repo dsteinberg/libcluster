@@ -5,7 +5,7 @@ Author: Daniel Steinberg
         Australian Centre for Field Robotics
         The University of Sydney
 
-Date:   31/01/2013
+Date:   13/03/2013
 
 License: GPL v3 (See LICENSE)
 
@@ -56,6 +56,8 @@ DEPENDENCIES -------------------------------------------------------------------
 
 - Eigen version 3.0 or greater
 - Boost version 1.4.x or greater
+- OpenMP, comes default with most compilers (not LLVM).
+- CMake
 
 
 INSTALL INSTRUCTIONS (Linux/OS X) ----------------------------------------------
@@ -100,11 +102,18 @@ NOTE:
  - There are few options you can change using ccmake (or the cmake gui), these 
    include:
    
-   BUILD_GREEDY_SPLIT (toggle ON or OFF, default OFF)
-      This uses the greedy cluster split heuristic instead of the exhaustive
-      heuristic. It is MUCH faster, but does give different results. I have yet
-      to determine whether this is actually worse than the exhaustive method.
-      The TCM uses a greedy split heuristic by default at this stage.
+   BUILD_EXHAUST_SPLIT (toggle ON or OFF, default OFF)
+      This uses the exhaustive cluster split heuristic instead of the greedy
+      heuristic. The greedy heuristic is MUCH faster, but does give different
+      results. I have yet to determine whether it is actually worse than the
+      exhaustive method. The SCM and MCM use greedy split heuristics by default
+      at this stage.
+
+   BUILD_PYTHON_INTERFACE (toggle ON or OFF, default OFF)
+      Build the python interface. This requires boost python. Unfortunately, if
+      this is enabled, then the matlab interface cannot be built. This is
+      because python is row-major, and matlab is column major, so we need to
+      build Eigen accordingly.
       
    CMAKE_INSTALL_PREFIX (default /usr/local)
       The default prefix for installing the library and binaries.
@@ -114,6 +123,27 @@ NOTE:
     
  - On linux you may have to run "sudo ldconfig" before the system can find
    libcluster.so.
+
+
+PYTHON INTERFACE (Linux) -------------------------------------------------------
+
+Easy, follow the normal build instructions up to step (4) (if you haven't
+already), then from the build directory:
+
+    cmake ..
+    ccmake ..
+
+Make sure BUILD_PYTHON_INTERFACE is ON
+
+    make
+    sudo make install
+
+This installs all the same files as step (4), as well as libclusterpy.so to your
+python staging directory, so it should be on your python path. I.e. just run
+
+    import libclusterpy
+
+Look at the "libclusterpy" docstrings for more help on usage. 
 
 
 MATLAB INTERFACE (Linux/OS X) --------------------------------------------------
@@ -171,8 +201,10 @@ Notes:
 
     a) Run matlab as follows (can use a script for this)
       
-        $ LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6:/usr/local/lib/libcluster.so\
-          /usr/local/MATLAB/R201XX/bin/matlab -desktop
+        $ export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.XX
+        $ matlab -desktop
+
+       Where XX is your libstdc++ library version (for ubuntu 12.04, XX=16).
 
     b) change the symbolic link ~/.maltab/bin/gcc to point to the version of gcc
        you are using in /usr/bin/gcc-4.x

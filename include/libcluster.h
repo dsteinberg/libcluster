@@ -298,7 +298,8 @@ double learnBEMM (
  * This function implements the Groups of Mixtues Clustering model algorithm
  * as specified by [3], with the additional "sparse" option. The GMC uses a
  * Generalised Dirichlet prior on the group mixture weights and Gaussian cluster
- * distributions (With Gausian-Wishart priors).
+ * distributions (With Gausian-Wishart priors). This algorithm is similar to a
+ * one-level Hierarchical Dirichlet process with Gaussian observations.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number
@@ -347,7 +348,8 @@ double learnGMC (
  * This function implements the Symmetric Groups of Mixtures Clustering model
  * as specified by [3], with the additional "sparse" option. The Symmetric GMC
  * uses a symmetric Dirichlet prior on the group mixture weights and Gaussian
- * cluster distributions (With Gausian-Wishart priors).
+ * cluster distributions (With Gausian-Wishart priors). This algorithm is
+ * similar to latent Dirichlet allocation with Gaussian observations.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number
@@ -397,7 +399,8 @@ double learnSGMC (
  * as specified by [3], with the additional "sparse" option but with diagonal
  * covariance Gaussians, i.e. this is a Naive-Bayes assumption. The DGMC uses a
  * Generalised Dirichlet prior on the group mixture weights and Normal cluster
- * distributions (With Normal-Gamma priors).
+ * distributions (With Normal-Gamma priors). This algorithm is similar to a
+ * one-level Hierarchical Dirichlet process with Gaussian observations.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number
@@ -446,7 +449,8 @@ double learnDGMC (
  * This function implements the Exponential Groups of Mixtures Clustering model,
  * with the additional "sparse" option. The Exponential GMC uses a Generalised
  * Dirichlet prior on the group mixture weights, but an Exponential cluster
- * distribution (with a Gamma prior).
+ * distribution (with a Gamma prior). This algorithm is similar to a
+ * one-level Hierarchical Dirichlet process with Exponential observations.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number
