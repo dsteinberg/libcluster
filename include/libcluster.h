@@ -53,11 +53,9 @@
  *      learnEGMC().
  *    - Simultaneous Clustering Model (SCM) for Multinomial Documents, and
  *      Gaussian Observations, see learnSCM() and [3].
- *
  *    - Multiple-source Clustering Model (MCM) for clustering two observations,
  *      one of an image/document, and mulltiple of segments/words
  *      simultaneously, see learnMCM() and [3].
- *
  *    - A myriad  of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
@@ -89,7 +87,7 @@
  *         Australian Centre for Field Robotics
  *         The University of Sydney
  *
- * \date   25/11/2012
+ * \date   13/03/2013
  *
  * \todo Find a better way to parallelise the vanilla clustering algorithms.
  * \todo Make this library more generic so discrete distributions can be used?
