@@ -223,7 +223,7 @@ template<class IW, class SW, class IC, class SC> double vbem (
     for (unsigned int j = 0; j < J; ++j)
     {
       // Accumulate suff. stats for segment cluster counts
-      for(unsigned int i = 0; i < X[j].size(); ++i)
+      for (unsigned int i = 0; i < X[j].size(); ++i)
       {
         MatrixXd Ntkji = qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
         #pragma omp critical
@@ -253,7 +253,7 @@ template<class IW, class SW, class IC, class SC> double vbem (
       sclusters[k].clearobs();                  // Clear Sufficient Stats
 
       for (unsigned int j = 0; j < J; ++j)      // Accumulate sufficient stats
-        for(unsigned int i = 0; i < X[j].size(); ++i)
+        for (unsigned int i = 0; i < X[j].size(); ++i)
           sclusters[k].addobs(qZ[j][i].col(k), X[j][i]);
 
       sclusters[k].update();                    // Segment observations
@@ -507,6 +507,7 @@ template <class SW, class IC> bool prune_sweights (
 
   return true;
 }
+
 
 /* The model selection algorithm
  *

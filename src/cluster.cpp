@@ -572,7 +572,7 @@ template <class W, class C> double cluster (
     qZ[j].setOnes(X[j].rows(), 1);
 
   // Initialise free energy and other loop variables
-  bool   issplit = true;
+  bool issplit = true;
   double F;
 
   #ifndef EXHAUST_SPLIT

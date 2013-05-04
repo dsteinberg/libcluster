@@ -199,16 +199,21 @@ template <class IW, class SW, class C> double vbem (
   {
     Fold = F;
 
-    // Get segment cluster per image cluster counts
-    MatrixXd Ntk = MatrixXd::Zero(T, K);
-    for (unsigned int j = 0; j < J; ++j)
-      for(unsigned int i = 0; i < X[j].size(); ++i)
-        Ntk.noalias() += qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
+    MatrixXd Ntk = MatrixXd::Zero(T, K);  // Clear Sufficient Stats
 
     // VBM for image cluster weights
     #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
+    {
+      for(unsigned int i = 0; i < X[j].size(); ++i)
+      {
+        MatrixXd Ntkji = qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
+        #pragma omp critical
+        Ntk += Ntkji;
+      }
+
       iweights[j].update(qY[j].colwise().sum());
+    }
 
     // VBM for image cluster parameters
     #pragma omp parallel for schedule(guided)
