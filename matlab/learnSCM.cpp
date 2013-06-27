@@ -53,7 +53,9 @@ using namespace distributions;
  *          - prhs[0], X, {Jx{Ijx[NijxD]}} nested cells of observation matrices
  *          - prhs[1], options structure, with members:
  *              + trunc, [unsigned int] truncation level for image clusters
- *              + prior, [double] prior value
+ *              + prior, [double] prior value corresponsing to image clusters
+ *              + prior2, [double] prior value corresponding to X (segment
+ *                  clusters)
  *              + verbose, [bool] verbose output flag
  *              + sparse, [bool] do fast but approximate sparse VB updates
  *              + threads, [unsigned int] number of threads to use
@@ -86,7 +88,7 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   try
   {
     learnSCM(X, qY, qZ, weights, classes, clusters, opts.trunc, opts.prior,
-             opts.verbose, opts.threads);
+             opts.prior2, opts.verbose, opts.threads);
   }
   catch (exception& e)
   {

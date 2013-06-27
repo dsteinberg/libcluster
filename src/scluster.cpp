@@ -177,7 +177,8 @@ template <class IW, class SW, class C> double vbem (
     vector<IW>& iweights,       // Group weight distributions
     vector<SW>& sweights,       // Image cluster distributions
     vector<C>& clusters,        // Segment cluster Distributions
-    const double clusterprior,  // Prior value for cluster distributions
+    const double iclusterprior, // Prior value for image cluster distributions
+    const double sclusterprior, // Prior value for segment cluster distributions
     const int maxit = -1,       // Max VBEM iterations (-1 = no max, default)
     const bool verbose = false  // Verbose output (default false)
     )
@@ -188,8 +189,8 @@ template <class IW, class SW, class C> double vbem (
 
   // Construct (empty) parameters
   iweights.resize(J, IW());
-  sweights.resize(T, SW());
-  clusters.resize(K, C(clusterprior, X[0][0].cols()));
+  sweights.resize(T, SW(iclusterprior));
+  clusters.resize(K, C(sclusterprior, X[0][0].cols()));
 
   // Other loop variables for initialisation
   int it = 0;
@@ -285,6 +286,7 @@ template <class IW, class SW, class C> double vbem (
 template <class IW, class SW, class C> bool split_gr (
     const vvMatrixXd& X,            // Observations
     const vector<C>& clusters,      // Cluster Distributions
+    const double iclusterprior,     // Prior value for image clusters
     vMatrixXd& qY,                  // Image cluster Probabilities qY
     vvMatrixXd& qZ,                 // Segment Cluster Probabilities qZ
     vector<int>& tally,             // Count of unsuccessful splits
@@ -378,8 +380,8 @@ template <class IW, class SW, class C> bool split_gr (
     vector<IW> wspl;
     vector<SW> lspl;
     vector<C> cspl;
-    vbem<IW,SW,C>(Xk, qZref, qYref, wspl, lspl, cspl, clusters[0].getprior(),
-                  SPLITITER);
+    vbem<IW,SW,C>(Xk, qZref, qYref, wspl, lspl, cspl, iclusterprior,
+                  clusters[0].getprior(), SPLITITER);
 
     if (anyempty<C>(cspl) == true) // One cluster only
       continue;
@@ -395,7 +397,7 @@ template <class IW, class SW, class C> bool split_gr (
 
     // Calculate free energy of this split with ALL data (and refine a bit)
     vMatrixXd qYaug = qY;                             // Copy :-(
-    double Fs = vbem<IW,SW,C>(X, qZaug, qYaug, wspl, lspl, cspl,
+    double Fs = vbem<IW,SW,C>(X, qZaug, qYaug, wspl, lspl, cspl, iclusterprior,
                               clusters[0].getprior(), 1);
 
     if (anyempty<C>(cspl) == true) // One cluster only
@@ -490,7 +492,8 @@ template <class IW, class SW, class C> double scluster (
     vector<SW>& sweights,       // Image cluster distributions
     vector<C>& clusters,        // Segment cluster Distributions
     const unsigned int T,       // Truncation level for number of weights
-    const double clusterprior,  // Prior value for segment cluster distributions
+    const double iclusterprior, // Prior value for image cluster distributions
+    const double sclusterprior, // Prior value for segment cluster distributions
     const bool verbose,         // Verbose output
     const unsigned int nthreads // Number of threads for OpenMP to use
     )
@@ -534,17 +537,18 @@ template <class IW, class SW, class C> double scluster (
   while ((issplit == true) || (emptyclasses == true))
   {
     // Variational Bayes
-    F = vbem<IW,SW,C>(X, qZ, qY, iweights, sweights, clusters, clusterprior, -1,
-                    verbose);
+    F = vbem<IW,SW,C>(X, qZ, qY, iweights, sweights, clusters, iclusterprior,
+                      sclusterprior, -1, verbose);
 
     // Start model search heuristics
     if (verbose == true)
-      cout << '<' << flush;     // Notify start search
+      cout << '<' << flush; // Notify start search
 
-    if (issplit == false)  // Remove any empty weights
+    if (issplit == false)   // Remove any empty weights
       emptyclasses = prune_sweights<SW>(qY, sweights, verbose);
-    else                   // Search for best split, augment qZ if found one
-      issplit = split_gr<IW,SW,C>(X, clusters, qY, qZ, tally, F, verbose);
+    else                    // Search for best split, augment qZ if found one
+      issplit = split_gr<IW,SW,C>(X, clusters, iclusterprior, qY, qZ, tally, F,
+                                  verbose);
 
     if (verbose == true)
       cout << '>' << endl;      // Notify end search
@@ -575,7 +579,8 @@ double libcluster::learnSCM (
     vector<Dirichlet>& sweights,
     vector<GaussWish>& clusters,
     const unsigned int T,
-    const double clusterprior,
+    const double iclusterprior,
+    const double sclusterprior,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -586,7 +591,8 @@ double libcluster::learnSCM (
 
   // Model selection and Variational Bayes learning
   double F = scluster<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
-              iweights, sweights, clusters, T, clusterprior, verbose, nthreads);
+                iweights, sweights, clusters, T, iclusterprior, sclusterprior,
+                verbose, nthreads);
 
   return F;
 }

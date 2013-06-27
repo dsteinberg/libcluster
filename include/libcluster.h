@@ -526,7 +526,10 @@ double learnEGMC (
  *         parameters of the model, this will be size K.
  *  \param T the maximum number of image clusters to look for. Usually, if T is
  *         set large, T* < T classes will be found.
- *  \param clusterprior is the prior 'tuning' parameter for the segment cluster
+ * *  \param iclusterprior is the prior 'tuning' parameter for the image cluster
+ *         parameter distributions. This effects how many image clusters
+ *         will be found (NOTE: this is a Dirichlet/Stick-breaking prior!) .
+ *  \param sclusterprior is the prior 'tuning' parameter for the segment cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
  *  \param verbose flag for triggering algorithm status messages. Default is
@@ -541,15 +544,15 @@ double learnEGMC (
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
  */
-double learnSCM (
-    const vvMatrixXd& X,
+double learnSCM (const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
     std::vector<distributions::GDirichlet>& iweights,
     std::vector<distributions::Dirichlet>& sweights,
     std::vector<distributions::GaussWish>& clusters,
     const unsigned int T = TRUNC,
-    const double clusterprior = PRIORVAL,
+    const double iclusterprior = PRIORVAL,
+    const double sclusterprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );

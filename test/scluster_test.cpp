@@ -62,7 +62,8 @@ int main()
   vvMatrixXd qZ;
   clock_t start = clock();
 
-  learnSCM(Xv, qY, qZ, iweights, sweights, clusters, 4, PRIORVAL, true);
+  learnSCM(Xv, qY, qZ, iweights, sweights, clusters, 4, PRIORVAL, PRIORVAL,
+           true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "Topic Elapsed time = " << stop << " sec." << endl;

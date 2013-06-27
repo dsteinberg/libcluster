@@ -89,6 +89,30 @@ distributions::StickBreak::StickBreak ()
     E_logpi(ArrayXd::Zero(1)),
     ordvec(1, pair<int,double>(0,0))
 {
+  this->priorfcalc();
+}
+
+
+distributions::StickBreak::StickBreak (const double concentration)
+  : WeightDist(),
+    alpha2_p(distributions::ALPHA2PRIOR),
+    alpha2(ArrayXd::Constant(1, distributions::ALPHA2PRIOR)),
+    E_logv(ArrayXd::Zero(1)),
+    E_lognv(ArrayXd::Zero(1)),
+    E_logpi(ArrayXd::Zero(1)),
+    ordvec(1, pair<int,double>(0,0))
+{
+  if (concentration <=0)
+    throw invalid_argument("Concentration parameter has to be > 0!");
+
+  this->alpha1_p = concentration;
+  this->alpha1 = ArrayXd::Constant(1, concentration);
+  this->priorfcalc();
+}
+
+
+void distributions::StickBreak::priorfcalc (void)
+{
   // Prior free energy contribution
   this->F_p = lgamma(this->alpha1_p) + lgamma(this->alpha2_p)
               - lgamma(this->alpha1_p + this->alpha2_p);
@@ -199,6 +223,18 @@ distributions::Dirichlet::Dirichlet ()
     alpha(ArrayXd::Constant(1, distributions::ALPHA1PRIOR)),
     E_logpi(ArrayXd::Zero(1))
 {}
+
+
+distributions::Dirichlet::Dirichlet (const double alpha)
+  : WeightDist(),
+    E_logpi(ArrayXd::Zero(1))
+{
+  if (alpha <= 0)
+    throw invalid_argument("Alpha prior must be > 0!");
+
+  alpha_p = alpha;
+  this->alpha = ArrayXd::Constant(1, alpha);
+}
 
 
 void distributions::Dirichlet::update (const ArrayXd& Nk)

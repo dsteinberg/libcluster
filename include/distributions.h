@@ -104,6 +104,8 @@ public:
 
   StickBreak ();
 
+  StickBreak (const double concentration);
+
   void update (const Eigen::ArrayXd& Nk);
 
   const Eigen::ArrayXd& Elogweight () const { return this->E_logpi; }
@@ -128,6 +130,11 @@ protected:
 
   // Order tracker
   std::vector< std::pair<int,double> > ordvec; //!< For order specific updates
+
+private:
+
+  // Do some prior free energy calcs
+  void priorfcalc (void);
 };
 
 
@@ -156,6 +163,8 @@ class Dirichlet : public WeightDist
 public:
 
   Dirichlet ();
+
+  Dirichlet (const double alpha);
 
   void update (const Eigen::ArrayXd& Nk);
 
