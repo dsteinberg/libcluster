@@ -526,7 +526,7 @@ double learnEGMC (
  *         parameters of the model, this will be size K.
  *  \param T the maximum number of image clusters to look for. Usually, if T is
  *         set large, T* < T classes will be found.
- * *  \param iclusterprior is the prior 'tuning' parameter for the image cluster
+ *  \param iclusterprior is the prior 'tuning' parameter for the image cluster
  *         parameter distributions. This effects how many image clusters
  *         will be found (NOTE: this is a Dirichlet/Stick-breaking prior!) .
  *  \param sclusterprior is the prior 'tuning' parameter for the segment cluster
