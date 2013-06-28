@@ -475,7 +475,7 @@ template <class SW, class IC> bool prune_sweights (
 
   // Find location of empty and full clusters
   ArrayXi eidx, fidx;
-  arrfind(Nt.array() < ZEROCUTOFF, eidx, fidx);
+  arrfind(Nt.array() < 1, eidx, fidx);
   const unsigned int nempty = eidx.size();
 
   // If everything is not empty, return false
