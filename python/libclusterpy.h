@@ -19,6 +19,8 @@
 #ifndef LIBCLUSTERPY_H
 #define LIBCLUSTERPY_H
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION  // Test deprication for v1.7
+
 #include <omp.h>
 #include <boost/python.hpp>
 #include <numpy/arrayobject.h>
@@ -161,7 +163,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "\t\tclustered, N_j are the number of samples of each group (or list \n"
     "\t\telement) j of data, D the number of dimensions.\n";
   const std::string priorarg =
-    "\tprior: float (1e-5), the prior width of the Gaussian clusters.\n";
+    "\tprior: float (1.0), the prior width of the Gaussian clusters.\n";
   const std::string sparsearg =
     "\tsparse: bool (False), do sparse updates? I.e. only update the clusters\n"
     "\t\tthat have more than one observation.\n";
@@ -191,6 +193,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
   const std::string covret =
     "\tcov: list[array shape(D,D),...] of len = K, the (expected) Gaussian\n"
     "\t\t mixture covariances.\n";
+
 
   // VDP
   const std::string vdpdoc =

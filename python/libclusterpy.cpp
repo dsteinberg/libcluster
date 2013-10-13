@@ -42,11 +42,15 @@ MatrixXd numpy2MatrixXd (const object& X)
 {
   if (PyArray_Check(X.ptr()) == false)
     throw invalid_argument("PyObject is not an array!");
-  if (PyArray_ISFLOAT(X.ptr()) == false)
+
+  // Cast PyObject* to PyArrayObject* now we know that it's valid
+  PyArrayObject* Xptr = (PyArrayObject*) X.ptr();
+
+  if (PyArray_ISFLOAT(Xptr) == false)
     throw invalid_argument("PyObject is not an array of floats/doubles!");
 
-  return Map<MatrixXd> ((double*) PyArray_DATA(X.ptr()),
-                        PyArray_DIMS(X.ptr())[0], PyArray_DIMS(X.ptr())[1]);
+  return Map<MatrixXd> ((double*) PyArray_DATA(Xptr),
+                        PyArray_DIMS(Xptr)[0], PyArray_DIMS(Xptr)[1]);
 }
 
 
