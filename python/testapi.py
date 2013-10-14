@@ -13,8 +13,7 @@ import libclusterpy as lc
 # Top level cluster parameters -- Globals.... whatev...
 wmeans = np.array([[0, 0], [5, 5], [-5, -5]])
 wsigma = [np.eye(2)] * 3
-T = 3   # Clusters
-Nt = 500  # number of points per cluster
+Nt = 2000  # number of points per cluster
 
 def testmixtures():
     """ The test function. """
@@ -45,7 +44,6 @@ def testgroupmix():
 
     J = 4   # Groups
 
-
     # Create points from clusters
     W = [np.random.multivariate_normal(mean, cov, (Nt)) for mean, cov in 
             zip(wmeans, wsigma)]
@@ -63,6 +61,27 @@ def testgroupmix():
     f, qZ, w, mu, cov = lc.learnSGMC(W, verbose=True)
     print ""
     printgmm(w, mu, cov)
+
+
+def testmultmix():
+    """ The the models that cluster at multiple levels. """
+   
+    J = 40
+
+    # Create points from clusters
+    W = [np.random.multivariate_normal(mean, cov, (Nt)) for mean, cov in 
+            zip(wmeans, wsigma)]
+
+    W = [makegroups(W, J)]
+
+    # Test SCM
+    print "------------ Test SCM -------------"    
+    f, qY, qZ, wi, ws, mu, cov = lc.learnSCM(W, trunc=30, verbose=True)
+    print ""
+    printgmm(ws, mu, cov)
+
+    # Test MCM
+    #print "------------ Test MCM -------------"    
 
 
 def makegroups(X, J):
@@ -113,3 +132,4 @@ def printgmm(W, Mu, Cov):
 if __name__ == "__main__":
     testmixtures()
     testgroupmix()
+    testmultmix()

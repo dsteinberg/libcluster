@@ -107,6 +107,17 @@ boost::python::tuple wrapperSGMC (
     );
 
 
+// SCM
+boost::python::tuple wrapperSCM (
+    const boost::python::list& X,
+    const int trunc,
+    const float gausprior,
+    const float dirprior,
+    const bool verbose,
+    const int nthreads
+    );
+
+
 //
 //  Module definition
 //
@@ -151,6 +162,8 @@ BOOST_PYTHON_MODULE (libclusterpy)
                        vector2list<Eigen::ArrayXd> >();
   to_python_converter< std::vector<Eigen::MatrixXd>,
                        vector2list<Eigen::MatrixXd> >();
+  to_python_converter< std::vector< std::vector<Eigen::MatrixXd> >,
+                       vector2list< std::vector<Eigen::MatrixXd> > >();
 
 
   // Common documentation strings -- arguments
@@ -281,6 +294,20 @@ BOOST_PYTHON_MODULE (libclusterpy)
          ),
          sgmcdoc.c_str()
       );
+
+
+  // SCM
+  // TODO: Docsting
+  def ("learnSCM", wrapperSCM,
+         (
+           arg("X"),
+           arg("trunc") = libcluster::TRUNC,
+           arg("gausprior") = libcluster::PRIORVAL,
+           arg("dirprior") = libcluster::PRIORVAL,
+           arg("verbose") = false,
+           arg("threads") = omp_get_max_threads()
+         )
+       );
 
 }
 

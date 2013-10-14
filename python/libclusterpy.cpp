@@ -59,8 +59,31 @@ vMatrixXd lnumpy2vMatrixXd (const list& X)
 {
 
   vMatrixXd X_;
+
   for (int i=0; i < len(X); ++i)
     X_.push_back(numpy2MatrixXd(X[i]));
+
+  return X_;
+}
+
+
+// Convert (memory share) a list of lists of arrays to a vector of vectors of
+//  matrices
+vvMatrixXd llnumpy2vvMatrixXd (const list& X)
+{
+
+  vvMatrixXd X_;
+
+  for (int i=0; i < len(X); ++i)
+  {
+    vMatrixXd Xi_;
+
+    // Compiler complains when try to use lnumpy2vmatrix instead of following
+    for (int j=0; j < len(X[i]); ++j)
+      Xi_.push_back(numpy2MatrixXd(X[i][j]));
+
+    X_.push_back(Xi_);
+  }
 
   return X_;
 }
@@ -171,7 +194,7 @@ tuple wrapperGMC (
   const vMatrixXd X_ = lnumpy2vMatrixXd(X);
 
   // Pre-allocate some stuff
-  vector<MatrixXd> qZ;
+  vMatrixXd qZ;
   vector<GDirichlet> weights;
   vector<GaussWish> clusters;
 
@@ -198,7 +221,7 @@ tuple wrapperSGMC (
   const vMatrixXd X_ = lnumpy2vMatrixXd(X);
 
   // Pre-allocate some stuff
-  vector<MatrixXd> qZ;
+  vMatrixXd qZ;
   vector<Dirichlet> weights;
   vector<GaussWish> clusters;
 
@@ -208,5 +231,36 @@ tuple wrapperSGMC (
 
   // Return relevant objects
   return make_tuple(f, qZ, getweights<Dirichlet>(weights), getmean(clusters),
+                    getcov(clusters));
+}
+
+
+// SCM
+tuple wrapperSCM (
+    const list &X,
+    const int trunc,
+    const float gausprior,
+    const float dirprior,
+    const bool verbose,
+    const int nthreads
+    )
+{
+  // Convert X
+  const vvMatrixXd X_ = llnumpy2vvMatrixXd(X);
+
+  // Pre-allocate some stuff
+  vMatrixXd qY;
+  vvMatrixXd qZ;
+  vector<GDirichlet> iweights;
+  vector<Dirichlet> sweights;
+  vector<GaussWish> clusters;
+
+  // Do the clustering
+  double f = learnSCM(X_, qY, qZ, iweights, sweights, clusters, trunc,
+                      dirprior, gausprior, verbose, nthreads);
+
+  // Return relevant objects
+  return make_tuple(f, qY, qZ, getweights<GDirichlet>(iweights),
+                    getweights<Dirichlet>(sweights), getmean(clusters),
                     getcov(clusters));
 }
