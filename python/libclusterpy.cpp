@@ -264,3 +264,37 @@ tuple wrapperSCM (
                     getweights<Dirichlet>(sweights), getmean(clusters),
                     getcov(clusters));
 }
+
+
+// MCM
+tuple wrapperMCM (
+    const list &W,
+    const list &X,
+    const int trunc,
+    const float gausprior_t,
+    const float gausprior_k,
+    const bool verbose,
+    const int nthreads
+    )
+{
+  // Convert W and X
+  const vMatrixXd W_ = lnumpy2vMatrixXd(W);
+  const vvMatrixXd X_ = llnumpy2vvMatrixXd(X);
+
+  // Pre-allocate some stuff
+  vMatrixXd qY;
+  vvMatrixXd qZ;
+  vector<GDirichlet> iweights;
+  vector<Dirichlet> sweights;
+  vector<GaussWish> iclusters;
+  vector<GaussWish> sclusters;
+
+  // Do the clustering
+  double f = learnMCM(W_, X_, qY, qZ, iweights, sweights, iclusters, sclusters,
+                      trunc, gausprior_t, gausprior_k, verbose, nthreads);
+
+  // Return relevant objects
+  return make_tuple(f, qY, qZ, getweights<GDirichlet>(iweights),
+                    getweights<Dirichlet>(sweights), getmean(iclusters),
+                    getmean(sclusters), getcov(iclusters), getcov(sclusters));
+}

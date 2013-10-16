@@ -11,9 +11,11 @@ import libclusterpy as lc
 
 
 # Top level cluster parameters -- Globals.... whatev...
-wmeans = np.array([[0, 0], [5, 5], [-5, -5]])
-wsigma = [np.eye(2)] * 3
-Nt = 2000  # number of points per cluster
+means = np.array([[0, 0], [5, 5], [-5, -5]])
+sigma = [np.eye(2)] * 3
+beta = np.array([[1.0/3, 1.0/3, 1.0/3],
+                 [1.0/2, 1.0/4, 1.0/4],
+                 [1.0/4, 1.0/4, 1.0/2]])
 
 def testmixtures():
     """ The test function. """
@@ -21,9 +23,7 @@ def testmixtures():
     print "Testing mixtures ------------------\n"
 
     # Create points from clusters
-    W = [np.random.multivariate_normal(mean, cov, (Nt)) for mean, cov in 
-            zip(wmeans, wsigma)]
-    W = np.concatenate(W)
+    W = gengmm(10000) 
 
     # Test VDP 
     print "------------ Test VDP -------------"    
@@ -42,13 +42,9 @@ def testgroupmix():
 
     print "Testing group mixtures ------------\n"
 
-    J = 4   # Groups
-
     # Create points from clusters
-    W = [np.random.multivariate_normal(mean, cov, (Nt)) for mean, cov in 
-            zip(wmeans, wsigma)]
-
-    W = makegroups(W, J)
+    J = 4   # Groups
+    W = [gengmm(2000) for j in range(0, J)]
 
     # Test GMC
     print "------------ Test GMC -------------"    
@@ -64,54 +60,67 @@ def testgroupmix():
 
 
 def testmultmix():
-    """ The the models that cluster at multiple levels. """
+    """ The the models that cluster at multiple levels. Just using J=1. """
    
-    J = 40
-
+    # Generate top-level clusters
+    I = 200
+    Ni = 100
+    betas, Y = gensetweights(I)
+    
     # Create points from clusters
-    W = [np.random.multivariate_normal(mean, cov, (Nt)) for mean, cov in 
-            zip(wmeans, wsigma)]
-
-    W = [makegroups(W, J)]
+    W = np.zeros((I, means.shape[1])) 
+    X = []
+    for i in xrange(0, I):
+        W[i, :] = np.random.multivariate_normal(means[Y[i]], sigma[Y[i]], 1)
+        X.append(gengmm(Ni, betas[i, :]))
 
     # Test SCM
     print "------------ Test SCM -------------"    
-    f, qY, qZ, wi, ws, mu, cov = lc.learnSCM(W, trunc=30, verbose=True)
+    f, qY, qZ, wi, ws, mu, cov = lc.learnSCM([X], trunc=30, verbose=True)
     print ""
     printgmm(ws, mu, cov)
 
     # Test MCM
-    #print "------------ Test MCM -------------"    
+    print "------------ Test MCM -------------"    
+    f, qY, qZ, wi, ws, mui, mus, covi, covs = lc.learnMCM([W], [X], trunc=30, 
+                                                          verbose=True)
+    print "\nTop level mixtures:"
+    printgmm(wi, mui, covi)
+    print "Bottom level mixtures:"
+    printgmm(ws, mus, covs)
 
 
-def makegroups(X, J):
-    """ Divide X into J random groups, X should be grouped by cluster. """
+def gengmm(N, weights=None):
+    """ Make a random GMM with N observations. """
     
-    # Get grou and cluster properties
-    K = len(X)
-    Nk = np.array([len(x) for x in X])
-    N = Nk.sum()
+    K = len(sigma)
+    pi = np.random.rand(K) if weights is None else weights
+    pi /= pi.sum()
+    Nk = np.round(pi * N)
+    Nk[-1] = N - Nk[0:-1].sum()
 
-    # Randomly assign observation-cluster counts to groups
-    pi_j = np.random.rand(J, K)
-    pi_j /= (pi_j.sum(axis=0)[:, None]).T
-    Njk = np.round(pi_j * Nk)
-    Njk[-1, :] = Nk - Njk[0:-1, :].sum(axis=0)
-
-    # Now make the groups
-    Xgroups = []
-    Nk -= 1
+    X = [np.random.multivariate_normal(means[k, :], sigma[k], int(Nk[k])) 
+            for k in range(0, K)]
     
-    for j in xrange(0, J):
-        Xj = []
-        for k in xrange(0, K):
-            while Njk[j, k] > 0:
-                Xj.append(X[k][Nk[k]])
-                Njk[j, k] -= 1
-                Nk[k] -= 1
-        Xgroups.append(np.array(Xj))
+    return np.concatenate(X) 
 
-    return Xgroups
+
+def gensetweights(I):
+    """ Generate sets of similar weights. """
+    
+    T = beta.shape[0]
+    pi = np.random.rand(T)
+    pi /= pi.sum()
+    Nt = np.round(pi * I)
+    Nt[-1] = I - Nt[0:-1].sum()
+
+    betas = []
+    Y = []
+    for t in xrange(0, T):
+        Y += Nt[t] * [t]
+        betas.append(Nt[t] * [beta[t, :]])
+
+    return np.concatenate(betas), Y
 
 
 def printgmm(W, Mu, Cov):

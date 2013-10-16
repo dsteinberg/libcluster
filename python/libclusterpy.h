@@ -118,6 +118,18 @@ boost::python::tuple wrapperSCM (
     );
 
 
+// MCM
+boost::python::tuple wrapperMCM (
+    const boost::python::list& W,
+    const boost::python::list& X,
+    const int trunc,
+    const float gausprior_t,
+    const float gausprior_k,
+    const bool verbose,
+    const int nthreads
+    );
+
+
 //
 //  Module definition
 //
@@ -304,6 +316,21 @@ BOOST_PYTHON_MODULE (libclusterpy)
            arg("trunc") = libcluster::TRUNC,
            arg("gausprior") = libcluster::PRIORVAL,
            arg("dirprior") = libcluster::PRIORVAL,
+           arg("verbose") = false,
+           arg("threads") = omp_get_max_threads()
+         )
+       );
+
+
+  // SCM
+  // TODO: Docsting
+  def ("learnMCM", wrapperMCM,
+         (
+           arg("W"),
+           arg("X"),
+           arg("trunc") = libcluster::TRUNC,
+           arg("gausprior_t") = libcluster::PRIORVAL,
+           arg("gausprior_k") = libcluster::PRIORVAL,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
          )
