@@ -42,20 +42,21 @@ using namespace distributions;
  *
  * \param nlhs number of outputs.
  * \param plhs outputs:
- *          - plhs[0], qY, {Jx[IjxT]} cell array of class assignments
- *          - plhs[1], qZ, {Jx{Ijx[NijxK]}} nested cells of cluster assignments
- *          - plhs[2], weights, {Jx[1xT]} Group class weights
- *          - plhs[3], proportions, [TxK] Image cluster segment proportions
- *          - plhs[4], image cluster means, {Kx[1xD]} (Gaussian)
- *          - plhs[5], image cluster covariances, {Kx[DxD]} (Gaussian)
- *          - plhs[6], segment cluster means, {Kx[1xD]} (Gaussian)
- *          - plhs[7], segment cluster covariances, {Kx[DxD]} (Gaussian)
+ *          - plhs[0], qY, {Jx[IjxT]} cell array of top-level cluster labels
+ *          - plhs[1], qZ, {Jx{Ijx[NijxK]}} nested cells of bottom-level cluster 
+ *              labels
+ *          - plhs[2], weights_j, {Jx[1xT]} Group top-level cluster weights
+ *          - plhs[3], weights_t, [TxK] Top-level cluster proportsion parameters
+ *          - plhs[4], top-level cluster means, {Kx[1xD]} (Gaussian)
+ *          - plhs[5], top-level cluster covariances, {Kx[DxD]} (Gaussian)
+ *          - plhs[6], bottom-level cluster means, {Kx[1xD]} (Gaussian)
+ *          - plhs[7], bottom-level cluster covariances, {Kx[DxD]} (Gaussian)
  * \param nrhs number of input arguments.
  * \param prhs input arguments:
  *          - prhs[0], W, {Jx[IjxD1]} nested cells of observation matrices
  *          - prhs[1], X, {Jx{Ijx[NijxD2]}} nested cells of observation matrices
  *          - prhs[2], options structure, with members:
- *              + trunc, [unsigned int] truncation level for image clusters
+ *              + trunc, [unsigned int] truncation level for top-level clusters
  *              + prior, [double] prior value corresponsing to W
  *              + prior2, [double] prior value corresponding to X
  *              + verbose, [bool] verbose output flag
@@ -82,16 +83,16 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexout.hijack();
 
   // Run the algorithm
-  vector<GDirichlet> iweights;
-  vector<Dirichlet>  sweights;
-  vector<GaussWish>  iclusters;
-  vector<GaussWish>  sclusters;
+  vector<GDirichlet> weights_j;
+  vector<Dirichlet>  weights_t;
+  vector<GaussWish>  clusters_t;
+  vector<GaussWish>  clusters_k;
   vMatrixXd qY;
   vvMatrixXd qZ;
 
   try
   {
-    learnMCM(W, X, qY, qZ, iweights, sweights, iclusters, sclusters,
+    learnMCM(W, X, qY, qZ, weights_j, weights_t, clusters_t, clusters_k,
              opts.trunc, opts.prior, opts.prior2, opts.verbose, opts.threads);
   }
   catch (exception& e)
@@ -111,33 +112,33 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   plhs[1] = vecvec2cellcell(qZ);
 
   // Weights
-  const unsigned int J = iweights.size();
+  const unsigned int J = weights_j.size();
   plhs[2] = mxCreateCellMatrix(1, J);
 
   for (unsigned int j = 0; j < J; ++j)
-    mxSetCell(plhs[2], j, eig2mat(iweights[j].Elogweight().exp()));
+    mxSetCell(plhs[2], j, eig2mat(weights_j[j].Elogweight().exp()));
 
-  // Image Cluster Parameters
-  const unsigned int T = sweights.size();
+  // Top-level Cluster Parameters
+  const unsigned int T = weights_t.size();
   plhs[3] = mxCreateCellMatrix(1, T);
   plhs[4] = mxCreateCellMatrix(1, T);
   plhs[5] = mxCreateCellMatrix(1, T);
 
   for (unsigned int t = 0; t < T; ++t)
   {
-    mxSetCell(plhs[3], t, eig2mat(sweights[t].Elogweight().exp()));
-    mxSetCell(plhs[4], t, eig2mat(iclusters[t].getmean()));
-    mxSetCell(plhs[5], t, eig2mat(iclusters[t].getcov()));
+    mxSetCell(plhs[3], t, eig2mat(weights_t[t].Elogweight().exp()));
+    mxSetCell(plhs[4], t, eig2mat(clusters_t[t].getmean()));
+    mxSetCell(plhs[5], t, eig2mat(clusters_t[t].getcov()));
   }
 
-  // Segment Cluster Parameters
-  const unsigned int K = sclusters.size();
+  // Bottom-level Cluster Parameters
+  const unsigned int K = clusters_k.size();
   plhs[6] = mxCreateCellMatrix(1, K);
   plhs[7] = mxCreateCellMatrix(1, K);
 
   for (unsigned int k = 0; k < K; ++k)
   {
-    mxSetCell(plhs[6], k, eig2mat(sclusters[k].getmean()));
-    mxSetCell(plhs[7], k, eig2mat(sclusters[k].getcov()));
+    mxSetCell(plhs[6], k, eig2mat(clusters_k[k].getmean()));
+    mxSetCell(plhs[7], k, eig2mat(clusters_k[k].getcov()));
   }
 }

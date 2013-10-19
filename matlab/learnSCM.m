@@ -1,11 +1,11 @@
 % The Simulaneous Clustering Model (SCM) clustering algorithm.
-%  This function uses the Simultaneous Clustering Model [1] to simultaneously 
-%  cluster words/segments and documents/images while also sharing these between 
-%  datasets. It uses a Generalised Dirichlet prior over the group mixture 
-%  weights, a Dirichlet prior over the document/image clusters, and a 
+%  This function uses the Simultaneous Clustering Model [1] to simultaneously
+%  cluster words/segments etc and documents/images etc while also sharing these
+%  between datasets. It uses a Generalised Dirichlet prior over the group
+%  mixture weights, a Dirichlet prior over the document/image clusters, and a
 %  Gaussian-Wishart prior over the word/segment cluster parameters.
 %
-%  [qY, qZ, iweights, sweights, means, covariances] = learnSCM (X, options)
+%  [qY, qZ, weights_j, weights_t, means, covariances] = learnSCM (X, options)
 %
 % Arguments:
 %  - X, {Jx{Ijx[NijxD]}} nested cells of observation matrices, j over the 
@@ -13,7 +13,8 @@
 %  - options, structure with members (all are optional):
 %     + trunc, [unsigned int] the max number of image clusters to find 
 %       (100 default)
-%     + prior, [double] prior cluster value (1 default)
+%     + prior, [double] top-level (Dirichlet) prior cluster value (1 default)
+%     + prior2, [double] bottom-level prior cluster value (1 default)
 %     + verbose, [bool] verbose output flag (false default)
 %     + sparse, [bool] do fast but approximate sparse VB updates (false default)
 %     + threads, [unsigned int] number of threads to use (automatic default)
@@ -21,9 +22,9 @@
 % Returns
 %  - qY, {Jx[IjxT]} cell array of image to document/image cluster assignments
 %  - qZ, {Jx{Ijx[NijxK]}} nested cell array of word/segment cluster assignments
-%  - iweights, {Jx[1xK]} Group document/image cluster weights
-%  - sweights, [TxK] Dirichlet (document/image cluster) segment proportions per
-%        image/document cluster.
+%  - weights_j, {Jx[1xK]} Group document/image (top-level) cluster weights
+%  - weights_t, [TxK] Dirichlet document/image cluster parameters. These are
+%       also bottom level-cluster (word/segment) proportions
 %  - means, {Kx[1xD]} Gaussian (word/segment cluster) mixture means
 %  - covariances, {Kx[DxD]} Gaussian (word/segment cluster) mixture covariances
 %
@@ -31,11 +32,11 @@
 %         Australian Centre for Field Robotics
 %         University of Sydney
 %
-% Date:   16/08/2012
+% Date:   19/10/2013
 %
 % References:
 %  [1] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
-%      Thesis, 2012.
+%      Thesis, 2013.
 
 % libcluster -- A collection of Bayesian clustering algorithms
 % Copyright (C) 2013  Daniel M. Steinberg (d.steinberg@acfr.usyd.edu.au)

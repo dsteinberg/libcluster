@@ -42,19 +42,21 @@ using namespace distributions;
  *
  * \param nlhs number of outputs.
  * \param plhs outputs:
- *          - plhs[0], qY, {Jx[IjxT]} cell array of class assignments
- *          - plhs[1], qZ, {Jx{Ijx[NijxK]}} nested cells of cluster assignments
- *          - plhs[2], weights, {Jx[1xT]} Group class weights
- *          - plhs[3], proportions, [TxK] Image cluster segment proportions
+ *          - plhs[0], qY, {Jx[IjxT]} cell array of top-level cluster labels
+ *          - plhs[1], qZ, {Jx{Ijx[NijxK]}} nested cells of bottom-level cluster 
+ *                     labels
+ *          - plhs[2], weights, {Jx[1xT]} Group top-level cluster weights
+ *          - plhs[3], weights_t, [TxK] Top-level cluster parameters
+ *                     (bottom-level cluster weights_t)
  *          - plhs[4], means, {Kx[1xD]} Gaussian cluster means
  *          - plhs[5], covariances, {Kx[DxD]} Gaussian cluster covariances
  * \param nrhs number of input arguments.
  * \param prhs input arguments:
  *          - prhs[0], X, {Jx{Ijx[NijxD]}} nested cells of observation matrices
  *          - prhs[1], options structure, with members:
- *              + trunc, [unsigned int] truncation level for image clusters
- *              + prior, [double] prior value corresponsing to image clusters
- *              + prior2, [double] prior value corresponding to X (segment
+ *              + trunc, [unsigned int] truncation level for top-level clusters
+ *              + prior, [double] prior value corresponsing to top-level clust.
+ *              + prior2, [double] prior value corresponding to X (bottom-level
  *                  clusters)
  *              + verbose, [bool] verbose output flag
  *              + sparse, [bool] do fast but approximate sparse VB updates
@@ -79,15 +81,15 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexout.hijack();
 
   // Run the algorithm
-  vector<GDirichlet> weights;
-  vector<Dirichlet> classes;
+  vector<GDirichlet> weights_j;
+  vector<Dirichlet> weights_t;
   vector<GaussWish> clusters;
   vMatrixXd qY;
   vvMatrixXd qZ;
 
   try
   {
-    learnSCM(X, qY, qZ, weights, classes, clusters, opts.trunc, opts.prior,
+    learnSCM(X, qY, qZ, weights_j, weights_t, clusters, opts.trunc, opts.prior,
              opts.prior2, opts.verbose, opts.threads);
   }
   catch (exception& e)
@@ -107,20 +109,20 @@ void mexFunction (int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   plhs[1] = vecvec2cellcell(qZ);
 
   // Weights
-  const unsigned int J = weights.size();
+  const unsigned int J = weights_j.size();
   plhs[2] = mxCreateCellMatrix(1, J);
 
   for (unsigned int j = 0; j < J; ++j)
-    mxSetCell(plhs[2], j, eig2mat(weights[j].Elogweight().exp()));
+    mxSetCell(plhs[2], j, eig2mat(weights_j[j].Elogweight().exp()));
 
-  // Image Cluster Parameters
-  const unsigned int T = classes.size();
+  // Top-level Cluster Parameters
+  const unsigned int T = weights_t.size();
   plhs[3] = mxCreateCellMatrix(1, T);
 
   for (unsigned int t = 0; t < T; ++t)
-    mxSetCell(plhs[3], t, eig2mat(classes[t].Elogweight().exp()));
+    mxSetCell(plhs[3], t, eig2mat(weights_t[t].Elogweight().exp()));
 
-  // Segment Cluster Parameters
+  // Bottom-level Cluster Parameters
   const unsigned int K = clusters.size();
   plhs[4] = mxCreateCellMatrix(1, K);
   plhs[5] = mxCreateCellMatrix(1, K);

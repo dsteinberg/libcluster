@@ -1,12 +1,14 @@
-% The Symmetric Grouped Mixtures Clustering (S-GMC) clustering algorithm.  This
-%   function uses the Symmetric Grouped Mixtures Clustering model [1] to 
-%   cluster multiple datasets simultaneously with cluster sharing between 
-%   datasets. It uses a symmetric Dirichlet prior over the group mixture 
+% The Symmetric Grouped Mixtures Clustering (S-GMC) clustering algorithm.  
+%   This function uses the Symmetric Grouped Mixtures Clustering model [1] to
+%   cluster multiple datasets simultaneously with cluster sharing between
+%   datasets. It uses a symmetric Dirichlet prior over the group mixture
 %   weights, and a Gaussian-Wishart prior over the cluster parameters. This
 %   algorithm is similar to latent Dirichlet allocation with Gaussian
-%   observations.
+%   observations. 
 %
-%  [qZ, weights, means, covariances] = learnSGMC (X, options)
+%   This is referred to Gaussian Latent Dirichlet Allocation (G-LDA) in [2].
+%
+%   [qZ, weights, means, covariances] = learnSGMC (X, options)
 %
 % Arguments:
 %  - X, {Jx[NxD]} cell array of observation matrices (one cell for each group)
@@ -30,7 +32,11 @@
 %
 % References:
 %  [1] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
-%      Thesis, 2012.
+%      Thesis, 2013.
+%  [2] Synergistic Clustering of Image and Segment Descriptors for Unsupervised
+%      Scene Understanding. D. M. Steinberg, O. Pizarro, S. B. Williams. In 
+%      International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW, 
+%      2013.
 
 % libcluster -- A collection of Bayesian clustering algorithms
 % Copyright (C) 2013  Daniel M. Steinberg (d.steinberg@acfr.usyd.edu.au)

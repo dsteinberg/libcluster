@@ -9,15 +9,13 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTCTULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO
-//  - Sort out good parallelisation
 
 #include <limits>
 #include "libcluster.h"
@@ -43,20 +41,20 @@ using namespace libcluster;
 
 /* The Variational Bayes Expectation step for weights in each group.
  *
- *  mutable: Image cluster assignment probabilities, qYj
+ *  mutable: Top-level cluster assignment probabilities, qYj
  *  returns: The complete-data free energy, Y and Y+Z dep. terms, for group j.
  *  throws: invalid_argument rethrown from other functions.
  */
-template <class IW, class SW, class IC> double vbeY (
-    const MatrixXd& Oj,          // Image observations for group j
-    const vMatrixXd& qZj,        // Cluster assignments for group j
-    const IW& weightsj,          // Group image cluster weights
-    const vector<SW>& sweights,  // Segment cluster proportions per image clust
-    const vector<IC>& iclusters, // Image cluster parameters
-    MatrixXd& qYj                // Image cluster assignments for group j
+template <class WJ, class WT, class CT> double vbeY (
+    const MatrixXd& Wj,           // Top-level observations for group j
+    const vMatrixXd& qZj,         // Bottom-level cluster labels for group j
+    const WJ& weightsj,           // Group top-level cluster weights
+    const vector<WT>& weights_t,  // Bottom-level cluster proportion/paramters
+    const vector<CT>& clusters_t, // Top-level cluster parameters
+    MatrixXd& qYj                 // Top-level cluster assignments for group j
     )
 {
-  const unsigned int T  = sweights.size(),
+  const unsigned int T  = weights_t.size(),
                      Ij = qZj.size(),
                      K  = qZj[0].cols();
 
@@ -70,16 +68,16 @@ template <class IW, class SW, class IC> double vbeY (
   MatrixXd Njik(Ij, K), logqYj(Ij, T);
   ArrayXXd qZjiLike(Ij, T);
 
-  // Get segment cluster counts per image
+  // Get bottom-level cluster counts per "document/image"
   for (unsigned int i = 0; i < Ij; ++i)
     Njik.row(i) = qZj[i].colwise().sum();
 
   // Find Expectations of log joint observation probs
   for (unsigned int t = 0; t < T; ++t)
   {
-    qZjiLike.col(t) = Njik * sweights[t].Elogweight().matrix();
+    qZjiLike.col(t) = Njik * weights_t[t].Elogweight().matrix();
     logqYj.col(t)   = qZjiLike.col(t) + E_logwj(t)
-                      + iclusters[t].Eloglike(Oj).array();
+                      + clusters_t[t].Eloglike(Wj).array();
   }
 
   // Log normalisation constant of log observation likelihoods
@@ -92,39 +90,39 @@ template <class IW, class SW, class IC> double vbeY (
 }
 
 
-/* The Variational Bayes Expectation step for clusters in each image.
+/* The Variational Bayes Expectation step for clusters in each "document", ji.
  *
- *  mutable: Segment cluster assignment probabilities, qZji
- *  returns: The complete-data  free energy, Z dep. terms, for group j.
+ *  mutable: Bottom-level cluster assignment probabilities, qZji
+ *  returns: The complete-data free energy, Z dep. terms, for group j.
  *  throws: invalid_argument rethrown from other functions.
  */
-template <class SW, class SC> double vbeZ (
-    const MatrixXd& Xji,         // Observations in image i in group j
-    const RowVectorXd& qYji,     // Image cluster assignment of this image
-    const vector<SW>& sweights,  // Image cluster parameters
-    const vector<SC>& sclusters, // Segment cluster parameters
-    MatrixXd& qZji               // Observation to cluster assignments
+template <class WT, class CK> double vbeZ (
+    const MatrixXd& Xji,          // Observations in i in group j
+    const RowVectorXd& qYji,      // Top-level cluster assignment
+    const vector<WT>& weights_t,  // Top-level cluster parameters
+    const vector<CK>& clusters_k, // Bottom-level cluster parameters
+    MatrixXd& qZji                // Observation to cluster assignments
     )
 {
-  const int K   = sclusters.size(),
+  const int K   = clusters_k.size(),
             Nji = Xji.rows(),
-            T   = sweights.size();
+            T   = weights_t.size();
 
   // No observations (may happen when splitting)
   if (Nji == 0)
     return 0;
 
-  // Make image cluster global weights from weighted label parameters
+  // Make top-level cluster global weights from weighted label parameters
   RowVectorXd E_logqYljt = RowVectorXd::Zero(K);
 
   for (int t = 0; t < T; ++t)
-    E_logqYljt.noalias() += qYji(t) * sweights[t].Elogweight().matrix();
+    E_logqYljt.noalias() += qYji(t) * weights_t[t].Elogweight().matrix();
 
   // Find Expectations of log joint observation probs
   MatrixXd logqZji = MatrixXd::Zero(Nji, K);
 
   for (int k = 0; k < K; ++k)
-    logqZji.col(k) = E_logqYljt(k) + sclusters[k].Eloglike(Xji).array();
+    logqZji.col(k) = E_logqYljt(k) + clusters_k[k].Eloglike(Xji).array();
 
   // Log normalisation constant of log observation likelihoods
   const VectorXd logZzji = logsumexp(logqZji);
@@ -140,60 +138,58 @@ template <class SW, class SC> double vbeZ (
  *
  *  returns: the free energy of the model
  */
-template <class IW, class SW, class IC, class SC> double fenergy (
-    const vector<IW>& iweights,  // Group image cluster weights
-    const vector<SW>& sweights,  // Image cluster segment proportions
-    const vector<IC>& iclusters, // Image cluster parameters
-    const vector<SC>& sclusters, // Segment cluster parameters
-    const double Fyz,            // Free energy Y and cross Y-Z terms
-    const double Fz              // Free energy Z terms
+template <class WJ, class WT, class CT, class CK> double fenergy (
+    const vector<WJ>& weights_j,  // Group top-level cluster weights
+    const vector<WT>& weights_t,  // Top-level cluster proportion parameters
+    const vector<CT>& clusters_t, // Top-level cluster other parameters
+    const vector<CK>& clusters_k, // Bottom-level cluster parameters
+    const double Fyz,             // Free energy Y and cross Y-Z terms
+    const double Fz               // Free energy Z terms
     )
 {
-  const int T = sweights.size(),
-            K = sclusters.size(),
-            J = iweights.size();
+  const int T = weights_t.size(),
+            K = clusters_k.size(),
+            J = weights_j.size();
 
   // Class parameter free energy
   double Ft = 0;
   for (int t = 0; t < T; ++t)
-  {
-    Ft += sweights[t].fenergy() + iclusters[t].fenergy();
-  }
+    Ft += weights_t[t].fenergy() + clusters_t[t].fenergy();
 
   // Cluster parameter free energy
   double Fk = 0;
   for (int k = 0; k < K; ++k)
-    Fk += sclusters[k].fenergy();
+    Fk += clusters_k[k].fenergy();
 
   // Weight parameter free energy
   double Fw = 0;
   for (int j = 0; j < J; ++j)
-    Fw += iweights[j].fenergy();
+    Fw += weights_j[j].fenergy();
 
   return Fw + Ft + Fk + Fyz + Fz;
 }
 
 
-/* Variational Bayes EM for all image mixtures.
+/* Variational Bayes EM. 
  *
  *  returns: Free energy of the whole model.
- *  mutable: the segment cluster indicators, qZ
- *  mutable: the image cluster indicators, qY
- *  mutable: model parameters iweights, sweights, sclusters, iclusters
+ *  mutable: the bottom-level cluster indicators, qZ
+ *  mutable: the top-level cluster indicators, qY
+ *  mutable: model parameters weights_j, weights_t, clusters_k, clusters_t
  *  throws: invalid_argument rethrown from other functions.
  *  throws: runtime_error if there is a negative free energy.
  */
-template<class IW, class SW, class IC, class SC> double vbem (
-    const vMatrixXd& W,           // Image observations
-    const vvMatrixXd& X,          // Segment observations
-    vMatrixXd& qY,                // Image labels
-    vvMatrixXd& qZ,               // Cluster labels
-    vector<IW>& iweights,         // Group image cluster weights
-    vector<SW>& sweights,         // Image segment weights
-    vector<IC>& iclusters,        // Image cluster parameters
-    vector<SC>& sclusters,        // Segment cluster parameters
-    const double iclusterprior,   // Image cluster prior
-    const double sclusterprior,   // Segment cluster prior
+template<class WJ, class WT, class CT, class CK> double vbem (
+    const vMatrixXd& W,           // Top-level observations
+    const vvMatrixXd& X,          // Bottom-level observations
+    vMatrixXd& qY,                // Top-level labels
+    vvMatrixXd& qZ,               // Bottom-level cluster labels
+    vector<WJ>& weights_j,        // Group top-level cluster weights
+    vector<WT>& weights_t,        // Top-level proportion cluster parameters
+    vector<CT>& clusters_t,       // Top-level other cluster parameters
+    vector<CK>& clusters_k,       // Bottom-level cluster parameters
+    const double prior_t,         // Top-level cluster prior
+    const double prior_k,         // Bottom-level cluster prior
     const int maxit = -1,         // Max VBEM iterations (-1 = no max, default)
     const bool verbose = false    // Verbose output
     )
@@ -203,10 +199,10 @@ template<class IW, class SW, class IC, class SC> double vbem (
                      T = qY[0].cols();
 
   // Construct (empty) parameters
-  iweights.resize(J, IW());
-  sweights.resize(T, SW());
-  iclusters.resize(T, IC(iclusterprior, W[0].cols()));
-  sclusters.resize(K, SC(sclusterprior, X[0][0].cols()));
+  weights_j.resize(J, WJ());
+  weights_t.resize(T, WT());
+  clusters_t.resize(T, CT(prior_t, W[0].cols()));
+  clusters_k.resize(K, CK(prior_k, X[0][0].cols()));
 
   // Other loop variables for initialisation
   int it = 0;
@@ -218,11 +214,11 @@ template<class IW, class SW, class IC, class SC> double vbem (
 
     MatrixXd Ntk = MatrixXd::Zero(T, K); // Clear Sufficient Stats
 
-    // VBM for image cluster weights
+    // VBM for top-level cluster weights
     #pragma omp parallel for schedule(guided)
     for (unsigned int j = 0; j < J; ++j)
     {
-      // Accumulate suff. stats for segment cluster counts
+      // Accumulate suff. stats for bottom-level cluster counts
       for (unsigned int i = 0; i < X[j].size(); ++i)
       {
         MatrixXd Ntkji = qY[j].row(i).transpose() * qZ[j][i].colwise().sum();
@@ -230,54 +226,56 @@ template<class IW, class SW, class IC, class SC> double vbem (
         Ntk += Ntkji;
       }
 
-      iweights[j].update(qY[j].colwise().sum());
+      weights_j[j].update(qY[j].colwise().sum());
     }
 
-    // VBM for image cluster parameters and proportions
+    // VBM for top-level cluster parameters and proportions
     #pragma omp parallel for schedule(guided)
     for (unsigned int t = 0; t < T; ++t)
     {
-      iclusters[t].clearobs();                  // Clear Sufficient Stats
+      clusters_t[t].clearobs();                  // Clear Sufficient Stats
 
-      for (unsigned int j = 0; j < J; ++j)      // Accumulate sufficient stats
-        iclusters[t].addobs(qY[j].col(t), W[j]);
+      for (unsigned int j = 0; j < J; ++j)       // Accumulate sufficient stats
+        clusters_t[t].addobs(qY[j].col(t), W[j]);
 
-      sweights[t].update(Ntk.row(t));           // Segment cluster counts.
-      iclusters[t].update();                    // image observations
+      weights_t[t].update(Ntk.row(t));           // Bottom-level cluster counts.
+      clusters_t[t].update();
     }
 
-    // VBM for segment cluster parameters
+    // VBM for bottom-level cluster parameters
     #pragma omp parallel for schedule(guided)
     for (unsigned int k = 0; k < K; ++k)
     {
-      sclusters[k].clearobs();                  // Clear Sufficient Stats
+      clusters_k[k].clearobs();                  // Clear Sufficient Stats
 
-      for (unsigned int j = 0; j < J; ++j)      // Accumulate sufficient stats
+      for (unsigned int j = 0; j < J; ++j)       // Accumulate sufficient stats
         for (unsigned int i = 0; i < X[j].size(); ++i)
-          sclusters[k].addobs(qZ[j][i].col(k), X[j][i]);
+          clusters_k[k].addobs(qZ[j][i].col(k), X[j][i]);
 
-      sclusters[k].update();                    // Segment observations
+      clusters_k[k].update();                    // Bottom-level observations
     }
 
     // Free energy data fit term accumulators
     double Fz = 0, Fyz = 0;
 
-    // VBE for image cluster indicators
+    // VBE for top-level cluster indicators
     #pragma omp parallel for schedule(guided) reduction(+ : Fyz)
     for (unsigned int j = 0; j < J; ++j)
-      Fyz += vbeY<IW,SW,IC>(W[j], qZ[j], iweights[j], sweights, iclusters,
+      Fyz += vbeY<WJ,WT,CT>(W[j], qZ[j], weights_j[j], weights_t, clusters_t,
                             qY[j]);
 
-    // VBE for segment cluster indicators
+    // VBE for bottom-level cluster indicators
     for (unsigned int j = 0; j < J; ++j)
     {
       #pragma omp parallel for schedule(guided) reduction(+ : Fz)
       for (unsigned int i = 0; i < X[j].size(); ++i)
-        Fz += vbeZ<SW,SC>(X[j][i], qY[j].row(i), sweights, sclusters, qZ[j][i]);
+        Fz += vbeZ<WT,CK>(X[j][i], qY[j].row(i), weights_t, clusters_k, 
+                          qZ[j][i]);
     }
 
     // Calculate free energy of model
-    F = fenergy<IW,SW,IC,SC>(iweights, sweights, iclusters, sclusters, Fyz, Fz);
+    F = fenergy<WJ,WT,CT,CK>(weights_j, weights_t, clusters_t, clusters_k, Fyz, 
+                            Fz);
 
     // Check bad free energy step
     if ((F-Fold)/abs(Fold) > libcluster::FENGYDEL)
@@ -310,22 +308,22 @@ template<class IW, class SW, class IC, class SC> double vbem (
  *    throws: invalid_argument rethrown from other functions
  *    throws: runtime_error from its internal VBEM calls
  */
-template <class IW, class SW, class IC, class SC> bool ssplit (
-    const vMatrixXd& W,             // Image observations
-    const vvMatrixXd& X,            // Segment observations
-    const vector<IC>& iclusters,    // Segment cluster Distributions
-    const vector<SC>& sclusters,    // Segment cluster Distributions
-    vMatrixXd& qY,                  // Image cluster Probabilities qY
-    vvMatrixXd& qZ,                 // Segment Cluster Probabilities qZ
+template <class WJ, class WT, class CT, class CK> bool ssplit (
+    const vMatrixXd& W,             // Top-level observations
+    const vvMatrixXd& X,            // Bottom-level observations
+    const vector<CT>& clusters_t,   // Top-level cluster Distributions
+    const vector<CK>& clusters_k,   // Bottom-level cluster Distributions
+    vMatrixXd& qY,                  // Top-level cluster labels qY
+    vvMatrixXd& qZ,                 // Bottom-level Cluster labels qZ
     vector<int>& tally,             // Count of unsuccessful splits
     const double F,                 // Current model free energy
     const bool verbose              // Verbose output
     )
 {
   const unsigned int J = X.size(),
-                     K = sclusters.size();
+                     K = clusters_k.size();
 
-  // Split order chooser and segment cluster parameters
+  // Split order chooser and bottom-level cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
   vector<GreedOrder> ord(K);
 
@@ -334,10 +332,10 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
   {
     ord[k].k     = k;
     ord[k].tally = tally[k];
-    ord[k].Fk    = sclusters[k].fenergy();
+    ord[k].Fk    = clusters_k[k].fenergy();
   }
 
-  // Get segment cluster likelihoods
+  // Get bottom-level cluster likelihoods
   for (unsigned int j = 0; j < J; ++j)
   {
     // Add in cluster log-likelihood, weighted by global responsability
@@ -345,7 +343,7 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
     for (unsigned int i = 0; i < X[j].size(); ++i)
       for (unsigned int k = 0; k < K; ++k)
       {
-        double LL = qZ[j][i].col(k).dot(sclusters[k].Eloglike(X[j][i]));
+        double LL = qZ[j][i].col(k).dot(clusters_k[k].Eloglike(X[j][i]));
 
         #pragma omp atomic
         ord[k].Fk -= LL;
@@ -356,7 +354,7 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
   sort(ord.begin(), ord.end(), greedcomp);
 
   // Pre allocate big objects for loops (this makes a runtime difference)
-  vector< vector<ArrayXi> > mapidx(J); // TODO: DOES THIS NEED TO BE A vv???
+  vector< vector<ArrayXi> > mapidx(J);
   vvMatrixXd qZref(J), qZaug(J), Xk(J);
 
   // Loop through each potential cluster in order and split it
@@ -367,7 +365,7 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
     ++tally[k]; // increase this cluster's unsuccessful split tally by default
 
     // Don't waste time with clusters that can't really be split min (2:2)
-    if (sclusters[k].getN() < 4)
+    if (clusters_k[k].getN() < 4)
       continue;
 
     // Now split observations and qZ.
@@ -389,7 +387,7 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
         Mtot += Xk[j][i].rows();
 
         // Initial cluster split
-        ArrayXb splitk = sclusters[k].splitobs(Xk[j][i]);
+        ArrayXb splitk = clusters_k[k].splitobs(Xk[j][i]);
         qZref[j][i].setZero(Xk[j][i].rows(), 2);
         qZref[j][i].col(0) = (splitk == true).cast<double>();
         qZref[j][i].col(1) = (splitk == false).cast<double>();
@@ -404,15 +402,15 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
       continue;
 
     // Refine the split
-    vector<IW> iwspl;
-    vector<IC> icspl;
-    vector<SW> swspl;
-    vector<SC> scspl;
+    vector<WJ> iwspl;
+    vector<CT> icspl;
+    vector<WT> swspl;
+    vector<CK> scspl;
     vMatrixXd qYaug = qY;                             // Copy :-(
-    vbem<IW,SW,IC,SC>(W, Xk, qYaug, qZref, iwspl, swspl, icspl, scspl,
-                   iclusters[0].getprior(), sclusters[0].getprior(), SPLITITER);
+    vbem<WJ,WT,CT,CK>(W, Xk, qYaug, qZref, iwspl, swspl, icspl, scspl,
+                clusters_t[0].getprior(), clusters_k[0].getprior(), SPLITITER);
 
-    if (anyempty<SC>(scspl) == true) // One cluster only
+    if (anyempty<CK>(scspl) == true) // One cluster only
       continue;
 
     // Map the refined splits back to original whole-data problem
@@ -426,10 +424,10 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
 
     // Calculate free energy of this split with ALL data (and refine a bit)
     qYaug = qY;                             // Copy :-(
-    double Fs = vbem<IW,SW,IC,SC>(W, X, qYaug, qZaug, iwspl, swspl, icspl,
-                    scspl, iclusters[0].getprior(), sclusters[0].getprior(), 1);
+    double Fs = vbem<WJ,WT,CT,CK>(W, X, qYaug, qZaug, iwspl, swspl, icspl,
+                  scspl, clusters_t[0].getprior(), clusters_k[0].getprior(), 1);
 
-    if (anyempty<SC>(scspl) == true) // One cluster only
+    if (anyempty<CK>(scspl) == true) // One cluster only
       continue;
 
     // Only notify here of split candidates
@@ -451,27 +449,27 @@ template <class IW, class SW, class IC, class SC> bool ssplit (
 }
 
 
-/*  Find and remove all empty image clusters.
+/*  Find and remove all empty top-level clusters.
  *
- *    returns: true if any seights have been deleted, false if all are kept.
- *    mutable: qY may have columns deleted if there are empty weights found.
- *    mutable: sweights if there are empty image clusters found.
- *    mutable: iclusters if there are empty image clusters found.
+ *    returns: true if any clusters have been deleted, false if all are kept.
+ *    mutable: qY may have columns deleted if there are empty clusters found.
+ *    mutable: weights_t if there are empty top-level clusters found.
+ *    mutable: clusters_t if there are empty top-level clusters found.
  */
-template <class SW, class IC> bool prune_sweights (
-    vMatrixXd& qY,         // Probabilities qY
-    vector<SW>& sweights,  // Image segment cluster proportions
-    vector<IC>& iclusters, // Image clusters
-    bool verbose = false   // print status
+template <class WT, class CT> bool prune_clusters_t (
+    vMatrixXd& qY,          // Probabilities qY
+    vector<WT>& weights_t,  // Top-level bottom-level cluster proportions
+    vector<CT>& clusters_t, // Top-level clusters
+    bool verbose = false    // print status
     )
 {
-  const unsigned int T = sweights.size(),
+  const unsigned int T = weights_t.size(),
                      J = qY.size();
 
   // Look for empty clusters
   ArrayXd Nt(T);
   for (unsigned int t = 0; t < T; ++t)
-    Nt(t) = sweights[t].getNk().sum();
+    Nt(t) = weights_t[t].getNk().sum();
 
   // Find location of empty and full clusters
   ArrayXi eidx, fidx;
@@ -488,8 +486,8 @@ template <class SW, class IC> bool prune_sweights (
   // Delete empty clusters
   for (int i = (nempty - 1); i >= 0; --i)
   {
-    sweights.erase(sweights.begin() + eidx(i));
-    iclusters.erase(iclusters.begin() + eidx(i));
+    weights_t.erase(weights_t.begin() + eidx(i));
+    clusters_t.erase(clusters_t.begin() + eidx(i));
   }
 
   // Delete empty cluster indicators by copying only full indicators
@@ -512,25 +510,25 @@ template <class SW, class IC> bool prune_sweights (
 /* The model selection algorithm
  *
  *  returns: Free energy of the final model
- *  mutable: qY the probabilistic image cluster assignments
- *  mutable: qZ the probabilistic observation to segment cluster assignments
- *  mutable: The image clusters and weights segment cluster proportions.
- *  mutable: The segment clusters and segment cluster weights.
- *  throws: invalid_argument from other functions.
- *  throws: runtime_error if free energy increases.
+ *  mutable: qY the probabilistic top-level cluster assignments
+ *  mutable: qZ the probabilistic bottom-level cluster assignments
+ *  mutable: The top-level clusters and weights
+ *  mutable: The bottom-level clusters and bottom-level cluster weights
+ *  throws: invalid_argument from other functions
+ *  throws: runtime_error if free energy increases
  */
-template<class IW, class SW, class IC, class SC> double mcluster (
-    const vMatrixXd& W,           // Image observations
-    const vvMatrixXd& X,          // Segment observations
-    vMatrixXd& qY,                // Image labels
-    vvMatrixXd& qZ,               // Cluster labels
-    vector<IW>& iweights,         // Group image cluster weights
-    vector<SW>& sweights,         // Image segment weights
-    vector<IC>& iclusters,        // Image cluster parameters
-    vector<SC>& sclusters,        // Segment cluster parameters
-    const unsigned int T,         // Truncation level for image clusters
-    const double iclusterprior,   // Image cluster prior
-    const double sclusterprior,   // Segment cluster prior
+template<class WJ, class WT, class CT, class CK> double mcluster (
+    const vMatrixXd& W,           // Top-level observations
+    const vvMatrixXd& X,          // Bottom-level observations
+    vMatrixXd& qY,                // Top-level labels
+    vvMatrixXd& qZ,               // Bottom-level labels
+    vector<WJ>& weights_j,        // Group top-level cluster weights
+    vector<WT>& weights_t,        // Tope-level proportion cluster parameters 
+    vector<CT>& clusters_t,       // Top-level cluster parameters
+    vector<CK>& clusters_k,       // Bottom-level cluster parameters
+    const unsigned int T,         // Truncation level for top-level clusters
+    const double prior_t,         // Top-level cluster prior
+    const double prior_k,         // Bottom-level cluster prior
     const bool verbose,           // Verbose output
     const unsigned int nthreads   // Number of threads for OpenMP to use
     )
@@ -573,28 +571,29 @@ template<class IW, class SW, class IC, class SC> double mcluster (
   while ((split == true) || (emptyclasses == true))
   {
 
-    F = vbem<IW,SW,IC,SC>(W, X, qY, qZ, iweights, sweights, iclusters,
-                          sclusters, iclusterprior, sclusterprior, -1, verbose);
+    F = vbem<WJ,WT,CT,CK>(W, X, qY, qZ, weights_j, weights_t, clusters_t,
+                          clusters_k, prior_t, prior_k, -1, verbose);
 
     if (verbose == true)
-      cout << '<' << flush; // Notify start segment cluster search
+      cout << '<' << flush; // Notify start bottom-level cluster search
 
     if (split == false)     // Remove any empty weights
-      emptyclasses = prune_sweights<SW, IC>(qY, sweights, iclusters, verbose);
+      emptyclasses = prune_clusters_t<WT, CT>(qY, weights_t, clusters_t, 
+                                              verbose);
     else
-      split = ssplit<IW,SW,IC,SC>(W, X, iclusters, sclusters, qY, qZ, stally,
+      split = ssplit<WJ,WT,CT,CK>(W, X, clusters_t, clusters_k, qY, qZ, stally,
                                     F, verbose);
 
     if (verbose == true)
-      cout << '>' << endl;  // Notify end segment cluster search
+      cout << '>' << endl;  // Notify end bottom-level cluster search
   }
 
   // Print finished notification if verbose
   if (verbose == true)
   {
     cout << "Finished!" << endl;
-    cout << "Number of top level clusters = " << iclusters.size();
-    cout << ", and bottom level clusters = " << sclusters.size() << endl;
+    cout << "Number of top level clusters = " << clusters_t.size();
+    cout << ", and bottom level clusters = " << clusters_k.size() << endl;
     cout << "Free energy = " << F << endl;
   }
 
@@ -611,13 +610,13 @@ double libcluster::learnMCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
-    vector<GDirichlet>& iweights,
-    vector<Dirichlet>& sweights,
-    vector<GaussWish>& iclusters,
-    vector<GaussWish>& sclusters,
+    vector<GDirichlet>& weights_j,
+    vector<Dirichlet>& weights_t,
+    vector<GaussWish>& clusters_t,
+    vector<GaussWish>& clusters_k,
     const unsigned int T,
-    const double iclusterprior,
-    const double sclusterprior,
+    const double prior_t,
+    const double prior_k,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -628,8 +627,8 @@ double libcluster::learnMCM (
 
   // Model selection and Variational Bayes learning
   double F = mcluster<GDirichlet, Dirichlet, GaussWish, GaussWish>(W, X, qY, qZ,
-                iweights, sweights, iclusters, sclusters, T, iclusterprior,
-                sclusterprior, verbose, nthreads);
+                weights_j, weights_t, clusters_t, clusters_k, T, prior_t,
+                prior_k, verbose, nthreads);
 
   return F;
 }

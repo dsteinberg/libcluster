@@ -39,40 +39,46 @@
  *
  *    - Variational Dirichlet Process (VDP) for Gaussian observations [1], see
  *      learnVDP().
- *    - The Bayesian Gaussian Mixture model [4] ch 11, see learnBGMM().
+ *    - The Bayesian Gaussian Mixture model [5] ch 11, see learnBGMM().
  *    - The Bayesian Gaussian Mixture model with diagonal covariance Gaussians,
  *      see learnDGMM().
  *    - Bayesian Exponential Mixture model with a Gamma prior, see learnBEMM().
- *    - Groups of Mixtures Clustering (GMC) model for Gaussian observations [3],
+ *    - Groups of Mixtures Clustering (GMC) model for Gaussian observations [4],
  *      see learnGMC().
  *    - Symmetric Groups of Mixtures Clustering (S-GMC) model for Gaussian
- *      observations [3], see learnSGMC().
+ *      observations [4], see learnSGMC(). This is referred to as Gaussian
+ *      Latent Dirichlet Allocation (G-LDA) in [3].
  *    - Groups of Mixtures Clustering model for diagonal covariance Gaussian
  *      observations, see learnDGMC().
  *    - Groups of Mixtures Clustering model for Exponential observations, see
  *      learnEGMC().
  *    - Simultaneous Clustering Model (SCM) for Multinomial Documents, and
- *      Gaussian Observations, see learnSCM() and [3].
+ *      Gaussian Observations, see learnSCM() and [4].
  *    - Multiple-source Clustering Model (MCM) for clustering two observations,
- *      one of an image/document, and mulltiple of segments/words
- *      simultaneously, see learnMCM() and [3].
+ *      one of an image/document, and multiple of segments/words simultaneously,
+ *      see learnMCM() and [3, 4].
  *    - A myriad  of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
  *  All of these algorithms infer the number of clusters present in the data.
  *
  * [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational
- *     Dirichlet process mixtures, Advances in Neural Information Processing
+ *     Dirichlet process mixtures. Advances in Neural Information Processing
  *     Systems, vol. 19, p. 761, 2007.
  *
  * [2] Y. Teh, K. Kurihara, and M. Welling. Collapsed variational inference
  *     for HDP. Advances in Neural Information Processing Systems,
  *     20:1481–1488, 2008.
  *
- * [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+ * [3] D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of
+ *     Image and Segment Descriptors for Unsupervised Scene Understanding.
+ *     In International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
+ *     2013.
+ *
+ * [4] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
  *     Thesis, 2013.
  *
- * [4] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
+ * [5] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
  *     Springer Science+Business Media, 2006.
  *
  * \note The greedy cluster splitting heuristic is different from that presented
@@ -91,7 +97,6 @@
  *
  * \todo Find a better way to parallelise the vanilla clustering algorithms.
  * \todo Make this library more generic so discrete distributions can be used?
- * \todo I think there may be a bug in the sparse group variants.
  * \todo Should probably get rid of all the vector copies in splitting functions
  *       and interface functions.
  */
@@ -294,7 +299,7 @@ double learnBEMM (
 /*! \brief The learning algorithm for the Groups of Mixtures Clustering model.
  *
  * This function implements the Groups of Mixtues Clustering model algorithm
- * as specified by [3], with the additional "sparse" option. The GMC uses a
+ * as specified by [4], with the additional "sparse" option. The GMC uses a
  * Generalised Dirichlet prior on the group mixture weights and Gaussian cluster
  * distributions (With Gausian-Wishart priors). This algorithm is similar to a
  * one-level Hierarchical Dirichlet process with Gaussian observations.
@@ -319,8 +324,7 @@ double learnBEMM (
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
- *         use. The group cluster algorithms take fuller advantage of this. The
- *         default value is automatically determined by OpenMP.
+ *         use. The default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls such as
  *          non-PSD matrix calculations.
@@ -341,10 +345,11 @@ double learnGMC (
 
 
 /*! \brief The learning algorithm for the Symmetric Groups of Mixtures
- *         Clustering model.
+ *         Clustering model. The is referred to as *Gaussian Latent Dirichlet
+ *         Allocation* (G-LDA) in [3].
  *
  * This function implements the Symmetric Groups of Mixtures Clustering model
- * as specified by [3], with the additional "sparse" option. The Symmetric GMC
+ * as specified by [4], with the additional "sparse" option. The Symmetric GMC
  * uses a symmetric Dirichlet prior on the group mixture weights and Gaussian
  * cluster distributions (With Gausian-Wishart priors). This algorithm is
  * similar to latent Dirichlet allocation with Gaussian observations.
@@ -369,8 +374,7 @@ double learnGMC (
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
- *         use. The group cluster algorithms take fuller advantage of this. The
- *         default value is automatically determined by OpenMP.
+ *         use. The default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls such as
  *          non-PSD matrix calculations.
@@ -394,7 +398,7 @@ double learnSGMC (
  *         but with diagonal covariance Gaussians.
  *
  * This function implements the Groups of Mixtues Clustering model algorithm
- * as specified by [3], with the additional "sparse" option but with diagonal
+ * as specified by [4], with the additional "sparse" option but with diagonal
  * covariance Gaussians, i.e. this is a Naive-Bayes assumption. The DGMC uses a
  * Generalised Dirichlet prior on the group mixture weights and Normal cluster
  * distributions (With Normal-Gamma priors). This algorithm is similar to a
@@ -420,8 +424,7 @@ double learnSGMC (
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
- *         use. The group cluster algorithms take fuller advantage of this. The
- *         default value is automatically determined by OpenMP.
+ *         use. The default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls such as
  *          negative diagonal covariance matrix calculations.
@@ -470,8 +473,7 @@ double learnDGMC (
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
- *         use. The group cluster algorithms take fuller advantage of this. The
- *         default value is automatically determined by OpenMP.
+ *         use. The default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls.
  *  \throws std::runtime_error if there are runtime issues with the GMC
@@ -498,45 +500,46 @@ double learnEGMC (
 /*! \brief The learning algorithm for the "Simultaneous Clustering Model".
  *
  * This function implements the "Simultaneous Clustering Model" algorithm
- * as specified by [3]. The SCM uses a Generalised Dirichlet prior on the
- * group mixture weights, a Dirichlet prior on the image clusters and Gaussian
- * segment cluster distributions for observations within images (with
+ * as specified by [4]. The SCM uses a Generalised Dirichlet prior on the
+ * group mixture weights, a Dirichlet prior on the top-level clusters and
+ * Gaussian bottom-level cluster distributions for observations (with
  * Gausian-Wishart priors).
  *
  *  \param X the observation matrices. A vector of length J (for each group),
- *         of vectors of length I_j (for each image or "document") of N_jixD
+ *         of vectors of length I_j (for each image/document etc) of N_jixD
  *         matrices. Here N_ji is the number of observations in each document,
  *         I_j, in group, j, and D is the number of dimensions.
- *  \param qY the probabilistic label of documents/images to image clusters. It
- *         is a vector of length J (for each group), of I_jxT matrices of the
- *         soft assignments of each document/image (i) to a class label (t). It
- *         is the variational posterior to p(y_j|Z_j). This is randomly
+ *  \param qY the probabilistic label of documents/images to top-level clusters.
+ *         It is a vector of length J (for each group), of I_jxT matrices of the
+ *         soft assignments of each document/image (i) to a cluster label (t).
+ *         It is the variational posterior to p(y_j|Z_j). This is randomly
  *         initialised, and uses the parameter T for max number of classes.
- *  \param qZ the probabilistic label of observations to segment clusters. It is
- *         a vector of length J (for each group), of vectors of length I_j (for
- *         each "document") of N_jixK matrices of the variational posterior
- *         approximations to p(z_ji|X_ji). K is the number of segment clusters.
- *         This will always be overwritten to start with one cluster.
- *  \param iweights is a vector of distributions over the image cluster mixture
- *         weights of the model, for each group of data, J.
- *  \param sweights is a vector of distributions over the segment cluster
- *         weights parameters (or document clusters) -- this will be of size T*
- *         (see parameter T).
+ *  \param qZ the probabilistic label of observations to bottom-level clusters.
+ *         It is a vector of length J (for each group), of vectors of length I_j
+ *         (for each "document") of N_jixK matrices of the variational posterior
+ *         approximations to p(z_ji|X_ji). K is the number of bottom-level
+ *         clusters. This will always be overwritten to start with one cluster.
+ *  \param weights_j is a vector of distributions over the weights of top-level 
+ *         cluster mixtures of the model, for each group of data, J, like the 
+ *         GMC.
+ *  \param weights_t is a vector of distributions over the weights that 
+ *         parameterise the top-level clusters. These also parameterise the 
+ *         distribution of the bottom-level cluster weights -- this will be of 
+ *         size T* (see parameter T).
  *  \param clusters is a vector of distributions over the segment cluster
  *         parameters of the model, this will be size K.
- *  \param T the maximum number of image clusters to look for. Usually, if T is
- *         set large, T* < T classes will be found.
- *  \param iclusterprior is the prior 'tuning' parameter for the image cluster
- *         parameter distributions. This effects how many image clusters
- *         will be found (NOTE: this is a Dirichlet/Stick-breaking prior!) .
- *  \param sclusterprior is the prior 'tuning' parameter for the segment cluster
- *         parameter distributions. This effects how many clusters will be
- *         found.
+ *  \param T the maximum number of top-level clusters to look for. Usually, if T
+ *         is set large, T* < T top-level clusters will be found.
+ *  \param dirprior is the prior 'tuning' parameter for the top-level dirichlet
+ *         cluster parameter distributions. This effects how many top-level 
+ *         clusters will be found.
+ *  \param gausprior is the prior 'tuning' parameter for the bottom-level
+ *         Gaussian cluster parameter distributions. This effects how many
+ *         clusters will be found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
- *         use. The group cluster algorithms take fuller advantage of this. The
- *         default value is automatically determined by OpenMP.
+ *         use. The default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls such as
  *          non-PSD matrix calculations.
@@ -547,69 +550,70 @@ double learnEGMC (
 double learnSCM (const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
-    std::vector<distributions::GDirichlet>& iweights,
-    std::vector<distributions::Dirichlet>& sweights,
+    std::vector<distributions::GDirichlet>& weights_j,
+    std::vector<distributions::Dirichlet>& weights_t,
     std::vector<distributions::GaussWish>& clusters,
     const unsigned int T = TRUNC,
-    const double iclusterprior = PRIORVAL,
-    const double sclusterprior = PRIORVAL,
+    const double dirprior = PRIORVAL,
+    const double gausprior = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
 
 
 //
-// Multiple Observation Clustering Models (scluster.cpp)
+// Multiple Observation Clustering Models (mcluster.cpp)
 //
 
 
 /*! \brief The learning algorithm for the "Multiple-source Clustering Model".
  *
  * This function implements the "Multiple Clustering Model" algorithm as
- * specified by [3]. This model jointly cluster both image/document level
- * observations, and segment/word observations. The MCM uses a Generalised
- * Dirichlet prior on the group mixture weights, a Gaussian image obervation
- * clusters, a Dirichlet prior on the image cluster segment cluster proportions,
- * and Gaussian segment cluster distributions for observations within images.
+ * specified by [3] and [4]. This model jointly cluster both "document" level
+ * observations, and "word" observations. The MCM uses a Generalised
+ * Dirichlet prior on the group mixture weights, Multinomial-Gaussian top-level
+ * (document) clusters, and Gaussian bottom-level (word) cluster distributions.
  *
- *  \param W the image observations. A vector of length J (for each group),
- *         of of I_jxD1 matrices. Here I_j is the number of Images in each
- *         group, and D1 is the number of dimensions.
- *  \param X segment observation matrices. A vector of length J (for each group),
- *         of vectors of length I_j (for each image or "document") of N_jixD2
- *         matrices. Here N_ji is the number of observations in each document,
- *         I_j, in group, j, and D2 is the number of dimensions.
- *  \param qY the probabilistic label of documents/images to image clusters. It
- *         is a vector of length J (for each group), of I_jxT matrices of the
- *         soft assignments of each document/image (i) to a class label (t). It
- *         is the variational posterior to p(y_j|Z_j). This is randomly
+ *  \param W the top-level observation matrices. Vector of length J with N_jxDt 
+ *         matrices where N_j is the number of observations in each group, j, 
+ *         and Dt is the number of dimensions. J is the total number of groups.
+ *  \param X the bottom-level observation matrices. A vector of length J (for 
+ *         each group), of vectors of length I_j (for each image or "document") 
+ *         of N_jixDb matrices. Here N_ji is the number of observations in each
+ *         document, I_j, in group, j, and Db is the number of dimensions.
+ *  \param qY the probabilistic label of documents/images to top-level clusters.
+ *         It is a vector of length J (for each group), of I_jxT matrices of the
+ *         soft assignments of each document/image (i) to a cluster label (t).
+ *         It is the variational posterior to p(y_j|Z_j). This is randomly
  *         initialised, and uses the parameter T for max number of classes.
- *  \param qZ the probabilistic label of segments to segment clusters. It is
- *         a vector of length J (for each group), of vectors of length I_j (for
- *         each "document") of N_jixK matrices of the variational posterior
- *         approximations to p(z_ji|X_ji). K is the number of segment clusters.
- *         This will always be overwritten to start with one cluster.
- *  \param iweights is a vector of distributions over the image cluster mixture
- *         weights of the model, for each group of data, J.
- *  \param sweights is a vector of distributions over the segment cluster
- *         weights parameters -- this will be of size T* (see parameter T).
- *  \param iclusters is a vector of distributions over the image clusters
+ *  \param qZ the probabilistic label of observations to bottom-level clusters.
+ *         It is a vector of length J (for each group), of vectors of length I_j
+ *         (for each "document") of N_jixK matrices of the variational posterior
+ *         approximations to p(z_ji|X_ji). K is the number of bottom-level
+ *         clusters. This will always be overwritten to start with one cluster.
+ *  \param weights_j is a vector of distributions over the weights of top-level 
+ *         cluster mixtures of the model, for each group of data, J, like the 
+ *         GMC.
+ *  \param weights_t is a vector of distributions over the weights that 
+ *         partially parameterise the top-level clusters. These also 
+ *         parameterise the distribution of the bottom-level cluster weights -- 
+ *         this will be of size T* (see parameter T).
+ *  \param clusters_t is a vector of distributions over the top-level clusters
  *         parameters of the model (corresponding to W), this will be size T*.
- *  \param sclusters is a vector of distributions over the segment cluster
+ *  \param clusters_k is a vector of distributions over the bottom-level cluster
  *         parameters of the model (corresponding to X), this will be size K.
- *  \param T the maximum number of image clusters to look for. Usually, if T is
- *         set large, T* < T classes will be found.
- *  \param iclusterprior is the prior 'tuning' parameter for the image cluster
- *         parameter distributions (W). This effects how many image clusters
- *         will be found.
- *  \param sclusterprior is the prior 'tuning' parameter for the segment cluster
- *         parameter distributions (X). This effects how many segment clusters
- *         will be found.
+ *  \param T the maximum number of top-level clusters to look for. Usually, if T
+ *         is set large, T* < T top-level clusters will be found.
+ *  \param prior_t is the prior 'tuning' parameter for the top-level (Gaussian) 
+ *         cluster parameter distributions (W). This effects how many top level
+ *         clusters will be found.
+ *  \param prior_k is the prior 'tuning' parameter for the bottom-level cluster
+ *         parameter distributions (X). This effects how many bottom-level 
+ *         clusters will be found.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
- *         use. The group cluster algorithms take fuller advantage of this. The
- *         default value is automatically determined by OpenMP.
+ *         use. The default value is automatically determined by OpenMP.
  *  \returns Final free energy
  *  \throws std::logic_error if there are invalid argument calls such as
  *          non-PSD matrix calculations.
@@ -622,13 +626,13 @@ double learnMCM (
     const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
-    std::vector<distributions::GDirichlet>& iweights,
-    std::vector<distributions::Dirichlet>& sweights,
-    std::vector<distributions::GaussWish>& iclusters,
-    std::vector<distributions::GaussWish>& sclusters,
+    std::vector<distributions::GDirichlet>& weights_j,
+    std::vector<distributions::Dirichlet>& weights_t,
+    std::vector<distributions::GaussWish>& clusters_t,
+    std::vector<distributions::GaussWish>& clusters_k,
     const unsigned int T = TRUNC,
-    const double iclusterprior = PRIORVAL,
-    const double sclusterprior = PRIORVAL,
+    const double prior_t = PRIORVAL,
+    const double prior_k = PRIORVAL,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );

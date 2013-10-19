@@ -1,8 +1,9 @@
-Libcluster - README file
+Libcluster
+==========
 
 
-Author: Daniel Steinberg
-        Australian Centre for Field Robotics
+Author: Daniel Steinberg,
+        Australian Centre for Field Robotics,
         The University of Sydney
 
 Date:   13/03/2013
@@ -11,27 +12,23 @@ License: GPL v3 (See LICENSE)
 
 
 This library implements the following algorithms, classes and functions:
+ 
+ * The Variational Dirichlet Process (VDP) [1]
+ * The Bayesian Gaussian Mixture Model [2]
+ * The Grouped Mixtures Clustering (GMC) model [3]
+ * The Symmetric Grouped Mixtures Clustering (S-GMC) model [3]
+ * Simultaneous Clustering Model for Multinomial Documents, and Gaussian 
+   Observations [3].
+ * Multiple-source Clustering Model (MCM) for clustering two observations,
+   one of an image/document, and mulltiple of segments/words 
+   simultaneously [3]. 
+ * And more clustering algorithms based on diagonal Gaussian, and 
+   Exponential distributions.
+ * Various functions for evaluating means, standard deviations, covariance,
+   primary eigenvalues etc of data.
 
-    - The Variational Dirichlet Process (VDP) [1]
-
-    - The Bayesian Gaussian Mixture Model [2]
-
-    - The Grouped Mixtures Clustering (GMC) model [3]
-
-    - The Symmetric Grouped Mixtures Clustering (S-GMC) model [3]
-    
-    - Simultaneous Clustering Model for Multinomial Documents, and Gaussian 
-      Observations [3].
-
-    - Multiple-source Clustering Model (MCM) for clustering two observations,
-      one of an image/document, and mulltiple of segments/words simultaneously
-      [3]. 
-
-    - And more clustering algorithms based on diagonal Gaussian, and 
-      Exponential distributions.
-
-    - Various functions for evaluating means, standard deviations, covariance,
-      primary eigenvalues etc of data.
+REFERENCES:
+----------
 
  [1] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational
      Dirichlet process mixtures, Advances in Neural Information Processing
@@ -52,7 +49,8 @@ Please consider citing reference [3] or
 if you use this code. Thanks!
 
 
-DEPENDENCIES -------------------------------------------------------------------
+DEPENDENCIES
+------------
 
 - Eigen version 3.0 or greater
 - Boost version 1.4.x or greater
@@ -60,72 +58,71 @@ DEPENDENCIES -------------------------------------------------------------------
 - CMake
 
 
-INSTALL INSTRUCTIONS (Linux/OS X) ----------------------------------------------
+INSTALL INSTRUCTIONS (Linux/OS X) 
+---------------------------------
 
 To build libcluster:
 
-1) Make sure you have CMake installed, and Eigen and Boost preferably in the 
+1. Make sure you have CMake installed, and Eigen and Boost preferably in the 
    usual locations:
 
         /usr/local/include/eigen3/ or /usr/include/eigen3
         /usr/local/include/boost or /usr/include/boost
 
-  (These are in the repositories as of Ubuntu 11.10)
+2. Make sure you have checked out CMakeUtils to the same location as libcluster
 
-2) Make sure you have checked out CMakeUtils to the same location as libcluster
-
-3) Make a build directory where you checked out the source if it does not
+3. Make a build directory where you checked out the source if it does not
    already exist, then change into this directory,
 
-    cd {where you checked out the source}
-    mkdir build
-    cd build
+        cd {where you checked out the source}
+        mkdir build
+        cd build
 
-4) To build libcluster, run the following from the build directory:
+4. To build libcluster, run the following from the build directory:
 
         cmake ..
         make
         sudo make install
 
-   This installs:
+        (This installs:)
+   
         libcluster.h    /usr/local/include
         distributions.h /usr/local/include
         probutils.h     /usr/local/include
-        libcluster.*    /usr/local/lib          (* this is either .dylib or .so)
+        libcluster.*    /usr/local/lib     (* this is either .dylib or .so)
 
-5) Use the doxyfile in {where you checked out the source}/doc to make the
+5. Use the doxyfile in {where you checked out the source}/doc to make the
    documentation with doxygen:
 
         doxygen Doxyfile
 
-NOTE:
- - There are few options you can change using ccmake (or the cmake gui), these 
-   include:
+NOTE: There are few options you can change using ccmake (or the cmake gui), these include:
    
-   BUILD_EXHAUST_SPLIT (toggle ON or OFF, default OFF)
+- BUILD_EXHAUST_SPLIT (toggle ON or OFF, default OFF)
       This uses the exhaustive cluster split heuristic instead of the greedy
       heuristic. The greedy heuristic is MUCH faster, but does give different
       results. I have yet to determine whether it is actually worse than the
-      exhaustive method. The SCM and MCM use greedy split heuristics by default
-      at this stage.
+      exhaustive method. The SCM and MCM use greedy split heuristics by
+      default at this stage.
 
-   BUILD_PYTHON_INTERFACE (toggle ON or OFF, default OFF)
+ - BUILD_PYTHON_INTERFACE (toggle ON or OFF, default OFF)
       Build the python interface. This requires boost python. Unfortunately, if
       this is enabled, then the matlab interface cannot be built. This is
       because python is row-major, and matlab is column major, so we need to
       build Eigen accordingly.
       
-   CMAKE_INSTALL_PREFIX (default /usr/local)
+ - CMAKE_INSTALL_PREFIX (default /usr/local)
       The default prefix for installing the library and binaries.
       
-   EIGEN_INCLUDE_DIRS (default /usr/include/eigen3)
+ - EIGEN_INCLUDE_DIRS (default /usr/include/eigen3)
       Where to look for the Eigen matrix library.  
     
- - On linux you may have to run "sudo ldconfig" before the system can find
+NOTE: On linux you may have to run "sudo ldconfig" before the system can find
    libcluster.so.
 
 
-PYTHON INTERFACE (Linux) -------------------------------------------------------
+PYTHON INTERFACE (Linux)
+------------------------
 
 Easy, follow the normal build instructions up to step (4) (if you haven't
 already), then from the build directory:
@@ -146,7 +143,8 @@ python staging directory, so it should be on your python path. I.e. just run
 Look at the "libclusterpy" docstrings for more help on usage. 
 
 
-MATLAB INTERFACE (Linux/OS X) --------------------------------------------------
+MATLAB INTERFACE (Linux/OS X)
+-----------------------------
 
 I have included a mex interface for using this library with Matlab. You just
 need to make sure that:
@@ -230,7 +228,8 @@ Notes:
   To your version of OS X, e.g. 10.7.
 
 
-USABILITY TIPS -----------------------------------------------------------------
+USABILITY TIPS
+--------------
 
 When verbose mode is activated you will get output that looks something like
 this:

@@ -150,18 +150,22 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "Bayesian clustering algorithms such as the Bayesian Gaussian Mixture\n"
     "model of [1], and the Variational Dirichlet process of [2]. Also \n"
     "implemented is a latent Dirichlet allocation-like model with a \n"
-    "Gaussian observation model, and even more highly structured models --\n"
-    "see the SCM and MCM functions [3].\n\n"
+    "Gaussian observation model (GMC [4], G-LDA [3]), and even more highly\n"
+    "structured models -- see the SCM and MCM functions [3, 4].\n\n"
     "Author: Daniel Steinberg\n"
     "\tAustralian Centre for Field Robotics, The University of Sydney.\n"
     "Date: 11/03/2013\n"
     "License: GPL v3 or later, See LICENSE.\n\n"
-    "[1] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge,\n"
+    " [1] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge,\n"
     "\tUK: pringer Science+Business Media, 2006.\n"
-    "[2] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational\n"
+    " [2] K. Kurihara, M. Welling, and N. Vlassis, Accelerated variational\n"
     "\tDirichlet process mixtures, Advances in Neural Information Processing\n"
     "\tSystems, vol. 19, p. 761, 2007.\n"
-    "[3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data,\n"
+    " [3] D. M. Steinberg, O. Pizarro, S. B. Williams, Synergistic Clustering\n"
+    "\tof Image and Segment Descriptors for Unsupervised Scene Understanding.\n"
+    "\tIn International Conference on Computer Vision (ICCV). IEEE, Sydney,\n"
+    "\tNSW, 2013.\n" 
+    " [4] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data,\n"
     "\tPhD Thesis, 2013.";
   scope().attr("__doc__") = moddoc;
 
@@ -187,6 +191,12 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "\tX: list[array shape(N_j,D),...] of len = J which is the data to be\n"
     "\t\tclustered, N_j are the number of samples of each group (or list \n"
     "\t\telement) j of data, D the number of dimensions.\n";
+  const std::string vvXarg =
+    "\tX: list[list[array shape(N_j,D_b),...]] where the outer list is of\n" 
+    "\t\tlen = J, and each inner list is of len = I_j. This is the\n"
+    "\t\t(bottom-level) data to be clustered, N_ji are the number of samples\n"
+    "\t\tof each 'document/image' (ji) within each group (j) of data. D_b is\n"
+    "\t\tthe number of dimensions.\n";
   const std::string priorarg =
     "\tprior: float (1.0), the prior width of the Gaussian clusters.\n";
   const std::string sparsearg =
@@ -245,7 +255,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "This BGMM is similar to a GMM learned with EM, but it places a\n"
     "Dirichlet prior over the mixture weights, and Gaussian-Wishart priors\n"
     "over the Gaussian clusters. This implementation is similar to [1] but\n"
-    "also employes the cluster splitting heuristics discussed in [2] and [3].\n"
+    "also employes the cluster splitting heuristics discussed in [2] and [4].\n"
     + comargs + Xarg + priorarg + verbarg + threadarg
     + comrets + fret + qZret + wret + muret + covret;
 
@@ -263,7 +273,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
   // GMC
   const std::string gmcdoc =
    "The Grouped Mixtures Clustering (GMC) algorithm.\n\n"
-   "This function uses the Grouped Mixtures Clustering model [3] to cluster\n"
+   "This function uses the Grouped Mixtures Clustering model [4] to cluster\n"
    "multiple datasets simultaneously with cluster sharing between datasets.\n"
    "It uses a Generalised Dirichlet prior over the group mixture weights, and\n"
    "a Gaussian-Wishart prior over the cluster parameters. This algorithm is\n"
@@ -287,12 +297,14 @@ BOOST_PYTHON_MODULE (libclusterpy)
   // SGMC
   const std::string sgmcdoc = ""
     "The Symmetric Grouped Mixtures Clustering (S-GMC) algorithm.\n\n"
-    "This function uses the Symmetric Grouped Mixtures Clustering model [3]\n"
+    "This function uses the Symmetric Grouped Mixtures Clustering model [4]\n"
     "to cluster multiple datasets simultaneously with cluster sharing between\n"
     "datasets. It uses a symmetric Dirichlet prior over the group mixture\n"
     "weights, and a Gaussian-Wishart prior over the cluster parameters. This\n"
     "algorithm is similar to latent Dirichlet allocation with Gaussian\n"
-    "observations.\n"
+    "observations.\n\n"
+    "It is also referred to as Gaussian Latent Dirichlet Allocation (G-LDA)\n"
+    "in [3].\n"
     + comargs + vXarg + priorarg + sparsearg + verbarg + threadarg
     + comrets + fret + vqZret + vwret + muret + covret;
 
@@ -309,7 +321,14 @@ BOOST_PYTHON_MODULE (libclusterpy)
 
 
   // SCM
-  // TODO: Docsting
+  const std::string scmdoc = ""
+    "the Simultaneous Clustering Model (SCM).\n\n"
+    "This function implements the Simultaneous Clustering Model algorithm as\n"
+    "specified by [4]. The SCM uses a Generalised Dirichlet prior on the\n"
+    "group mixture weights, a Dirichlet prior on the top-level clusters and\n"
+    "Gaussian bottom-level cluster distributions for observations (with\n"
+    "Gausian-Wishart priors).\n";
+
   def ("learnSCM", wrapperSCM,
          (
            arg("X"),
@@ -318,11 +337,12 @@ BOOST_PYTHON_MODULE (libclusterpy)
            arg("dirprior") = libcluster::PRIORVAL,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
-         )
+         ),
+         scmdoc.c_str()
        );
 
 
-  // SCM
+  // MCM
   // TODO: Docsting
   def ("learnMCM", wrapperMCM,
          (

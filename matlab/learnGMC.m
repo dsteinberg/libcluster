@@ -29,7 +29,7 @@
 %
 % References:
 %  [1] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
-%      Thesis, 2012.
+%      Thesis, 2013.
 
 % libcluster -- A collection of Bayesian clustering algorithms
 % Copyright (C) 2013  Daniel M. Steinberg (d.steinberg@acfr.usyd.edu.au)
