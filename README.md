@@ -1,16 +1,16 @@
 Libcluster
 ==========
 
-Author:
->Daniel Steinberg,  
->Australian Centre for Field Robotics,  
->The University of Sydney
+***Author***:
+Daniel Steinberg,  
+Australian Centre for Field Robotics,  
+The University of Sydney
 
-Date:
->20/10/2013
+***Date***:
+20/10/2013
 
-License: 
->GPL v3 (See LICENSE)
+***License***: 
+GPL v3 (See LICENSE)
 
 
 This library implements the following algorithms and functions:
@@ -37,25 +37,25 @@ This library implements the following algorithms and functions:
 REFERENCES
 ----------
 
->[1] K. Kurihara, M. Welling, and N. Vlassis. Accelerated variational
-     Dirichlet process mixtures, Advances in Neural Information Processing
-     Systems, vol. 19, p. 761, 2007.
+[1] K. Kurihara, M. Welling, and N. Vlassis. Accelerated variational
+    Dirichlet process mixtures, Advances in Neural Information Processing
+    Systems, vol. 19, p. 761, 2007.
 
->[2] D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
-     nonparametric approach to clustering data from underwater robotic
-     surveys. In International Symposium on Robotics Research, Flagstaff, AZ, 
-     Aug. 2011.
+[2] D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
+    nonparametric approach to clustering data from underwater robotic
+    surveys. In International Symposium on Robotics Research, Flagstaff, AZ, 
+    Aug. 2011.
 
->[3] C. M. Bishop. Pattern Recognition and Machine Learning. Cambridge, UK:
-     Springer Science+Business Media, 2006.
+[3] C. M. Bishop. Pattern Recognition and Machine Learning. Cambridge, UK:
+    Springer Science+Business Media, 2006.
+   
+[4] D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of  
+    Image and Segment Descriptors for Unsupervised Scene Understanding, In 
+    International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
+    2013. 
     
->[4] D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of  
-     Image and Segment Descriptors for Unsupervised Scene Understanding, In 
-     International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
-     2013. 
-     
->[5] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
-     Thesis, 2013.
+[5] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+    Thesis, 2013.
      
 Please consider citing the following if you use this code:
 
