@@ -64,7 +64,8 @@ Please consider citing the following if you use this code:
  * SCM: [5]
  * MCM: [4, 5]  
 
-You can find these on my [homepage](www.daniel-steinberg.info). Thank you!
+You can find these on my [homepage](http://www.daniel-steinberg.info). 
+Thank you!
 
 
 * * *
