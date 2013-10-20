@@ -35,24 +35,24 @@ This library implements the following algorithms and functions:
 REFERENCES
 ----------
 
-[1] K. Kurihara, M. Welling, and N. Vlassis. Accelerated variational
+**[1]** K. Kurihara, M. Welling, and N. Vlassis. Accelerated variational
     Dirichlet process mixtures, Advances in Neural Information Processing
     Systems, vol. 19, p. 761, 2007.
 
-[2] D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
+**[2]** D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
     nonparametric approach to clustering data from underwater robotic
     surveys. In International Symposium on Robotics Research, Flagstaff, AZ, 
     Aug. 2011.
 
-[3] C. M. Bishop. Pattern Recognition and Machine Learning. Cambridge, UK:
+**[3]** C. M. Bishop. Pattern Recognition and Machine Learning. Cambridge, UK:
     Springer Science+Business Media, 2006.
    
-[4] D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of  
+**[4]** D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of  
     Image and Segment Descriptors for Unsupervised Scene Understanding, In 
     International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
     2013. 
     
-[5] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+**[5]** D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
     Thesis, 2013.
      
 Please consider citing the following if you use this code:

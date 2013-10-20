@@ -23,8 +23,8 @@
 %  - qY, {Jx[IjxT]} cell array of image to document/image cluster assignments
 %  - qZ, {Jx{Ijx[NijxK]}} nested cell array of word/segment cluster assignments
 %  - weights_j, {Jx[1xK]} Group document/image (top-level) cluster weights
-%  - weights_t, [TxK] Dirichlet document/image cluster parameters. These are
-%       also bottom level-cluster (word/segment) proportions
+%  - weights_t, [TxK] Dirichlet word/segment proportions per image/document
+%        cluster (top-level cluster proportion parameters).
 %  - means, {Kx[1xD]} Gaussian (word/segment cluster) mixture means
 %  - covariances, {Kx[DxD]} Gaussian (word/segment cluster) mixture covariances
 %
