@@ -239,8 +239,8 @@ tuple wrapperSGMC (
 tuple wrapperSCM (
     const list &X,
     const int trunc,
-    const float gausprior,
     const float dirprior,
+    const float gausprior,
     const bool verbose,
     const int nthreads
     )
@@ -251,18 +251,17 @@ tuple wrapperSCM (
   // Pre-allocate some stuff
   vMatrixXd qY;
   vvMatrixXd qZ;
-  vector<GDirichlet> iweights;
-  vector<Dirichlet> sweights;
+  vector<GDirichlet> weights_j;
+  vector<Dirichlet> weights_t;
   vector<GaussWish> clusters;
 
   // Do the clustering
-  double f = learnSCM(X_, qY, qZ, iweights, sweights, clusters, trunc,
+  double f = learnSCM(X_, qY, qZ, weights_j, weights_t, clusters, trunc,
                       dirprior, gausprior, verbose, nthreads);
 
   // Return relevant objects
-  return make_tuple(f, qY, qZ, getweights<GDirichlet>(iweights),
-                    getweights<Dirichlet>(sweights), getmean(clusters),
-                    getcov(clusters));
+  return make_tuple(f, qY, qZ, getweights<GDirichlet>(weights_j),
+         getweights<Dirichlet>(weights_t), getmean(clusters), getcov(clusters));
 }
 
 
@@ -284,17 +283,17 @@ tuple wrapperMCM (
   // Pre-allocate some stuff
   vMatrixXd qY;
   vvMatrixXd qZ;
-  vector<GDirichlet> iweights;
-  vector<Dirichlet> sweights;
-  vector<GaussWish> iclusters;
-  vector<GaussWish> sclusters;
+  vector<GDirichlet> weights_j;
+  vector<Dirichlet> weights_t;
+  vector<GaussWish> clusters_t;
+  vector<GaussWish> clusters_k;
 
   // Do the clustering
-  double f = learnMCM(W_, X_, qY, qZ, iweights, sweights, iclusters, sclusters,
-                      trunc, gausprior_t, gausprior_k, verbose, nthreads);
+  double f = learnMCM(W_, X_, qY, qZ, weights_j, weights_t, clusters_t, 
+                clusters_k, trunc, gausprior_t, gausprior_k, verbose, nthreads);
 
   // Return relevant objects
-  return make_tuple(f, qY, qZ, getweights<GDirichlet>(iweights),
-                    getweights<Dirichlet>(sweights), getmean(iclusters),
-                    getmean(sclusters), getcov(iclusters), getcov(sclusters));
+  return make_tuple(f, qY, qZ, getweights<GDirichlet>(weights_j),
+                getweights<Dirichlet>(weights_t), getmean(clusters_t), 
+                getmean(clusters_k), getcov(clusters_t), getcov(clusters_k));
 }

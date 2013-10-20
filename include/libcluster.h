@@ -37,9 +37,9 @@
  *  This namespace provides various Bayesian mixture models that can be used
  *  for clustering data. The algorithms that have been implemented are:
  *
- *    - Variational Dirichlet Process (VDP) for Gaussian observations [1], see
- *      learnVDP().
- *    - The Bayesian Gaussian Mixture model [5] ch 11, see learnBGMM().
+ *    - Variational Dirichlet Process (VDP) for Gaussian observations [1, 6], 
+ *      see learnVDP().
+ *    - The Bayesian Gaussian Mixture model [6] ch 11, see learnBGMM().
  *    - The Bayesian Gaussian Mixture model with diagonal covariance Gaussians,
  *      see learnDGMM().
  *    - Bayesian Exponential Mixture model with a Gamma prior, see learnBEMM().
@@ -57,7 +57,7 @@
  *    - Multiple-source Clustering Model (MCM) for clustering two observations,
  *      one of an image/document, and multiple of segments/words simultaneously,
  *      see learnMCM() and [3, 4].
- *    - A myriad  of other algorithms are possible, but have not been enumerated
+ *    - A myriad of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
  *  All of these algorithms infer the number of clusters present in the data.
@@ -78,7 +78,12 @@
  * [4] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
  *     Thesis, 2013.
  *
- * [5] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
+ * [5] D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
+ *     nonparametric approach to clustering data from underwater robotic
+ *     surveys. In International Symposium on Robotics Research, Flagstaff, AZ, 
+ *     Aug. 2011.
+ *
+ * [6] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
  *     Springer Science+Business Media, 2006.
  *
  * \note The greedy cluster splitting heuristic is different from that presented
@@ -93,7 +98,7 @@
  *         Australian Centre for Field Robotics
  *         The University of Sydney
  *
- * \date   13/03/2013
+ * \date   20/10/2013
  *
  * \todo Find a better way to parallelise the vanilla clustering algorithms.
  * \todo Make this library more generic so discrete distributions can be used?
@@ -138,7 +143,7 @@ typedef std::vector< std::vector<Eigen::MatrixXd> >   vvMatrixXd;
  * however a different 'nesting' strategy is used. The nesting strategy sets all
  * q(z_n > K) = 0, rather than setting the parameter distributions equal to
  * their priors over this truncation bound, K. This is the same nesting strategy
- * as used in [2].
+ * as used in [2]. This is also used in [3-5].
  *
  *  \param X the observation matrix, NxD where N is the number of observations,
  *         and D is the number of dimensions.
@@ -568,7 +573,7 @@ double learnSCM (const vvMatrixXd& X,
 
 /*! \brief The learning algorithm for the "Multiple-source Clustering Model".
  *
- * This function implements the "Multiple Clustering Model" algorithm as
+ * This function implements the "Multiple-source Clustering Model" algorithm as
  * specified by [3] and [4]. This model jointly cluster both "document" level
  * observations, and "word" observations. The MCM uses a Generalised
  * Dirichlet prior on the group mixture weights, Multinomial-Gaussian top-level
