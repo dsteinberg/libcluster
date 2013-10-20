@@ -64,7 +64,7 @@ Please consider citing the following if you use this code:
  * SCM: [5]
  * MCM: [4, 5]  
 
-Thank you!
+You can find these on my [homepage](www.daniel-steinberg.info). Thank you!
 
 
 * * *
@@ -200,11 +200,11 @@ To build the Matlab interface:
    need to do anything (see below if running the code after compilation fails).
    To fix this with Ubuntu 10.10 and 11.04 I did the following:
 
-   1. run `$ sudo apt-get install gcc-4.x-base g++-4.x-base libstdc++6-4.x-dev`
+    * run `$ sudo apt-get install gcc-4.x-base g++-4.x-base libstdc++6-4.x-dev`
       Where '`x`' is the version number that Matlab uses (or close too 4.3 for
       10.10 or 4.4 for 11.04 seems to work).
 
-   2. Built the library as in the install instructions, BUT replaced:
+    * Built the library as in the install instructions, BUT replaced:
 
         cmake ..
 
@@ -212,9 +212,9 @@ To build the Matlab interface:
 
         CC=gcc-4.x CXX=g++-4.x cmake ..
       
-   3. rebuild the mex interface.
+    * rebuild the mex interface.
 
- - If you are issued with a warning/error something along the lines of:
+- If you are issued with a warning/error something along the lines of:
 
         ??? Invalid MEX-file '.../vdpcluster_mex.mexa64':
         /../sys/os/glnxa64/libstdc++.so.6: version `GLIBCXX_3.4.11' not found
@@ -222,19 +222,19 @@ To build the Matlab interface:
     
     try one of the following:
 
-    *  Run matlab as follows (can use a script for this)
+    * Run matlab as follows (can use a script for this)
       
             $ export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.XX
             $ matlab -desktop
 
         Where XX is your libstdc++ library version (for ubuntu 12.04, XX=16).
 
-    *  change the symbolic link `~/.maltab/bin/gcc` to point to the version of
-       gcc you are using in `/usr/bin/gcc-4.x`
+    * change the symbolic link `~/.maltab/bin/gcc` to point to the version of
+      gcc you are using in `/usr/bin/gcc-4.x`
 
-    *  if no such directory exists you can remove the symlinks in Matlab's root 
-       to its own copy's of the C and C++ libraries, so it will then use your 
-       systems,
+    * if no such directory exists you can remove the symlinks in Matlab's root 
+      to its own copy's of the C and C++ libraries, so it will then use your 
+      systems,
 
             $ cd <MATLABROOT>/sys/os/glnxa64
             $ mv libstdc++.so.6.0.10 libstdc++.so.6.0.10.bak (or closest vers.)
