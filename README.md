@@ -2,9 +2,7 @@ Libcluster
 ==========
 
 ***Author***:
-Daniel Steinberg,  
-Australian Centre for Field Robotics,  
-The University of Sydney
+Daniel Steinberg
 
 ***Date***:
 20/10/2013
