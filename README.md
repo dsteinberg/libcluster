@@ -125,24 +125,25 @@ To build libcluster:
 these include:
    
 - `BUILD_EXHAUST_SPLIT` (toggle `ON` or `OFF`, default `OFF`)
-      This uses the exhaustive cluster split heuristic instead of the greedy
-      heuristic. The greedy heuristic is MUCH faster, but does give different
-      results. I have yet to determine whether it is actually worse than the
-      exhaustive method. The SCM and MCM use greedy split heuristics by
-      default at this stage.
+    This uses the exhaustive cluster split heuristic [1, 2] instead of the
+    greedy heuristic [4, 5] for all algorithms but the SCM and MCM. The greedy
+    heuristic is MUCH faster, but does give different results. I have yet to
+    determine whether it is actually worse than the exhaustive method (if it is,
+    it is not by much). The SCM and MCM only use the greedy split heuristic at
+    this stage.
 
- - `BUILD_PYTHON_INTERFACE` (toggle `ON` or `OFF`, default `OFF`)
-      Build the python interface. This requires boost python. Unfortunately, if
-      this is enabled, then the matlab interface cannot be built. This is
-      because python is row-major, and matlab is column major, so we need to
-      build Eigen accordingly.
-      
- - `CMAKE_INSTALL_PREFIX` (default `/usr/local`)
-      The default prefix for installing the library and binaries.
-      
- - `EIGEN_INCLUDE_DIRS` (default `/usr/include/eigen3`)
-      Where to look for the Eigen matrix library.  
-    
+- `BUILD_PYTHON_INTERFACE` (toggle `ON` or `OFF`, default `OFF`)
+    Build the python interface. This requires boost python. Unfortunately, if
+    this is enabled, then the matlab interface cannot be built. This is
+    because python is row-major, and matlab is column major, so we need to
+    build Eigen accordingly.
+     
+- `CMAKE_INSTALL_PREFIX` (default `/usr/local`)
+    The default prefix for installing the library and binaries.
+     
+- `EIGEN_INCLUDE_DIRS` (default `/usr/include/eigen3`)
+    Where to look for the Eigen matrix library.  
+   
 **NOTE**: On linux you may have to run `sudo ldconfig` before the system can
 find libcluster.so.
 
