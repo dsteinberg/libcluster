@@ -65,6 +65,8 @@ if(OPENMP_FOUND)
   set(CMAKE_EXE_LINKER_FLAGS
     "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}"
   )
+  # Disable Eigen's parallelisation (this will get in the way of mine)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE")
 endif(OPENMP_FOUND)
 
 
