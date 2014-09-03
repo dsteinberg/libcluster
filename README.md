@@ -231,7 +231,7 @@ your python staging directory, so it should be on your python path. I.e. just
 run
 
 ```python
-    import libclusterpy
+import libclusterpy
 ```
 
 ### Usage
@@ -239,8 +239,8 @@ run
 Import the library as
 
 ```python
-    import numpy as np
-    import libclusterpy as lc
+import numpy as np
+import libclusterpy as lc
 ```
 
 Then for the mixture models, assuming `X` is a numpy array where `X.shape` is 
