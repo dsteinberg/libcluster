@@ -36,17 +36,17 @@ This library implements the following algorithms and functions:
 TABLE OF CONTENTS
 -----------------
 
-* [Dependencies](#DEPENDENCIES)
+* [Dependencies](#dependencies)
 
-* [Install Instructions](#INSTALL-INSTRUCTIONS)
+* [Install Instructions](#install-instructions)
 
-* [Python Interface](#PYTHON-INTERFACE)
+* [Python Interface](#python-interface)
 
-* [Matlab Interface](#MATLAB-INTERFACE)
+* [Matlab Interface](#matlab-interface)
 
-* [General Usability Tips](#GENERAL-USABILITY-TIPS)
+* [General Usability Tips](#general-usability-tips)
 
-* [References and Citing](#REFERENCES-AND-CITING)
+* [References and Citing](#references-and-citing)
 
 
 * * *
