@@ -177,13 +177,15 @@ int main()
   vMatrixXd X;
   makeXdata(Xcat, X);
 
-  // GMC
+  // Set up the inputs for the BGMM
   Dirichlet weights;
   vector<GaussWish> clusters;
   MatrixXd qZ;
 
+  // Learn the BGMM
   double F = learnBGMM(Xcat, qZ, weights, clusters, PRIORVAL, true);
 
+  // Print the posterior parameters
   cout << endl << "Cluster Weights:" << endl;
   cout << weights.Elogweight().exp().transpose() << endl;
 
