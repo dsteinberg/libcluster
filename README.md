@@ -14,16 +14,16 @@ GPL v3 (See LICENSE)
 
 This library implements the following algorithms and functions:
  
- * The Variational Dirichlet Process (VDP) [1, 2, 4, 5]
- * The Bayesian Gaussian Mixture Model [3, 5]
- * The Grouped Mixtures Clustering (GMC) model [5]
- * The Symmetric Grouped Mixtures Clustering (S-GMC) model [4, 5]. This is 
-   referred to as Gaussian latent Dirichlet allocation (G-LDA) in [4]. 
- * Simultaneous Clustering Model for Multinomial Documents, and Gaussian 
-   Observations [5].
+ * The Variational Dirichlet Process (VDP) [1, 2, 6]
+ * The Bayesian Gaussian Mixture Model [3 - 6]
+ * The Grouped Mixtures Clustering (GMC) model [6]
+ * The Symmetric Grouped Mixtures Clustering (S-GMC) model [4 - 6]. This is 
+   referred to as Gaussian latent Dirichlet allocation (G-LDA) in [4, 5]. 
+ * Simultaneous Clustering Model (SCM) for Multinomial Documents, and Gaussian 
+   Observations [5, 6].
  * Multiple-source Clustering Model (MCM) for clustering two observations,
    one of an image/document, and multiple of segments/words 
-   simultaneously [4, 5]. 
+   simultaneously [4 - 6]. 
  * And more clustering algorithms based on diagonal Gaussian, and 
    Exponential distributions.
  * Various functions for evaluating means, standard deviations, covariance,
@@ -39,6 +39,8 @@ TABLE OF CONTENTS
 * [Dependencies](#dependencies)
 
 * [Install Instructions](#install-instructions)
+
+* [C++ Interface](#c++-interface)
 
 * [Python Interface](#python-interface)
 
@@ -128,6 +130,82 @@ these include:
    
 **NOTE**: On linux you may have to run `sudo ldconfig` before the system can
 find libcluster.so (or just reboot).
+
+
+C++ INTERFACE
+-------------
+
+All of the interfaces to this library are documented in `include/libcluster.h`.
+There are far too many algorithms to go into here, and I *strongly* recommend
+looking at the `test/` directory for example usage, specifically,
+
+* `cluster_test.cpp` for the group mixture models (GMC etc) 
+* `scluster_test.cpp` for the SCM
+* `mcluster_test.cpp` for the MCM
+
+Here is an example for regular mixture models, such as the BGMM, which simply
+clusters some test data and prints the resulting posterior parameters to the
+terminal,
+
+```C++
+
+#include "libcluster.h"
+#include "distributions.h"
+#include "testdata.h"
+
+
+//
+// Namespaces
+//
+
+using namespace std;
+using namespace Eigen;
+using namespace libcluster;
+using namespace distributions;
+
+
+//
+// Functions
+//
+
+// Main
+int main()
+{
+
+  // Populate test data from testdata.h
+  MatrixXd Xcat;
+  vMatrixXd X;
+  makeXdata(Xcat, X);
+
+  // GMC
+  Dirichlet weights;
+  vector<GaussWish> clusters;
+  MatrixXd qZ;
+
+  double F = learnBGMM(Xcat, qZ, weights, clusters, PRIORVAL, true);
+
+  cout << endl << "Cluster Weights:" << endl;
+  cout << weights.Elogweight().exp().transpose() << endl;
+
+  cout << endl << "Cluster means:" << endl;
+  for (vector<GaussWish>::iterator k=clusters.begin(); k < clusters.end(); ++k)
+    cout << k->getmean() << endl;
+
+  cout << endl << "Cluster covariances:" << endl;
+  for (vector<GaussWish>::iterator k=clusters.begin(); k < clusters.end(); ++k)
+    cout << k->getcov() << endl << endl;
+
+  return 0;
+}
+
+```
+
+Note that `distributions.h` has also been included. In fact, all of the
+algorithms in `libcluster.h` are just wrappers over a few key functions in
+`libcluster.cpp`` which can take in arbitrary distributions as inpus, and so
+more algorithms potentially exist than enumerated in `libcluster.h`. There are
+also some generally useful functions included in `probutils.h` when dealing
+with mixture models (such as the log-sum-exp trick).
 
 
 PYTHON INTERFACE
