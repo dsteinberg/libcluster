@@ -40,7 +40,7 @@ TABLE OF CONTENTS
 
 * [Install Instructions](#install-instructions)
 
-* [C++ Interface](#c++-interface)
+* [C++ Interface](#c-interface)
 
 * [Python Interface](#python-interface)
 
@@ -230,15 +230,18 @@ This installs all the same files as step (4), as well as `libclusterpy.so` to
 your python staging directory, so it should be on your python path. I.e. just
 run
 
-    import libclusterpy
-
+    ```python
+        import libclusterpy
+    ```
 
 ### Usage
 
 Import the library as
 
-    import numpy as np
-    import libclusterpy as lc
+    ```python
+        import numpy as np
+        import libclusterpy as lc
+    ```
 
 Then for the mixture models, assuming `X` is a numpy array where `X.shape` is 
 `(N, D)` -- `N` being the number of samples, and `D` being the dimension of
