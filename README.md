@@ -10,6 +10,7 @@ Daniel Steinberg
 ***License***: 
 GPL v3 (See LICENSE)
 
+***Overview***:
 
 This library implements the following algorithms and functions:
  
@@ -32,44 +33,20 @@ This library implements the following algorithms and functions:
 * * *
 
 
-REFERENCES
-----------
+TABLE OF CONTENTS
+-----------------
 
-**[1]** K. Kurihara, M. Welling, and N. Vlassis. Accelerated variational
-    Dirichlet process mixtures, Advances in Neural Information Processing
-    Systems, vol. 19, p. 761, 2007.
+* [Dependencies](#DEPENDENCIES)
 
-**[2]** D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
-    nonparametric approach to clustering data from underwater robotic
-    surveys. In International Symposium on Robotics Research, Flagstaff, AZ, 
-    Aug. 2011.
+* [Install Instructions](#INSTALL-INSTRUCTIONS)
 
-**[3]** C. M. Bishop. Pattern Recognition and Machine Learning. Cambridge, UK:
-    Springer Science+Business Media, 2006.
-   
-**[4]** D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of  
-    Image and Segment Descriptors for Unsupervised Scene Understanding, In 
-    International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
-    2013. 
+* [Python Interface](#PYTHON-INTERFACE)
 
-**[5]** D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian
-    Models for Unsupervised Scene Understanding. Journal of Computer Vision and
-    Image Understanding (CVIU). Elsevier, 2014.
-    
-**[6]** D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
-    Thesis, 2013.
-     
-Please consider citing the following if you use this code:
+* [Matlab Interface](#MATLAB-INTERFACE)
 
- * VDP: [2, 4, 6]
- * BGMM: [5, 6]
- * GMC: [6]
- * SGMC/GLDA: [4, 5, 6]
- * SCM: [5, 6]
- * MCM: [4, 5, 6]  
+* [General Usability Tips](#GENERAL-USABILITY-TIPS)
 
-You can find these on my [homepage](http://www.daniel-steinberg.info). 
-Thank you!
+* [References and Citing](#REFERENCES-AND-CITING)
 
 
 * * *
@@ -81,7 +58,7 @@ DEPENDENCIES
  - Eigen version 3.0 or greater
  - Boost version 1.4.x or greater (special math functions)
  - OpenMP, comes default with most compilers (may need a special version of 
-    LLVM).
+    [LLVM](http://openmp.llvm.org/)).
  - CMake
 
 For the python interface:
@@ -90,8 +67,10 @@ For the python interface:
  - Numpy (tested with v1.7)
 
 
-INSTALL INSTRUCTIONS (Linux/OS X) 
----------------------------------
+INSTALL INSTRUCTIONS
+--------------------
+
+*For Linux and OS X -- I've never tried to build on Windows.*
 
 To build libcluster:
 
@@ -129,32 +108,30 @@ To build libcluster:
 **NOTE**: There are few options you can change using ccmake (or the cmake gui),
 these include:
    
-- `BUILD_EXHAUST_SPLIT` (toggle `ON` or `OFF`, default `OFF`)
-    This uses the exhaustive cluster split heuristic [1, 2] instead of the
-    greedy heuristic [4, 5] for all algorithms but the SCM and MCM. The greedy
-    heuristic is MUCH faster, but does give different results. I have yet to
-    determine whether it is actually worse than the exhaustive method (if it is,
-    it is not by much). The SCM and MCM only use the greedy split heuristic at
-    this stage.
+- `BUILD_EXHAUST_SPLIT` (toggle `ON` or `OFF`, default `OFF`) This uses the
+  exhaustive cluster split heuristic [1, 2] instead of the greedy heuristic [4,
+  5] for all algorithms but the SCM and MCM. The greedy heuristic is MUCH
+  faster, but does give different results. I have yet to determine whether it
+  is actually worse than the exhaustive method (if it is, it is not by much).
+  The SCM and MCM only use the greedy split heuristic at this stage.
 
-- `BUILD_PYTHON_INTERFACE` (toggle `ON` or `OFF`, default `OFF`)
-    Build the python interface. This requires boost python. Unfortunately, if
-    this is enabled, then the matlab interface cannot be built. This is
-    because python is row-major, and matlab is column major, so we need to
-    build Eigen accordingly.
+- `BUILD_PYTHON_INTERFACE` (toggle `ON` or `OFF`, default `OFF`) Build the
+  python interface. This requires boost python. Unfortunately, if this is
+  enabled, then the matlab interface cannot be built. This is because python is
+  row-major, and matlab is column major, so we need to build Eigen accordingly.
      
-- `CMAKE_INSTALL_PREFIX` (default `/usr/local`)
-    The default prefix for installing the library and binaries.
+- `CMAKE_INSTALL_PREFIX` (default `/usr/local`) The default prefix for
+  installing the library and binaries.
      
-- `EIGEN_INCLUDE_DIRS` (default `/usr/include/eigen3`)
-    Where to look for the Eigen matrix library.  
+- `EIGEN_INCLUDE_DIRS` (default `/usr/include/eigen3`) Where to look for the
+  Eigen matrix library.  
    
 **NOTE**: On linux you may have to run `sudo ldconfig` before the system can
 find libcluster.so (or just reboot).
 
 
-PYTHON INTERFACE (Linux)
-------------------------
+PYTHON INTERFACE
+----------------
 
 ### Installation
 
@@ -250,8 +227,8 @@ Look at the `libclusterpy` docstrings for more help on usage, and the
 `testapi.py` script in the `python` directory for more usage examples. 
 
 
-MATLAB INTERFACE (Linux/OS X)
------------------------------
+MATLAB INTERFACE
+----------------
 
 ### Installation
 
@@ -412,9 +389,6 @@ cluster parameters. Like the SCM, this has a number of optional inputs,
 Look at the functions' help strings for more help on usage.
 
 
-* * *
-
-
 GENERAL USABILITY TIPS
 ----------------------
 
@@ -485,3 +459,45 @@ For best clustering results, I have found the following tips may help:
     inf).  The clustering solution may also be sensitive to the prior. I find
     usually using a prior value that has the approximate magnitude of your data
     or more leads to better convergence.
+
+
+* * *
+
+
+REFERENCES AND CITING
+---------------------
+
+**[1]** K. Kurihara, M. Welling, and N. Vlassis. Accelerated variational
+Dirichlet process mixtures, Advances in Neural Information Processing Systems,
+vol. 19, p. 761, 2007.
+
+**[2]** D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A
+Bayesian nonparametric approach to clustering data from underwater robotic
+surveys. In International Symposium on Robotics Research, Flagstaff, AZ, Aug.
+2011.
+
+**[3]** C. M. Bishop. Pattern Recognition and Machine Learning. Cambridge, UK:
+Springer Science+Business Media, 2006.
+   
+**[4]** D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of
+Image and Segment Descriptors for Unsupervised Scene Understanding, In
+International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW, 2013. 
+
+**[5]** D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian
+Models for Unsupervised Scene Understanding. Journal of Computer Vision and
+Image Understanding (CVIU). Elsevier, 2014.
+    
+**[6]** D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+Thesis, 2013.
+     
+Please consider citing the following if you use this code:
+
+ * VDP: [2, 4, 6]
+ * BGMM: [5, 6]
+ * GMC: [6]
+ * SGMC/GLDA: [4, 5, 6]
+ * SCM: [5, 6]
+ * MCM: [4, 5, 6]  
+
+You can find these on my [homepage](http://www.daniel-steinberg.info). 
+Thank you!
