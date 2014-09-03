@@ -202,7 +202,7 @@ int main()
 
 Note that `distributions.h` has also been included. In fact, all of the
 algorithms in `libcluster.h` are just wrappers over a few key functions in
-`libcluster.cpp`` which can take in arbitrary distributions as inpus, and so
+`libcluster.cpp` which can take in arbitrary distributions as inputs, and so
 more algorithms potentially exist than enumerated in `libcluster.h`. There are
 also some generally useful functions included in `probutils.h` when dealing
 with mixture models (such as the log-sum-exp trick).
