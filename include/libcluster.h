@@ -39,24 +39,24 @@
  *
  *    - Variational Dirichlet Process (VDP) for Gaussian observations [1, 6], 
  *      see learnVDP().
- *    - The Bayesian Gaussian Mixture model [6] ch 11, see learnBGMM().
+ *    - The Bayesian Gaussian Mixture model [7] ch 11, see learnBGMM().
  *    - The Bayesian Gaussian Mixture model with diagonal covariance Gaussians,
  *      see learnDGMM().
  *    - Bayesian Exponential Mixture model with a Gamma prior, see learnBEMM().
- *    - Groups of Mixtures Clustering (GMC) model for Gaussian observations [4],
- *      see learnGMC().
+ *    - Groups of Mixtures Clustering (GMC) model for Gaussian observations
+ *      [4], see learnGMC().
  *    - Symmetric Groups of Mixtures Clustering (S-GMC) model for Gaussian
- *      observations [4], see learnSGMC(). This is referred to as Gaussian
- *      Latent Dirichlet Allocation (G-LDA) in [3].
+ *      observations [5], see learnSGMC(). This is referred to as Gaussian
+ *      Latent Dirichlet Allocation (G-LDA) in [3, 4].
  *    - Groups of Mixtures Clustering model for diagonal covariance Gaussian
  *      observations, see learnDGMC().
  *    - Groups of Mixtures Clustering model for Exponential observations, see
  *      learnEGMC().
  *    - Simultaneous Clustering Model (SCM) for Multinomial Documents, and
- *      Gaussian Observations, see learnSCM() and [4].
+ *      Gaussian Observations, see learnSCM() and [4, 5].
  *    - Multiple-source Clustering Model (MCM) for clustering two observations,
- *      one of an image/document, and multiple of segments/words simultaneously,
- *      see learnMCM() and [3, 4].
+ *      one of an image/document, and multiple of segments/words
+ *      simultaneously, see learnMCM() and [3, 4, 5].
  *    - A myriad of other algorithms are possible, but have not been enumerated
  *      in the interfaces here.
  *
@@ -72,23 +72,27 @@
  *
  * [3] D. M. Steinberg, O. Pizarro, S. B. Williams. Synergistic Clustering of
  *     Image and Segment Descriptors for Unsupervised Scene Understanding.
- *     In International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
- *     2013.
+ *     In International Conference on Computer Vision (ICCV). IEEE, Sydney,
+ *     NSW, 2013.
  *
- * [4] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+ * [4] D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian
+ *     Models for Unsupervised Scene Understanding. Journal of Computer Vision
+ *     and Image Understanding (CVIU). Elsevier, 2014.
+ *
+ * [5] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
  *     Thesis, 2013.
  *
- * [5] D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
+ * [6] D. M. Steinberg, A. Friedman, O. Pizarro, and S. B. Williams. A Bayesian 
  *     nonparametric approach to clustering data from underwater robotic
  *     surveys. In International Symposium on Robotics Research, Flagstaff, AZ, 
  *     Aug. 2011.
  *
- * [6] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
+ * [7] C. M. Bishop, Pattern Recognition and Machine Learning. Cambridge, UK:
  *     Springer Science+Business Media, 2006.
  *
- * \note The greedy cluster splitting heuristic is different from that presented
- *       in [1] in that it is much faster, but may not choose the "best" cluster
- *       to split first.
+ * \note The greedy cluster splitting heuristic is different from that 
+ *       presented in [1] in that it is much faster, but may not choose the 
+ *       "best" cluster to split first.
  *
  * \note The code is generic enough to allow new clustering algorithms to be
  *       implemented quickly, since all of the algorithms use templated
@@ -102,8 +106,8 @@
  *
  * \todo Find a better way to parallelise the vanilla clustering algorithms.
  * \todo Make this library more generic so discrete distributions can be used?
- * \todo Should probably get rid of all the vector copies in splitting functions
- *       and interface functions.
+ * \todo Should probably get rid of all the vector copies in splitting
+ *       functions and interface functions.
  */
 namespace libcluster
 {
@@ -351,13 +355,13 @@ double learnGMC (
 
 /*! \brief The learning algorithm for the Symmetric Groups of Mixtures
  *         Clustering model. The is referred to as *Gaussian Latent Dirichlet
- *         Allocation* (G-LDA) in [3].
+ *         Allocation* (G-LDA) in [3, 4].
  *
  * This function implements the Symmetric Groups of Mixtures Clustering model
- * as specified by [4], with the additional "sparse" option. The Symmetric GMC
- * uses a symmetric Dirichlet prior on the group mixture weights and Gaussian
- * cluster distributions (With Gausian-Wishart priors). This algorithm is
- * similar to latent Dirichlet allocation with Gaussian observations.
+ * as specified by [4, 5], with the additional "sparse" option. The Symmetric 
+ * GMC uses a symmetric Dirichlet prior on the group mixture weights and
+ * Gaussian cluster distributions (With Gausian-Wishart priors). This algorithm
+ * is similar to latent Dirichlet allocation with Gaussian observations.
  *
  *  \param X the observation matrices. Vector of N_jxD matrices where N_j is
  *         the number of observations in each group, j, and D is the number
@@ -403,7 +407,7 @@ double learnSGMC (
  *         but with diagonal covariance Gaussians.
  *
  * This function implements the Groups of Mixtues Clustering model algorithm
- * as specified by [4], with the additional "sparse" option but with diagonal
+ * as specified by [5], with the additional "sparse" option but with diagonal
  * covariance Gaussians, i.e. this is a Naive-Bayes assumption. The DGMC uses a
  * Generalised Dirichlet prior on the group mixture weights and Normal cluster
  * distributions (With Normal-Gamma priors). This algorithm is similar to a
@@ -505,7 +509,7 @@ double learnEGMC (
 /*! \brief The learning algorithm for the "Simultaneous Clustering Model".
  *
  * This function implements the "Simultaneous Clustering Model" algorithm
- * as specified by [4]. The SCM uses a Generalised Dirichlet prior on the
+ * as specified by [4, 5]. The SCM uses a Generalised Dirichlet prior on the
  * group mixture weights, a Dirichlet prior on the top-level clusters and
  * Gaussian bottom-level cluster distributions for observations (with
  * Gausian-Wishart priors).
@@ -552,7 +556,8 @@ double learnEGMC (
  *          algorithm such as negative free energy steps, unexpected empty
  *          clusters etc.
  */
-double learnSCM (const vvMatrixXd& X,
+double learnSCM (
+    const vvMatrixXd& X,
     vMatrixXd& qY,
     vvMatrixXd& qZ,
     std::vector<distributions::GDirichlet>& weights_j,
@@ -574,7 +579,7 @@ double learnSCM (const vvMatrixXd& X,
 /*! \brief The learning algorithm for the "Multiple-source Clustering Model".
  *
  * This function implements the "Multiple-source Clustering Model" algorithm as
- * specified by [3] and [4]. This model jointly cluster both "document" level
+ * specified by [3 - 5]. This model jointly cluster both "document" level
  * observations, and "word" observations. The MCM uses a Generalised
  * Dirichlet prior on the group mixture weights, Multinomial-Gaussian top-level
  * (document) clusters, and Gaussian bottom-level (word) cluster distributions.

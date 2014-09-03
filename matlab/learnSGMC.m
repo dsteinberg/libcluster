@@ -6,7 +6,7 @@
 %   algorithm is similar to latent Dirichlet allocation with Gaussian
 %   observations. 
 %
-%   This is referred to Gaussian Latent Dirichlet Allocation (G-LDA) in [2].
+%   This is referred to Gaussian Latent Dirichlet Allocation (G-LDA) in [2, 3].
 %
 %   [qZ, weights, means, covariances] = learnSGMC (X, options)
 %
@@ -37,6 +37,9 @@
 %      Scene Understanding. D. M. Steinberg, O. Pizarro, S. B. Williams. In 
 %      International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW, 
 %      2013.
+%  [3] D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian 
+%      Models for Unsupervised Scene Understanding. Journal of Computer Vision
+%      and Image Understanding (CVIU). Elsevier, 2014.
 
 % libcluster -- A collection of Bayesian clustering algorithms
 % Copyright (C) 2013  Daniel M. Steinberg (d.steinberg@acfr.usyd.edu.au)

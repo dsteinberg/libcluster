@@ -1,5 +1,5 @@
 % The Simulaneous Clustering Model (SCM) clustering algorithm.
-%  This function uses the Simultaneous Clustering Model [1] to simultaneously
+%  This function uses the Simultaneous Clustering Model [1, 2] to simultaneously
 %  cluster words/segments etc and documents/images etc while also sharing these
 %  between datasets. It uses a Generalised Dirichlet prior over the group
 %  mixture weights, a Dirichlet prior over the document/image clusters, and a
@@ -35,7 +35,10 @@
 % Date:   19/10/2013
 %
 % References:
-%  [1] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+%  [1] D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian 
+%      Models for Unsupervised Scene Understanding. Journal of Computer Vision
+%      and Image Understanding (CVIU). Elsevier, 2014.
+%  [2] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
 %      Thesis, 2013.
 
 % libcluster -- A collection of Bayesian clustering algorithms

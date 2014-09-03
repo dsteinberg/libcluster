@@ -1,5 +1,5 @@
 % The Multiple-source Clustering Model (MCM) clustering algorithm.
-%  This function uses the Multiple-source Clustering Model [1, 2] to 
+%  This function uses the Multiple-source Clustering Model [1 - 3] to 
 %  simultaneously cluster words/segment observations and documents/image 
 %  observations while also sharing these between datasets. It uses a Generalised
 %  Dirichlet prior over the group mixture weights, a Dirichlet prior over the
@@ -47,7 +47,10 @@
 %      Scene Understanding. D. M. Steinberg, O. Pizarro, S. B. Williams. In 
 %      International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW, 
 %      2013.
-%  [2] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+%  [2] D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian 
+%      Models for Unsupervised Scene Understanding. Journal of Computer Vision
+%      and Image Understanding (CVIU). Elsevier, 2014.
+%  [3] D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
 %      Thesis, 2013.
 
 % libcluster -- A collection of Bayesian clustering algorithms

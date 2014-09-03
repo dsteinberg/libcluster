@@ -51,18 +51,22 @@ REFERENCES
     Image and Segment Descriptors for Unsupervised Scene Understanding, In 
     International Conference on Computer Vision (ICCV). IEEE, Sydney, NSW,
     2013. 
+
+**[5]** D. M. Steinberg, O. Pizarro, S. B. Williams. Hierarchical Bayesian
+    Models for Unsupervised Scene Understanding. Journal of Computer Vision and
+    Image Understanding (CVIU). Elsevier, 2014.
     
-**[5]** D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
+**[6]** D. M. Steinberg, An Unsupervised Approach to Modelling Visual Data, PhD
     Thesis, 2013.
      
 Please consider citing the following if you use this code:
 
- * VDP: [2, 4, 5]
- * BGMM: [5]
- * GMC: [5]
- * SGMC: [4, 5]
- * SCM: [5]
- * MCM: [4, 5]  
+ * VDP: [2, 4, 6]
+ * BGMM: [5, 6]
+ * GMC: [6]
+ * SGMC/GLDA: [4, 5, 6]
+ * SCM: [5, 6]
+ * MCM: [4, 5, 6]  
 
 You can find these on my [homepage](http://www.daniel-steinberg.info). 
 Thank you!
@@ -76,7 +80,8 @@ DEPENDENCIES
 
  - Eigen version 3.0 or greater
  - Boost version 1.4.x or greater (special math functions)
- - OpenMP, comes default with most compilers (not LLVM).
+ - OpenMP, comes default with most compilers (may need a special version of 
+    LLVM).
  - CMake
 
 For the python interface:
@@ -145,34 +150,110 @@ these include:
     Where to look for the Eigen matrix library.  
    
 **NOTE**: On linux you may have to run `sudo ldconfig` before the system can
-find libcluster.so.
+find libcluster.so (or just reboot).
 
 
 PYTHON INTERFACE (Linux)
 ------------------------
 
+### Installation
+
 Easy, follow the normal build instructions up to step (4) (if you haven't
 already), then from the build directory:
 
-        cmake ..
-        ccmake .
+    cmake ..
+    ccmake .
 
 Make sure `BUILD_PYTHON_INTERFACE` is `ON`
 
-        make
-        sudo make install
+    make
+    sudo make install
 
 This installs all the same files as step (4), as well as `libclusterpy.so` to
 your python staging directory, so it should be on your python path. I.e. just
 run
 
-        import libclusterpy
+    import libclusterpy
 
-Look at the `libclusterpy` docstrings for more help on usage. 
+
+### Usage
+
+Import the library as
+
+    import numpy as np
+    import libclusterpy as lc
+
+Then for the mixture models, assuming `X` is a numpy array where `X.shape` is 
+`(N, D)` -- `N` being the number of samples, and `D` being the dimension of
+each sample,
+
+    f, qZ, w, mu, cov = lc.learnBGMM(X)
+
+where `f` is the final free energy value, `qZ` is a distribution over all of
+the cluster labels where `qZ.shape` is `(N, K)` and `K` is the number of
+clusters (each row of `qZ` sums to 1). Then `w`, `mu` and `cov` the expected
+posterior cluster parameters (see the documentation for details. Alternatively,
+tuning the `prior` argument can be used to change the number of clusters found,
+
+    f, qZ, w, mu, cov = lc.learnBGMM(X, prior=0.1)
+
+This interface is common to all of the simple mixture models (i.e. VDP, BGMM
+etc).
+
+For the group mixture models (GMC, SGMC etc) `X` is a *list* of arrays of size
+`(Nj, D)` (indexed by j), one for each group/album, `X = [X_1, X_2, ...]`. The
+returned `qZ` and `w` are also lists of arrays, one for each group, e.g.,
+
+    f, qZ, w, mu, cov = lc.learnSGMC(X)
+
+The SCM again has a similar interface to the above models, but now `X` is a
+*list of lists of arrays*, `X = [[X_11, X_12, ...], [X_21, X_22, ...], ...]`.
+This specifically for modelling situations where `X` is a matrix of all of the
+features of, for example, `N_ij` segments in image `ij` in album `j`.
+
+    f, qY, qZ, wi, wij, mu, cov = lc.learnSCM(X)
+
+Where `qY` is a list of arrays of top-level/image cluster probabilities, `qZ`
+is a list of lists of arrays of bottom-level/segment cluster probabilities.
+`wi` are the mixture weights (list of arrays) corresponding to the `qY` labels,
+and `wij` are the weights (list of lists of arrays) corresponding the `qZ`
+labels. This has two optional prior inputs, and a cluster truncation level
+(max number of clusters) for the top-level/image clusters,
+
+    f, qY, qZ, wi, wij, mu, cov = lc.learnSCM(X, trunc=10, dirprior=1,
+                                              gausprior=0.1)
+
+Where `dirprior` refers to the top-level cluster prior, and `gausprior` the
+bottom-level. 
+
+Finally, the MCM has a similar interface to the MCM, but with an extra input,
+`W` which is of the same format as the `X` in the GMC-style models, i.e. it is
+a list of arrays of top-level or image features, `W = [W_1, W_2, ...]`. The
+usage is,
+
+    f, qY, qZ, wi, wij, mu_t, mu_k, cov_t, cov_k = lc.learnMCM(W, X)
+    
+Here `mu_t` and `cov_t` are the top-level posterior cluster parameters -- these
+are both lists of `T` cluster parameters (`T` being the number of clusters
+found. Similarly `mu_k` and `cov_k` are lists of `K` bottom-level posterior
+cluster parameters. Like the SCM, this has a number of optional inputs,
+
+
+    f, qY, qZ, wi, wij, mu_t, mu_k, cov_t, cov_k = lc.learnMCM(W, X, trunc=10,
+                                                               gausprior_t=1,
+                                                               gausprior_k=0.1)
+
+Where `gausprior_t` refers to the top-level cluster prior, and `gausprior_k`
+the bottom-level. 
+
+Look at the `libclusterpy` docstrings for more help on usage, and the
+`testapi.py` script in the `python` directory for more usage examples. 
 
 
 MATLAB INTERFACE (Linux/OS X)
 -----------------------------
+
+### Installation
 
 I have included a mex interface for using this library with Matlab. You just
 need to make sure that:
@@ -255,11 +336,87 @@ To build the Matlab interface:
     To your version of OS X, e.g. 10.7.
 
 
+### Usage
+
+Add the library to your path,
+
+    addpath('path/to/libcluster/matlab/directory')
+
+Then for the mixture models, assuming `X` is a matrix where `size(X)` is 
+`[N, D]` -- `N` being the number of samples, and `D` being the dimension of
+each sample,
+
+    [f, qZ, w, mu, cov] = learnBGMM(X)
+
+where `f` is the final free energy value, `qZ` is a distribution over all of
+the cluster labels where `size(qZ)` is `[N, K]` and `K` is the number of
+clusters (each row of `qZ` sums to 1). Then `w`, `mu` and `cov` the expected
+posterior cluster parameters (see the documentation for details. Alternatively,
+tuning the `prior` argument can be used to change the number of clusters found,
+
+    options.prior = 0.1
+    [f, qZ, w, mu, cov] = learnBGMM(X, options)
+
+This interface is common to all of the simple mixture models (i.e. VDP, BGMM
+etc). Please see the function documentation for more valid members of
+`options`.
+
+For the group mixture models (GMC, SGMC etc) `X` is a *cell array* of matrices
+of size `[Nj, D]` (indexed by j), one for each group/album, `X = {X_1, X_2,
+...}`. The returned `qZ` and `w` are also cell arrays of matrices, one for each
+group, e.g.,
+
+    [f, qZ, w, mu, cov] = learnSGMC(X)
+
+The SCM again has a similar interface to the above models, but now `X` is a
+*cell array of cell arrays of matrices*, `X = {{X_11, X_12, ...}, {X_21, X_22,
+...}, ...}`. This specifically for modelling situations where `X` is a matrix
+of all of the features of, for example, `N_ij` segments in image `ij` in album
+`j`.
+
+    [f, qY, qZ, wi, wij, mu, cov] = learnSCM(X)
+
+Where `qY` is a cell array of matrices of top-level/image cluster
+probabilities, `qZ` is a cell array of cell arrays of matrices of
+bottom-level/segment cluster probabilities. `wi` are the mixture weights (cell
+array of matrices) corresponding to the `qY` labels, and `wij` are the weights
+(cell array of cell arrays of matrices) corresponding the `qZ` labels. This has
+two optional prior inputs, and a cluster truncation level (max number of
+clusters) for the top-level/image clusters,
+
+    options.trunc = 10
+    options.prior = 1
+    options.prior2 = 0.1
+    [f, qY, qZ, wi, wij, mu, cov] = learnSCM(X, options)
+
+Where `prior` refers to the top-level cluster prior, and `prior2` the
+bottom-level. 
+
+Finally, the MCM has a similar interface to the MCM, but with an extra input,
+`W` which is of the same format as the `X` in the GMC-style models, i.e. it is
+a cell array of matrices of top-level or image features, `W = {W_1, W_2, ...}`.
+The usage is,
+
+    [f, qY, qZ, wi, wij, mu_t, mu_k, cov_t, cov_k] = learnMCM(W, X)
+    
+Here `mu_t` and `cov_t` are the top-level posterior cluster parameters -- these
+are both lists of `T` cluster parameters (`T` being the number of clusters
+found. Similarly `mu_k` and `cov_k` are lists of `K` bottom-level posterior
+cluster parameters. Like the SCM, this has a number of optional inputs,
+
+    options.trunc = 10
+    options.prior = 1
+    options.prior2 = 0.1
+    [f, qY, qZ, wi, wij, mu_t, mu_k, cov_t, cov_k] = learnMCM(W, X, options)
+
+Look at the functions' help strings for more help on usage.
+
+
 * * *
 
 
-USABILITY TIPS
---------------
+GENERAL USABILITY TIPS
+----------------------
 
 When verbose mode is activated you will get output that looks something like
 this:
@@ -320,12 +477,11 @@ For best clustering results, I have found the following tips may help:
     Also, to get some automatic scaling you can multiply the prior by the 
     PRINCIPAL eigenvector of `cov(X)` (or `cov(X_s)`, `cov(X_w)`).
     
-    **NOTE**: If you use diagonal covariance Gaussians I STRONGLY recommend PCA or 
-          ZCA whitening your data first, otherwise you may end up with hundreds
-          of clusters!
+    **NOTE**: If you use diagonal covariance Gaussians I STRONGLY recommend PCA
+    or ZCA whitening your data first, otherwise you may end up with hundreds of
+    clusters!
           
-4.  For Exponential clusters: Your observations have to be in the range [0, inf).
-    The clustering solution may also be sensitive to the prior. I find usually 
-    using a prior value that has the approximate magnitude of your data or more
-    leads to better convergence.
-
+4.  For Exponential clusters: Your observations have to be in the range [0,
+    inf).  The clustering solution may also be sensitive to the prior. I find
+    usually using a prior value that has the approximate magnitude of your data
+    or more leads to better convergence.
