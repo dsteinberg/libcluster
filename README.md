@@ -123,14 +123,17 @@ these include:
   row-major, and matlab is column major, so we need to build Eigen accordingly.
      
 - `CMAKE_INSTALL_PREFIX` (default `/usr/local`) The default prefix for
-  installing the library and binaries. **NOTE** On Red-Hat based systems, 
-  `/usr/local/lib` is not checked unless added to `/etc/ld.so.conf`!
+  installing the library and binaries.
      
 - `EIGEN_INCLUDE_DIRS` (default `/usr/include/eigen3`) Where to look for the
   Eigen matrix library.  
    
 **NOTE**: On linux you may have to run `sudo ldconfig` before the system can
 find libcluster.so (or just reboot).
+
+**NOTE**: On Red-Hat based systems, `/usr/local/lib` is not checked unless 
+added to `/etc/ld.so.conf`! This may lead to "cannot find libcluster.so" 
+errors.
 
 
 C++ INTERFACE
