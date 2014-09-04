@@ -123,7 +123,8 @@ these include:
   row-major, and matlab is column major, so we need to build Eigen accordingly.
      
 - `CMAKE_INSTALL_PREFIX` (default `/usr/local`) The default prefix for
-  installing the library and binaries.
+  installing the library and binaries. **NOTE** On Red-Hat based systems, 
+  `/usr/local/lib` is not checked unless added to `/etc/ld.so.conf`!
      
 - `EIGEN_INCLUDE_DIRS` (default `/usr/include/eigen3`) Where to look for the
   Eigen matrix library.  
