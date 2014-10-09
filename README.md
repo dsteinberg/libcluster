@@ -2,13 +2,13 @@ Libcluster
 ==========
 
 ***Author***:
-Daniel Steinberg
+[Daniel Steinberg](http://www.daniel-steinberg.info)
 
 ***Date***:
-20/10/2013
+20 Oct 2013
 
 ***License***: 
-GPL v3 (See LICENSE)
+LGPL v3 (See COPYING and COPYING.LESSER)
 
 ***Overview***:
 

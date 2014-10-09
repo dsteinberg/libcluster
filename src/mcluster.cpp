@@ -1,21 +1,22 @@
 /*
- * libcluster -- A collection of Bayesian clustering algorithms
- * Copyright (C) 2013  Daniel M. Steinberg (d.steinberg@acfr.usyd.edu.au)
+ * libcluster -- A collection of hierarchical Bayesian clustering algorithms.
+ * Copyright (C) 2013 Daniel M. Steinberg (daniel.m.steinberg@gmail.com)
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This file is part of libcluster.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTCTULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * libcluster is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * libcluster is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with libcluster. If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 #include <limits>
 #include "libcluster.h"
