@@ -123,6 +123,10 @@ these include:
   python interface. This requires boost python. Unfortunately, if this is
   enabled, then the matlab interface cannot be built. This is because python is
   row-major, and matlab is column major, so we need to build Eigen accordingly.
+
+- `BUILD_USE_PYTHON3` (toggle `ON` or `OFF`, default `ON`) Use python 3 or 2 to
+  build the python interface. Make sure you have the relevant python and boost
+  python libraries installed!
      
 - `CMAKE_INSTALL_PREFIX` (default `/usr/local`) The default prefix for
   installing the library and binaries.
