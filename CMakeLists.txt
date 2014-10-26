@@ -29,6 +29,7 @@ endif(INSOURCE)
 # Some compilation options (changeable from ccmake)
 option(BUILD_EXHAUST_SPLIT "Use the exhaustive cluster split heuristic?" off)
 option(BUILD_PYTHON_INTERFACE "Build the python interface?" off)
+option(BUILD_USE_PYTHON3 "Use python3 instead of python 2?" on)
 
 # Locations for source code
 set(LIB_SOURCE_DIR    ${PROJECT_SOURCE_DIR}/src)

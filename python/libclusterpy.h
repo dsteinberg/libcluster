@@ -133,6 +133,22 @@ boost::python::tuple wrapperMCM (
 
 
 //
+//  Hack for python2/3 numpy return value weirdness
+//
+
+#if PY_MAJOR_VERSION >= 3
+int*
+#else
+void
+#endif
+init_numpy()
+{
+    import_array();
+    return NULL;
+} 
+
+
+//
 //  Module definition
 //
 
@@ -181,7 +197,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
 
 
   // To-python converters
-  import_array();
+  init_numpy();
   to_python_converter< Eigen::ArrayXd, eigen2numpy<Eigen::ArrayXd> >();
   to_python_converter< Eigen::MatrixXd, eigen2numpy<Eigen::MatrixXd> >();
   to_python_converter< std::vector<Eigen::ArrayXd>,

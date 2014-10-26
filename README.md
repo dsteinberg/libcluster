@@ -65,7 +65,9 @@ DEPENDENCIES
 
 For the python interface:
 
- - Boost python
+ - Python 2 or 3
+ - Boost python (make sure you version 2 or 3 for the relevant version of
+   python)
  - Numpy (tested with v1.7)
 
 
@@ -312,6 +314,12 @@ the bottom-level.
 
 Look at the `libclusterpy` docstrings for more help on usage, and the
 `testapi.py` script in the `python` directory for more usage examples. 
+
+**NOTE** if you get the following message when importing libclusterpy:
+    
+    ImportError: /lib64/libboost_python.so.1.54.0: undefined symbol: PyClass_Type
+    
+Make sure you have `boost-python3` installed!
 
 
 MATLAB INTERFACE
