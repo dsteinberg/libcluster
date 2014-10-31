@@ -30,11 +30,10 @@ This library implements the following algorithms and functions:
    primary Eigenvalues etc of data.
 
 
-<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg"
-      style="float: left; width: 48%; margin-right: 1%;">
-<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg"
-      style="float: left; width: 48%;">
-
+<section>
+<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="300">
+<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="300">
+</section>
 An example of using the MCM to simultaneously cluster images and objects within
 images for unsupervised scene understanding. See [4 - 6] for more information.
 
