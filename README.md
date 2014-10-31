@@ -30,6 +30,14 @@ This library implements the following algorithms and functions:
    primary Eigenvalues etc of data.
 
 
+<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg"
+      style="float: left; width: 48%; margin-right: 1%;">
+<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg"
+      style="float: left; width: 48%;">
+
+An example of using the MCM to simultaneously cluster images and objects within
+images for unsupervised scene understanding. See [4 - 6] for more information.
+
 * * *
 
 
@@ -214,10 +222,14 @@ int main()
 
 Note that `distributions.h` has also been included. In fact, all of the
 algorithms in `libcluster.h` are just wrappers over a few key functions in
-`libcluster.cpp` which can take in arbitrary distributions as inputs, and so
-more algorithms potentially exist than enumerated in `libcluster.h`. There are
-also some generally useful functions included in `probutils.h` when dealing
-with mixture models (such as the log-sum-exp trick).
+`libcluster.cpp` which can take in *arbitrary* distributions as inputs, and so
+more algorithms potentially exist than enumerated in `libcluster.h`. If you
+want to create different algorithms, or define more cluster distributions (i.e.
+categorical) have a look at inheriting the `WeightDist` and `ClusterDist` base
+classes in `distributions.h`.
+
+There are also some generally useful functions included in `probutils.h` when
+dealing with mixture models (such as the log-sum-exp trick).
 
 
 PYTHON INTERFACE
