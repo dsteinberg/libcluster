@@ -12,7 +12,8 @@ LGPL v3 (See COPYING and COPYING.LESSER)
 
 ***Overview***:
 
-This library implements the following algorithms and functions:
+This library implements the following algorithms with variational Bayes
+learning procedures and efficient cluster splitting heuristics:
  
  * The Variational Dirichlet Process (VDP) [1, 2, 6]
  * The Bayesian Gaussian Mixture Model [3 - 6]
@@ -26,13 +27,17 @@ This library implements the following algorithms and functions:
    simultaneously [4 - 6]. 
  * And more clustering algorithms based on diagonal Gaussian, and 
    Exponential distributions.
+
+And also,
  * Various functions for evaluating means, standard deviations, covariance,
    primary Eigenvalues etc of data.
+ * Extensible template interfaces for creating new algorithms within the
+   variational Bayes framework.
 
 
 <section>
-<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="350">
-<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="350">
+<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="360">
+<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="360">
 </section>
 
 An example of using the MCM to simultaneously cluster images and objects within
@@ -222,11 +227,15 @@ int main()
 
 Note that `distributions.h` has also been included. In fact, all of the
 algorithms in `libcluster.h` are just wrappers over a few key functions in
-`libcluster.cpp` which can take in *arbitrary* distributions as inputs, and so
-more algorithms potentially exist than enumerated in `libcluster.h`. If you
-want to create different algorithms, or define more cluster distributions (i.e.
-categorical) have a look at inheriting the `WeightDist` and `ClusterDist` base
-classes in `distributions.h`.
+`cluster.cpp`, `scluster.cpp` and `mcluster.cpp` that can take in *arbitrary*
+distributions as inputs, and so more algorithms potentially exist than
+enumerated in `libcluster.h`. If you want to create different algorithms, or
+define more cluster distributions (like categorical) have a look at inheriting
+the `WeightDist` and `ClusterDist` base classes in `distributions.h`. Depending
+on the distributions you use, you may also have to come up with a way to
+'split' clusters. Otherwise you can create an algorithm with a random initial
+set of clusters like the MCM at the top level, which then variational Bayes
+will prune.
 
 There are also some generally useful functions included in `probutils.h` when
 dealing with mixture models (such as the log-sum-exp trick).
