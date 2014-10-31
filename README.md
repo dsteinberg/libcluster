@@ -31,9 +31,10 @@ This library implements the following algorithms and functions:
 
 
 <section>
-<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="300">
-<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="300">
+<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="350">
+<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="350">
 </section>
+
 An example of using the MCM to simultaneously cluster images and objects within
 images for unsupervised scene understanding. See [4 - 6] for more information.
 
