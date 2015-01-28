@@ -267,18 +267,8 @@ import libclusterpy
 
 **Trouble Shooting**:
 
-I've found things to be a bit strange on redhat/fedora systems. Specifically my
-build persistently fails with a "numpy/arrayobject.h not found" issue (even if
-I create a cmake find file!). This is because the numpy include directories are
-in a non-standard location. I find I have to do something like the following to
-get the python interface to build:
-
-```
-sudo ln -s /usr/lib64/python3.4/site-packages/numpy/core/include/numpy /usr/include/python3.4m/numpy
-```
-
-Then I have to also append `/usr/local/lib` to the file `/etc/ld.so.conf` to
-make python find the compiled shared object!
+On Fedora 20/21 I have to append `/usr/local/lib` to the file `/etc/ld.so.conf`
+to make python find the compiled shared object.
 
 
 ### Usage
