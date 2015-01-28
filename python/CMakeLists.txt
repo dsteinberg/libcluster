@@ -23,6 +23,8 @@ if(BUILD_PYTHON_INTERFACE)
     find_package(Boost COMPONENTS python REQUIRED)
   endif(BUILD_USE_PYTHON3)
 
+  include(${PYTHON_SOURCE_DIR}/FindNumpy.cmake REQUIRED)
+  include_directories(${NUMPY_INCLUDE_DIR})
   find_package(PythonLibs REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
     

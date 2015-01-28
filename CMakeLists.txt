@@ -9,6 +9,7 @@ cmake_minimum_required(VERSION 2.6)
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 include(${PROJECT_SOURCE_DIR}/FindEigen3.cmake REQUIRED)
+include_directories(${EIGEN_INCLUDE_DIRS})
 include(FindOpenMP)
 
 
