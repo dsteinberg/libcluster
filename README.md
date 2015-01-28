@@ -71,16 +71,16 @@ DEPENDENCIES
 ------------
 
  - Eigen version 3.0 or greater
- - Boost version 1.4.x or greater (special math functions)
+ - Boost version 1.4.x or greater and devel packages (special math functions)
  - OpenMP, comes default with most compilers (may need a special version of 
-    [LLVM](http://openmp.llvm.org/)).
+   [LLVM](http://openmp.llvm.org/)).
  - CMake
 
 For the python interface:
 
  - Python 2 or 3
- - Boost python (make sure you version 2 or 3 for the relevant version of
-   python)
+ - Boost python and boost python devel packages (make sure you have version 2
+   or 3 for the relevant version of python)
  - Numpy (tested with v1.7)
 
 
