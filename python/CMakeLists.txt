@@ -2,8 +2,10 @@ if(BUILD_PYTHON_INTERFACE)
 
   message(STATUS "Will build the python interface")
   if(BUILD_USE_PYTHON3)
+      set(PYCMD "python3")
       message(STATUS "Will use python 3")
   else(BUILD_USE_PYTHON3)
+      set(PYCMD "python2")
       message(STATUS "Will use python 2")
   endif(BUILD_USE_PYTHON3)
 
@@ -20,9 +22,10 @@ if(BUILD_PYTHON_INTERFACE)
   else(BUILD_USE_PYTHON3)
     find_package(Boost COMPONENTS python REQUIRED)
   endif(BUILD_USE_PYTHON3)
+
   find_package(PythonLibs REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
-
+    
 
   #--------------------------------#
   # Library Build Instructions     #
@@ -50,12 +53,6 @@ if(BUILD_PYTHON_INTERFACE)
   #--------------------------------#
   # Install Instructions           #
   #--------------------------------#
-
-  if(BUILD_USE_PYTHON3)
-      set(PYCMD "python3")
-  else(BUILD_USE_PYTHON3)
-      set(PYCMD "python2")
-  endif(BUILD_USE_PYTHON3)
 
   # Get python path
   execute_process(COMMAND ${PYCMD} -c
