@@ -4,9 +4,6 @@ Libcluster
 ***Author***:
 [Daniel Steinberg](http://www.daniel-steinberg.info)
 
-***Date***:
-20 Oct 2013
-
 ***License***: 
 LGPL v3 (See COPYING and COPYING.LESSER)
 
