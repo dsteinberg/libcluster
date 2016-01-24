@@ -1,10 +1,6 @@
 language: cpp
 sudo: required
 
-python:
-    - "3.4"
-    # - "2.7"
-
 addons:
     apt:
         packages:
@@ -13,14 +9,12 @@ addons:
             - libboost-all-dev
             - libboost-python-dev
             - python-numpy
-            - python3-numpy
 
 install:
     - cd $TRAVIS_BUILD_DIR
     - mkdir build
     - cd build
-    # - cmake -DBUILD_PYTHON_INTERFACE=ON -DBUILD_USE_PYTHON3=OFF ..
-    - cmake -DBUILD_PYTHON_INTERFACE=ON ..
+    - cmake -DBUILD_PYTHON_INTERFACE=ON -DBUILD_USE_PYTHON3=OFF ..
     - make
     - sudo make install
 
@@ -31,4 +25,4 @@ script:
     - ./mcluster_test
     - sudo ldconfig
     - cd ../python
-    - python3 testapi.py
+    - ./testapi.py
