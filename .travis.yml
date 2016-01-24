@@ -1,0 +1,22 @@
+language: cpp
+
+addons:
+    apt:
+        packages:
+            - cmake
+            - libeigen3-dev
+            - libboost-all-dev
+            - python3-numpy-dev
+
+install:
+    - cd $TRAVIS_BUILD_DIR
+    - mkdir build
+    - cd build
+    - cmake -G %1 -DBUILD_PYTHON_INTERFACE=ON ..
+    - make
+
+script:
+    - cd $TRAVIS_BUILD_DIR/build
+    - ./cluster_test
+    - ./scluster_test
+    - ./mcluster_test
