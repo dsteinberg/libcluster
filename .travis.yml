@@ -6,6 +6,7 @@ addons:
             - cmake
             - libeigen3-dev
             - libboost-all-dev
+            - libboost-python-dev
             - python3-numpy-dev
 
 install:
