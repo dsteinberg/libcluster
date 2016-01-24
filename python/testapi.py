@@ -32,50 +32,50 @@ import libclusterpy as lc
 # Top level cluster parameters -- Globals.... whatev...
 means = np.array([[0, 0], [5, 5], [-5, -5]])
 sigma = [np.eye(2)] * 3
-beta = np.array([[1.0/3, 1.0/3, 1.0/3],
-                 [1.0/2, 1.0/4, 1.0/4],
-                 [1.0/4, 1.0/4, 1.0/2]])
+beta = np.array([[1.0 / 3, 1.0 / 3, 1.0 / 3],
+                 [1.0 / 2, 1.0 / 4, 1.0 / 4],
+                 [1.0 / 4, 1.0 / 4, 1.0 / 2]])
 
 
 def testmixtures():
     """ The test function. """
 
-    print "Testing mixtures ------------------\n"
+    print("Testing mixtures ------------------\n")
 
     # Create points from clusters
     W = gengmm(10000)
 
     # Test VDP
-    print "------------ Test VDP -------------"
+    print("------------ Test VDP -------------")
     f, qZ, w, mu, cov = lc.learnVDP(W, verbose=True)
-    print ""
+    print("")
     printgmm(w, mu, cov)
 
     # Test BGMM
-    print "------------ Test BGMM ------------"
+    print("------------ Test BGMM ------------")
     f, qZ, w, mu, cov = lc.learnBGMM(W, verbose=True)
-    print ""
+    print("")
     printgmm(w, mu, cov)
 
 
 def testgroupmix():
 
-    print "Testing group mixtures ------------\n"
+    print("Testing group mixtures ------------\n")
 
     # Create points from clusters
     J = 4   # Groups
     W = [gengmm(2000) for j in range(0, J)]
 
     # Test GMC
-    print "------------ Test GMC -------------"
+    print("------------ Test GMC -------------")
     f, qZ, w, mu, cov = lc.learnGMC(W, verbose=True)
-    print ""
+    print("")
     printgmm(w, mu, cov)
 
     # Test SGMC
-    print "------------ Test SGMC ------------"
+    print("------------ Test SGMC ------------")
     f, qZ, w, mu, cov = lc.learnSGMC(W, verbose=True)
-    print ""
+    print("")
     printgmm(w, mu, cov)
 
 
@@ -90,23 +90,23 @@ def testmultmix():
     # Create points from clusters
     W = np.zeros((I, means.shape[1]))
     X = []
-    for i in xrange(0, I):
+    for i in range(0, I):
         W[i, :] = np.random.multivariate_normal(means[Y[i]], sigma[Y[i]], 1)
         X.append(gengmm(Ni, betas[i, :]))
 
     # Test SCM
-    print "------------ Test SCM -------------"
+    print("------------ Test SCM -------------")
     f, qY, qZ, wi, ws, mu, cov = lc.learnSCM([X], trunc=30, verbose=True)
-    print ""
+    print("")
     printgmm(ws, mu, cov)
 
     # Test MCM
-    print "------------ Test MCM -------------"
+    print("------------ Test MCM -------------")
     f, qY, qZ, wi, ws, mui, mus, covi, covs = lc.learnMCM([W], [X], trunc=30,
                                                           verbose=True)
-    print "\nTop level mixtures:"
+    print("\nTop level mixtures:")
     printgmm(wi, mui, covi)
-    print "Bottom level mixtures:"
+    print("Bottom level mixtures:")
     printgmm(ws, mus, covs)
 
 
@@ -136,7 +136,7 @@ def gensetweights(I):
 
     betas = []
     Y = []
-    for t in xrange(0, T):
+    for t in range(0, T):
         Y += Nt[t] * [t]
         betas.append(Nt[t] * [beta[t, :]])
 
@@ -150,12 +150,12 @@ def printgmm(W, Mu, Cov):
 
     for i, (mu, cov) in enumerate(zip(Mu, Cov)):
 
-        print "Mixture {0}:".format(i)
+        print("Mixture {0}:".format(i))
         if Wnp.ndim == 2:
-            print " weight --\n{0}".format(Wnp[i, :])
+            print(" weight --\n{0}".format(Wnp[i, :]))
         elif Wnp.ndim == 3:
-            print " group weights --\n{0}".format(Wnp[:, i, :])
-        print " mean --\n{0}\n cov --\n{1}\n".format(mu, cov)
+            print(" group weights --\n{0}".format(Wnp[:, i, :]))
+        print(" mean --\n{0}\n cov --\n{1}\n".format(mu, cov))
 
 
 if __name__ == "__main__":
