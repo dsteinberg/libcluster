@@ -12,7 +12,7 @@ install:
     - cd $TRAVIS_BUILD_DIR
     - mkdir build
     - cd build
-    - cmake -G %1 -DBUILD_PYTHON_INTERFACE=ON ..
+    - cmake -DBUILD_PYTHON_INTERFACE=ON ..
     - make
 
 script:
