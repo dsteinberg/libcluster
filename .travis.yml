@@ -9,7 +9,6 @@ addons:
             - libboost-all-dev
             - libboost-python-dev
             - python-numpy
-            - python-numpy-dev
 
 install:
     - cd $TRAVIS_BUILD_DIR
@@ -24,5 +23,6 @@ script:
     - ./cluster_test
     - ./scluster_test
     - ./mcluster_test
+    - sudo ldconfig
     - cd ../python
     - ./testapi.py
