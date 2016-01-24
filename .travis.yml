@@ -7,13 +7,13 @@ addons:
             - libeigen3-dev
             - libboost-all-dev
             - libboost-python-dev
-            - python3-numpy-dev
+            - python-numpy-dev
 
 install:
     - cd $TRAVIS_BUILD_DIR
     - mkdir build
     - cd build
-    - cmake -DBUILD_PYTHON_INTERFACE=ON ..
+    - cmake -DBUILD_PYTHON_INTERFACE=ON -DBUILD_USE_PYTHON3=OFF ..
     - make
 
 script:

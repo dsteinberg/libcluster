@@ -1,6 +1,8 @@
 Libcluster
 ==========
 
+https://travis-ci.org/dsteinberg/libcluster.svg?branch=master
+
 ***Author***:
 [Daniel Steinberg](http://www.daniel-steinberg.info)
 
