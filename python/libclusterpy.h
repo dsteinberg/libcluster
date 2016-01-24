@@ -144,7 +144,9 @@ void
 init_numpy()
 {
     import_array();
+#if PY_MAJOR_VERSION >= 3
     return NULL;
+#endif
 } 
 
 
