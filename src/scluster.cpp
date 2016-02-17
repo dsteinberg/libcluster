@@ -495,10 +495,10 @@ template <class WJ, class WT, class C> double scluster (
     vector<WJ>& weights_j,      // Group weight distributions
     vector<WT>& weights_t,      // Top-level cluster distributions
     vector<C>& clusters,        // Bottom-level cluster Distributions
-    const unsigned int T,       // Truncation level for number of weights
-    const int maxK,             // max number of (bottom) clusters
     const double prior_t,       // Prior value for top-level cluster dists.
     const double prior_k,       // Prior value for bottom-level cluster dists.
+    const unsigned int maxT,    // Truncation level for number of weights
+    const int maxK,             // max number of (bottom) clusters
     const bool verbose,         // Verbose output
     const unsigned int nthreads // Number of threads for OpenMP to use
     )
@@ -518,7 +518,7 @@ template <class WJ, class WT, class C> double scluster (
   {
     const unsigned int Ij = X[j].size();
 
-    ArrayXXd randm = (ArrayXXd::Random(Ij, T)).abs();
+    ArrayXXd randm = (ArrayXXd::Random(Ij, maxT)).abs();
     ArrayXd norm = randm.rowwise().sum();
     qY[j] = (randm.log().colwise() - norm.log()).exp();
 
@@ -530,8 +530,9 @@ template <class WJ, class WT, class C> double scluster (
   }
 
   // Some input argument checking
-  if (T > Itot)
-    throw invalid_argument("T must be less than the number of documents of X!");
+  if (maxT > Itot)
+    throw invalid_argument("maxT must be less than the number of documents of"
+                           "X!");
 
   // Initialise free energy and other loop variables
   bool issplit = true, emptyclasses = true;
@@ -583,10 +584,10 @@ double libcluster::learnSCM (
     vector<GDirichlet>& weights_j,
     vector<Dirichlet>& weights_t,
     vector<GaussWish>& clusters,
-    const unsigned int T,
-    const int maxK,
     const double dirprior,
     const double gausprior,
+    const unsigned int maxT,
+    const int maxK,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -597,9 +598,8 @@ double libcluster::learnSCM (
 
   // Model selection and Variational Bayes learning
   double F = scluster<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
-                weights_j, weights_t, clusters, T, maxK, dirprior, gausprior,
-                verbose, nthreads);
+                weights_j, weights_t, clusters, dirprior, gausprior, maxT,
+                maxK, verbose, nthreads);
 
   return F;
 }
-

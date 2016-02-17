@@ -532,10 +532,10 @@ template<class WJ, class WT, class CT, class CK> double mcluster (
     vector<WT>& weights_t,        // Tope-level proportion cluster parameters 
     vector<CT>& clusters_t,       // Top-level cluster parameters
     vector<CK>& clusters_k,       // Bottom-level cluster parameters
-    const unsigned int T,         // Truncation level for top-level clusters
-    const int maxK,               // max number of (bottom) clusters
     const double prior_t,         // Top-level cluster prior
     const double prior_k,         // Bottom-level cluster prior
+    const unsigned int maxT,      // Truncation level for top-level clusters
+    const int maxK,               // max number of (bottom) clusters
     const bool verbose,           // Verbose output
     const unsigned int nthreads   // Number of threads for OpenMP to use
     )
@@ -560,7 +560,7 @@ template<class WJ, class WT, class CT, class CK> double mcluster (
 
   for (unsigned int j = 0; j < J; ++j)
   {
-    ArrayXXd randm = (ArrayXXd::Random(X[j].size(), T)).abs();
+    ArrayXXd randm = (ArrayXXd::Random(X[j].size(), maxT)).abs();
     ArrayXd norm = randm.rowwise().sum();
     qY[j] = (randm.log().colwise() - norm.log()).exp();
 
@@ -621,10 +621,10 @@ double libcluster::learnMCM (
     vector<Dirichlet>& weights_t,
     vector<GaussWish>& clusters_t,
     vector<GaussWish>& clusters_k,
-    const unsigned int T,
-    const int maxK,
     const double prior_t,
     const double prior_k,
+    const unsigned int maxT,
+    const int maxK,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -635,8 +635,8 @@ double libcluster::learnMCM (
 
   // Model selection and Variational Bayes learning
   double F = mcluster<GDirichlet, Dirichlet, GaussWish, GaussWish>(W, X, qY, qZ,
-                weights_j, weights_t, clusters_t, clusters_k, T, maxK, prior_t,
-                prior_k, verbose, nthreads);
+                weights_j, weights_t, clusters_t, clusters_k, prior_t, prior_k,
+                maxT, maxK, verbose, nthreads);
 
   return F;
 }

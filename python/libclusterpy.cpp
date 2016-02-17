@@ -244,10 +244,10 @@ tuple wrapperSGMC (
 // SCM
 tuple wrapperSCM (
     const list &X,
-    const int trunc,
-    const int maxclusters,
     const float dirprior,
     const float gausprior,
+    const int trunc,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     )
@@ -263,8 +263,8 @@ tuple wrapperSCM (
   vector<GaussWish> clusters;
 
   // Do the clustering
-  double f = learnSCM(X_, qY, qZ, weights_j, weights_t, clusters, trunc,
-                      maxclusters, dirprior, gausprior, verbose, nthreads);
+  double f = learnSCM(X_, qY, qZ, weights_j, weights_t, clusters, dirprior,
+                      gausprior, trunc, maxclusters, verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qY, qZ, getweights<GDirichlet>(weights_j),
@@ -276,10 +276,10 @@ tuple wrapperSCM (
 tuple wrapperMCM (
     const list &W,
     const list &X,
-    const int trunc,
-    const int maxclusters,
     const float gausprior_t,
     const float gausprior_k,
+    const int trunc,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     )
@@ -298,7 +298,7 @@ tuple wrapperMCM (
 
   // Do the clustering
   double f = learnMCM(W_, X_, qY, qZ, weights_j, weights_t, clusters_t, 
-                clusters_k, trunc, maxclusters, gausprior_t, gausprior_k,
+                clusters_k,  gausprior_t, gausprior_k, trunc, maxclusters,
                 verbose, nthreads);
 
   // Return relevant objects

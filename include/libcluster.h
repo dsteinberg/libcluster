@@ -559,16 +559,16 @@ double learnEGMC (
  *         size T* (see parameter T).
  *  \param clusters is a vector of distributions over the segment cluster
  *         parameters of the model, this will be size K.
- *  \param T the maximum number of top-level clusters to look for. Usually, if T
- *         is set large, T* < T top-level clusters will be found.
- *  \param maxK is the maximum number of bottom level clusters to search for, -1
- *         (default) means no upper bound.
  *  \param dirprior is the prior 'tuning' parameter for the top-level dirichlet
  *         cluster parameter distributions. This effects how many top-level 
  *         clusters will be found.
  *  \param gausprior is the prior 'tuning' parameter for the bottom-level
  *         Gaussian cluster parameter distributions. This effects how many
  *         clusters will be found.
+ *  \param maxT the maximum number of top-level clusters to look for. Usually, 
+ *         if maxT is set large, T* < maxT top-level clusters will be found.
+ *  \param maxK is the maximum number of bottom level clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -587,10 +587,10 @@ double learnSCM (
     std::vector<distributions::GDirichlet>& weights_j,
     std::vector<distributions::Dirichlet>& weights_t,
     std::vector<distributions::GaussWish>& clusters,
-    const unsigned int T = TRUNC,
-    const int maxK = -1,
     const double dirprior = PRIORVAL,
     const double gausprior = PRIORVAL,
+    const unsigned int maxT = TRUNC,
+    const int maxK = -1,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -637,16 +637,16 @@ double learnSCM (
  *         parameters of the model (corresponding to W), this will be size T*.
  *  \param clusters_k is a vector of distributions over the bottom-level cluster
  *         parameters of the model (corresponding to X), this will be size K.
- *  \param T the maximum number of top-level clusters to look for. Usually, if T
- *         is set large, T* < T top-level clusters will be found.
- *  \param maxK is the maximum number of bottom level clusters to search for, -1
- *         (default) means no upper bound.
  *  \param prior_t is the prior 'tuning' parameter for the top-level (Gaussian) 
  *         cluster parameter distributions (W). This effects how many top level
  *         clusters will be found.
  *  \param prior_k is the prior 'tuning' parameter for the bottom-level cluster
  *         parameter distributions (X). This effects how many bottom-level 
  *         clusters will be found.
+ *  \param maxT the maximum number of top-level clusters to look for. Usually,
+ *         if maxT is set large, T* < maxT top-level clusters will be found.
+ *  \param maxK is the maximum number of bottom level clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -667,10 +667,10 @@ double learnMCM (
     std::vector<distributions::Dirichlet>& weights_t,
     std::vector<distributions::GaussWish>& clusters_t,
     std::vector<distributions::GaussWish>& clusters_k,
-    const unsigned int T = TRUNC,
-    const int maxK = -1,
     const double prior_t = PRIORVAL,
     const double prior_k = PRIORVAL,
+    const unsigned int maxT = TRUNC,
+    const int maxK = -1,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );

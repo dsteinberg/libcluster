@@ -116,10 +116,10 @@ boost::python::tuple wrapperSGMC (
 // SCM
 boost::python::tuple wrapperSCM (
     const boost::python::list& X,
-    const int trunc,
-    const int maxclusters,
     const float dirprior,
     const float gausprior,
+    const int trunc,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     );
@@ -129,10 +129,10 @@ boost::python::tuple wrapperSCM (
 boost::python::tuple wrapperMCM (
     const boost::python::list& W,
     const boost::python::list& X,
-    const int trunc,
-    const int maxclusters,
     const float gausprior_t,
     const float gausprior_k,
+    const int trunc,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     );
@@ -237,7 +237,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "\t\tbe returned.\n"; 
   const std::string maxclustersarg = 
     "\tmaxclusters: the maximum number of bottom level clusters to search \n"
-    "\t\tfor, -1 (default) means no upper bound.";
+    "\t\tfor, -1 (default) means no upper bound.\n";
   const std::string priorarg =
     "\tprior: the prior width of the Gaussian clusters.\n";
   const std::string priorkarg =
@@ -403,17 +403,17 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "group mixture weights, a Dirichlet prior on the top-level clusters and\n"
     "Gaussian bottom-level cluster distributions for observations (with\n"
     "Gausian-Wishart priors).\n"
-    + comargs + vvXarg + truncarg + maxclustersarg + dpriorarg + priorkarg 
+    + comargs + vvXarg + dpriorarg + priorkarg + truncarg + maxclustersarg
     + verbarg + threadarg
     + comrets + fret + vqYret + vvqZret + vwjret + vwtret + mukret + covkret;
 
   def ("learnSCM", wrapperSCM,
          (
            arg("X"),
-           arg("trunc") = libcluster::TRUNC,
-           arg("maxclusters") = -1,
            arg("dirprior") = libcluster::PRIORVAL,
            arg("gausprior") = libcluster::PRIORVAL,
+           arg("trunc") = libcluster::TRUNC,
+           arg("maxclusters") = -1,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
          ),
@@ -444,8 +444,8 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "Dirichlet prior on the group mixture weights, Multinomial-Gaussian \n"
     "top-level (document) clusters, and Gaussian bottom-level (word) cluster\n"
     "distributions.\n"
-    + comargs + vWarg + vvXarg + truncarg + maxclustersarg + priortarg
-    + priorkarg + verbarg + threadarg
+    + comargs + vWarg + vvXarg  + priortarg + priorkarg + truncarg 
+    + maxclustersarg + verbarg + threadarg
     + comrets + fret + vqYret + vvqZret + vwjret + vwtret + mutret + mukret 
     + covtret + covkret;
 
@@ -453,10 +453,10 @@ BOOST_PYTHON_MODULE (libclusterpy)
          (
            arg("W"),
            arg("X"),
-           arg("trunc") = libcluster::TRUNC,
-           arg("maxclusters") = -1,
            arg("gausprior_t") = libcluster::PRIORVAL,
            arg("gausprior_k") = libcluster::PRIORVAL,
+           arg("trunc") = libcluster::TRUNC,
+           arg("maxclusters") = -1,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
          ),
