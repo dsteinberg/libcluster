@@ -66,7 +66,7 @@ int main()
   vvMatrixXd qZ;
   clock_t start = clock();
 
-  learnMCM(W, Xv, qY, qZ, iweights, sweights, iclusters, sclusters, 10,
+  learnMCM(W, Xv, qY, qZ, iweights, sweights, iclusters, sclusters, 10, -1,
            PRIORVAL, PRIORVAL, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;

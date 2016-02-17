@@ -289,11 +289,16 @@ template <class WJ, class WT, class C> bool split_gr (
     vvMatrixXd& qZ,                 // Bottom-level Cluster labels qZ
     vector<int>& tally,             // Count of unsuccessful splits
     const double F,                 // Current model free energy
+    const int maxK,                 // max number of (bottom) clusters
     const bool verbose              // Verbose output
     )
 {
   const unsigned int J = X.size(),
                      K = clusters.size();
+
+  // Check if we have reached the max number of clusters
+  if ( ((signed) K >= maxK) && (maxK >= 0) )
+      return false;
 
   // Split order chooser and bottom-level cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
@@ -491,6 +496,7 @@ template <class WJ, class WT, class C> double scluster (
     vector<WT>& weights_t,      // Top-level cluster distributions
     vector<C>& clusters,        // Bottom-level cluster Distributions
     const unsigned int T,       // Truncation level for number of weights
+    const int maxK,             // max number of (bottom) clusters
     const double prior_t,       // Prior value for top-level cluster dists.
     const double prior_k,       // Prior value for bottom-level cluster dists.
     const bool verbose,         // Verbose output
@@ -546,7 +552,7 @@ template <class WJ, class WT, class C> double scluster (
     if (issplit == false)   // Remove any empty weights
       emptyclasses = prune_clusters_t<WT>(qY, weights_t, verbose);
     else                    // Search for best split, augment qZ if found one
-      issplit = split_gr<WJ,WT,C>(X, clusters, prior_t, qY, qZ, tally, F,
+      issplit = split_gr<WJ,WT,C>(X, clusters, prior_t, qY, qZ, tally, F, maxK,
                                   verbose);
 
     if (verbose == true)
@@ -578,6 +584,7 @@ double libcluster::learnSCM (
     vector<Dirichlet>& weights_t,
     vector<GaussWish>& clusters,
     const unsigned int T,
+    const int maxK,
     const double dirprior,
     const double gausprior,
     const bool verbose,
@@ -590,8 +597,8 @@ double libcluster::learnSCM (
 
   // Model selection and Variational Bayes learning
   double F = scluster<GDirichlet, Dirichlet, GaussWish>(X, qY, qZ,
-                weights_j, weights_t, clusters, T, dirprior, gausprior, verbose,
-                nthreads);
+                weights_j, weights_t, clusters, T, maxK, dirprior, gausprior,
+                verbose, nthreads);
 
   return F;
 }

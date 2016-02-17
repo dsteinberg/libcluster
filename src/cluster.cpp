@@ -259,12 +259,17 @@ template <class W, class C> bool split_ex (
     const vector<C>& clusters,  // Cluster Distributions
     vMatrixXd& qZ,              // Probabilities qZ
     const double F,             // Current model free energy
+    const int maxclusters,      // maximum number of clusters to search for
     const bool sparse,          // Do sparse updates to groups
     const bool verbose          // Verbose output
     )
 {
   const unsigned int J = X.size(),
                      K = clusters.size();
+
+  // Check if we have reached the max number of clusters
+  if ( ((signed) K >= maxclusters) && (maxclusters >= 0) )
+      return false;
 
   // Pre allocate big objects for loops (this makes a runtime difference)
   double Fbest = numeric_limits<double>::infinity();
@@ -366,12 +371,17 @@ template <class W, class C> bool split_gr (
     vMatrixXd& qZ,              // Probabilities qZ
     vector<int>& tally,         // Count of unsuccessful splits
     const double F,             // Current model free energy
+    const int maxclusters,      // maximum number of clusters to search for
     const bool sparse,          // Do sparse updates to groups
     const bool verbose          // Verbose output
     )
 {
   const unsigned int J = X.size(),
                      K = clusters.size();
+
+  // Check if we have reached the max number of clusters
+  if ( ((signed) K >= maxclusters) && (maxclusters >= 0) )
+      return false;
 
   // Split order chooser and cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
@@ -557,6 +567,7 @@ template <class W, class C> double cluster (
     vector<W>& weights,           // Group weight distributions
     vector<C>& clusters,          // Cluster Distributions
     const double clusterprior,    // Prior value for cluster distributions
+    const int maxclusters,        // Maximum number of clusters to search for
     const bool sparse,            // Do sparse updates to groups
     const bool verbose,           // Verbose output
     const unsigned int nthreads   // Number of threads for OpenMP to use
@@ -596,10 +607,10 @@ template <class W, class C> double cluster (
 
     // Search for best split, augment qZ if found one
     #ifdef EXHAUST_SPLIT
-    issplit = split_ex<W,C>(X, clusters, qZ, F, sparse, verbose);
+    issplit = split_ex<W,C>(X, clusters, qZ, F, maxclusters, sparse, verbose);
     #else
-    issplit = split_gr<W,C>(X, weights, clusters, qZ, tally, F, sparse,
-                            verbose);
+    issplit = split_gr<W,C>(X, weights, clusters, qZ, tally, F, maxclusters,
+                            sparse, verbose);
     #endif
 
     if (verbose == true)
@@ -628,6 +639,7 @@ double libcluster::learnVDP (
     StickBreak& weights,
     vector<GaussWish>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -642,7 +654,8 @@ double libcluster::learnVDP (
 
   // Perform model learning and selection
   double F = cluster<StickBreak, GaussWish>(vecX, vecqZ, vecweights, clusters,
-                                        clusterprior, false, verbose, nthreads);
+                                        clusterprior, maxclusters, false,
+                                        verbose, nthreads);
 
   // Return final Free energy and qZ
   qZ = vecqZ[0];                        // copies :-(
@@ -657,6 +670,7 @@ double libcluster::learnBGMM (
     Dirichlet& weights,
     vector<GaussWish>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -671,7 +685,8 @@ double libcluster::learnBGMM (
 
   // Perform model learning and selection
   double F = cluster<Dirichlet, GaussWish>(vecX, vecqZ, vecweights, clusters,
-                                        clusterprior, false, verbose, nthreads);
+                                        clusterprior, maxclusters, false,
+                                        verbose, nthreads);
 
   // Return final Free energy and qZ
   qZ = vecqZ[0];                          // copies :-(
@@ -686,6 +701,7 @@ double libcluster::learnDGMM (
     Dirichlet& weights,
     vector<NormGamma>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -700,7 +716,8 @@ double libcluster::learnDGMM (
 
   // Perform model learning and selection
   double F = cluster<Dirichlet, NormGamma>(vecX, vecqZ, vecweights, clusters,
-                                        clusterprior, false, verbose, nthreads);
+                                        clusterprior, maxclusters, false,
+                                        verbose, nthreads);
 
   // Return final Free energy and qZ
   qZ = vecqZ[0];                          // copies :-(
@@ -715,6 +732,7 @@ double libcluster::learnBEMM (
     Dirichlet& weights,
     vector<ExpGamma>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool verbose,
     const unsigned int nthreads
     )
@@ -732,7 +750,8 @@ double libcluster::learnBEMM (
 
   // Perform model learning and selection
   double F = cluster<Dirichlet, ExpGamma>(vecX, vecqZ, vecweights, clusters,
-                                        clusterprior, false, verbose, nthreads);
+                                        clusterprior, maxclusters, false,
+                                        verbose, nthreads);
 
   // Return final Free energy and qZ
   qZ = vecqZ[0];                          // copies :-(
@@ -747,6 +766,7 @@ double libcluster::learnGMC (
     vector<GDirichlet>& weights,
     vector<GaussWish>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -759,7 +779,8 @@ double libcluster::learnGMC (
     cout << "Learning " << spnote << "GMC..." << endl;
 
   return cluster<GDirichlet, GaussWish>(X, qZ, weights, clusters, clusterprior,
-                                        sparse, verbose, nthreads);
+                                        maxclusters, sparse, verbose,
+                                        nthreads);
 }
 
 
@@ -769,6 +790,7 @@ double libcluster::learnSGMC (
     vector<Dirichlet>& weights,
     vector<GaussWish>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -781,7 +803,7 @@ double libcluster::learnSGMC (
     cout << "Learning " << spnote << "Symmetric GMC..." << endl;
 
   return cluster<Dirichlet, GaussWish>(X, qZ, weights, clusters, clusterprior,
-                                       sparse, verbose, nthreads);
+                                       maxclusters, sparse, verbose, nthreads);
 }
 
 
@@ -791,6 +813,7 @@ double libcluster::learnDGMC (
     vector<GDirichlet>& weights,
     vector<NormGamma>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -803,7 +826,8 @@ double libcluster::learnDGMC (
     cout << "Learning " << spnote << "Diagonal GMC..." << endl;
 
   return cluster<GDirichlet, NormGamma>(X, qZ, weights, clusters, clusterprior,
-                                        sparse, verbose, nthreads);
+                                        maxclusters, sparse, verbose,
+                                        nthreads);
 }
 
 
@@ -813,6 +837,7 @@ double libcluster::learnEGMC (
     vector<GDirichlet>& weights,
     vector<ExpGamma>& clusters,
     const double clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const unsigned int nthreads
@@ -830,5 +855,5 @@ double libcluster::learnEGMC (
     cout << "Learning " << spnote << "Exponential GMC..." << endl;
 
   return cluster<GDirichlet, ExpGamma>(X, qZ, weights, clusters, clusterprior,
-                                       sparse, verbose, nthreads);
+                                       maxclusters, sparse, verbose, nthreads);
 }

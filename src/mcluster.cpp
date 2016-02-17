@@ -318,11 +318,16 @@ template <class WJ, class WT, class CT, class CK> bool ssplit (
     vvMatrixXd& qZ,                 // Bottom-level Cluster labels qZ
     vector<int>& tally,             // Count of unsuccessful splits
     const double F,                 // Current model free energy
+    const int maxK,                 // max number of (bottom) clusters
     const bool verbose              // Verbose output
     )
 {
   const unsigned int J = X.size(),
                      K = clusters_k.size();
+
+  // Check if we have reached the max number of clusters
+  if ( ((signed) K >= maxK) && (maxK >= 0) )
+      return false;
 
   // Split order chooser and bottom-level cluster parameters
   tally.resize(K, 0); // Make sure tally is the right size
@@ -528,6 +533,7 @@ template<class WJ, class WT, class CT, class CK> double mcluster (
     vector<CT>& clusters_t,       // Top-level cluster parameters
     vector<CK>& clusters_k,       // Bottom-level cluster parameters
     const unsigned int T,         // Truncation level for top-level clusters
+    const int maxK,               // max number of (bottom) clusters
     const double prior_t,         // Top-level cluster prior
     const double prior_k,         // Bottom-level cluster prior
     const bool verbose,           // Verbose output
@@ -583,7 +589,7 @@ template<class WJ, class WT, class CT, class CK> double mcluster (
                                               verbose);
     else
       split = ssplit<WJ,WT,CT,CK>(W, X, clusters_t, clusters_k, qY, qZ, stally,
-                                    F, verbose);
+                                  F, maxK, verbose);
 
     if (verbose == true)
       cout << '>' << endl;  // Notify end bottom-level cluster search
@@ -616,6 +622,7 @@ double libcluster::learnMCM (
     vector<GaussWish>& clusters_t,
     vector<GaussWish>& clusters_k,
     const unsigned int T,
+    const int maxK,
     const double prior_t,
     const double prior_k,
     const bool verbose,
@@ -628,7 +635,7 @@ double libcluster::learnMCM (
 
   // Model selection and Variational Bayes learning
   double F = mcluster<GDirichlet, Dirichlet, GaussWish, GaussWish>(W, X, qY, qZ,
-                weights_j, weights_t, clusters_t, clusters_k, T, prior_t,
+                weights_j, weights_t, clusters_t, clusters_k, T, maxK, prior_t,
                 prior_k, verbose, nthreads);
 
   return F;

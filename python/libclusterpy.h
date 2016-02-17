@@ -75,6 +75,7 @@ struct vector2list
 boost::python::tuple wrapperVDP (
     const boost::python::api::object& X,
     const float clusterprior,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     );
@@ -84,6 +85,7 @@ boost::python::tuple wrapperVDP (
 boost::python::tuple wrapperBGMM (
     const boost::python::api::object& X,
     const float clusterprior,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     );
@@ -93,6 +95,7 @@ boost::python::tuple wrapperBGMM (
 boost::python::tuple wrapperGMC (
     const boost::python::list& X,
     const float clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const int nthreads
@@ -103,6 +106,7 @@ boost::python::tuple wrapperGMC (
 boost::python::tuple wrapperSGMC (
     const boost::python::list& X,
     const float clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const int nthreads
@@ -113,6 +117,7 @@ boost::python::tuple wrapperSGMC (
 boost::python::tuple wrapperSCM (
     const boost::python::list& X,
     const int trunc,
+    const int maxclusters,
     const float dirprior,
     const float gausprior,
     const bool verbose,
@@ -125,6 +130,7 @@ boost::python::tuple wrapperMCM (
     const boost::python::list& W,
     const boost::python::list& X,
     const int trunc,
+    const int maxclusters,
     const float gausprior_t,
     const float gausprior_k,
     const bool verbose,
@@ -229,6 +235,9 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "\ttrunc: the maximum number of top-level clusters to find. This is the \n"
     "\t\ttruncation level, and mostly less top-level clusters than this will\n"
     "\t\tbe returned.\n"; 
+  const std::string maxclustersarg = 
+    "\tmaxclusters: the maximum number of bottom level clusters to search \n"
+    "\t\tfor, -1 (default) means no upper bound.";
   const std::string priorarg =
     "\tprior: the prior width of the Gaussian clusters.\n";
   const std::string priorkarg =
@@ -291,13 +300,14 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "The Variational Dirichlet Process (VDP) of [2].\n\n"
     "The VDP is similar to a regular Bayesian GMM, but places a Dirichlet\n"
     "process prior over the mixture weights. This is also used in [6].\n"
-    + comargs + Xarg + priorarg + verbarg + threadarg
+    + comargs + Xarg + priorarg + maxclustersarg + verbarg + threadarg
     + comrets + fret + qZret + wret + muret + covret;
 
   def ("learnVDP", wrapperVDP,
          (
            arg("X"),
            arg("prior") = libcluster::PRIORVAL,
+           arg("maxclusters") = -1,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
          ),
@@ -312,13 +322,14 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "Dirichlet prior over the mixture weights, and Gaussian-Wishart priors\n"
     "over the Gaussian clusters. This implementation is similar to [1] but\n"
     "also employes the cluster splitting heuristics discussed in [2-5].\n"
-    + comargs + Xarg + priorarg + verbarg + threadarg
+    + comargs + Xarg + priorarg + maxclustersarg + verbarg + threadarg
     + comrets + fret + qZret + wret + muret + covret;
 
   def ("learnBGMM", wrapperBGMM,
          (
            arg("X"),
            arg("prior") = libcluster::PRIORVAL,
+           arg("maxclusters") = -1,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
          ),
@@ -335,13 +346,15 @@ BOOST_PYTHON_MODULE (libclusterpy)
    "a Gaussian-Wishart prior over the cluster parameters. This algorithm is\n"
    "similar to a one-level Hierarchical Dirichlet process with Gaussian\n"
    "observations.\n"
-   + comargs + vXarg + priorarg + sparsearg + verbarg + threadarg
+   + comargs + vXarg + priorarg + maxclustersarg+ sparsearg + verbarg 
+   + threadarg
    + comrets + fret + vqZret + vwret + muret + covret;
 
   def ("learnGMC", wrapperGMC,
          (
            arg("X"),
            arg("prior") = libcluster::PRIORVAL,
+           arg("maxclusters") = -1,
            arg("sparse") = false,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
@@ -361,13 +374,15 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "observations.\n\n"
     "It is also referred to as Gaussian Latent Dirichlet Allocation (G-LDA)\n"
     "in [3, 4].\n"
-    + comargs + vXarg + priorarg + sparsearg + verbarg + threadarg
+    + comargs + vXarg + priorarg + maxclustersarg + sparsearg + verbarg 
+    + threadarg
     + comrets + fret + vqZret + vwret + muret + covret;
 
   def ("learnSGMC", wrapperSGMC,
          (
            arg("X"),
            arg("prior") = libcluster::PRIORVAL,
+           arg("maxclusters") = -1,
            arg("sparse") = false,
            arg("verbose") = false,
            arg("threads") = omp_get_max_threads()
@@ -388,13 +403,15 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "group mixture weights, a Dirichlet prior on the top-level clusters and\n"
     "Gaussian bottom-level cluster distributions for observations (with\n"
     "Gausian-Wishart priors).\n"
-    + comargs + vvXarg + truncarg + dpriorarg + priorkarg + verbarg + threadarg
+    + comargs + vvXarg + truncarg + maxclustersarg + dpriorarg + priorkarg 
+    + verbarg + threadarg
     + comrets + fret + vqYret + vvqZret + vwjret + vwtret + mukret + covkret;
 
   def ("learnSCM", wrapperSCM,
          (
            arg("X"),
            arg("trunc") = libcluster::TRUNC,
+           arg("maxclusters") = -1,
            arg("dirprior") = libcluster::PRIORVAL,
            arg("gausprior") = libcluster::PRIORVAL,
            arg("verbose") = false,
@@ -427,8 +444,8 @@ BOOST_PYTHON_MODULE (libclusterpy)
     "Dirichlet prior on the group mixture weights, Multinomial-Gaussian \n"
     "top-level (document) clusters, and Gaussian bottom-level (word) cluster\n"
     "distributions.\n"
-    + comargs + vWarg + vvXarg + truncarg + priortarg + priorkarg + verbarg 
-    + threadarg
+    + comargs + vWarg + vvXarg + truncarg + maxclustersarg + priortarg
+    + priorkarg + verbarg + threadarg
     + comrets + fret + vqYret + vvqZret + vwjret + vwtret + mutret + mukret 
     + covtret + covkret;
 
@@ -437,6 +454,7 @@ BOOST_PYTHON_MODULE (libclusterpy)
            arg("W"),
            arg("X"),
            arg("trunc") = libcluster::TRUNC,
+           arg("maxclusters") = -1,
            arg("gausprior_t") = libcluster::PRIORVAL,
            arg("gausprior_k") = libcluster::PRIORVAL,
            arg("verbose") = false,

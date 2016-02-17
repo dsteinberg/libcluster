@@ -48,7 +48,7 @@ int main()
   vector<GaussWish>  clusters;
   vMatrixXd qZgroup;
   clock_t start = clock();
-  learnGMC (X, qZgroup, weights, clusters, PRIORVAL, false, true);
+  learnGMC (X, qZgroup, weights, clusters, PRIORVAL, -1, false, true);
 
   double stop = (double)((clock() - start))/CLOCKS_PER_SEC;
   cout << "GMC Elapsed time = " << stop << " sec." << endl;

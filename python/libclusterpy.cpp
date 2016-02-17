@@ -135,6 +135,7 @@ vector<ArrayXd> getweights (const vector<W>& weights)
 tuple wrapperVDP (
     const object& X,
     const float clusterprior,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     )
@@ -148,8 +149,8 @@ tuple wrapperVDP (
   vector<GaussWish> clusters;
 
   // Do the clustering
-  double f = learnVDP(X_, qZ, weights, clusters, clusterprior, verbose,
-                      nthreads);
+  double f = learnVDP(X_, qZ, weights, clusters, clusterprior, maxclusters,
+                      verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qZ, ArrayXd(weights.Elogweight().exp()),
@@ -161,6 +162,7 @@ tuple wrapperVDP (
 tuple wrapperBGMM (
     const object& X,
     const float clusterprior,
+    const int maxclusters,
     const bool verbose,
     const int nthreads
     )
@@ -174,8 +176,8 @@ tuple wrapperBGMM (
   vector<GaussWish> clusters;
 
   // Do the clustering
-  double f = learnBGMM(X_, qZ, weights, clusters, clusterprior, verbose,
-                      nthreads);
+  double f = learnBGMM(X_, qZ, weights, clusters, clusterprior, maxclusters,
+                       verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qZ, ArrayXd(weights.Elogweight().exp()),
@@ -187,6 +189,7 @@ tuple wrapperBGMM (
 tuple wrapperGMC (
     const list &X,
     const float clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const int nthreads
@@ -201,8 +204,8 @@ tuple wrapperGMC (
   vector<GaussWish> clusters;
 
   // Do the clustering
-  double f = learnGMC(X_, qZ, weights, clusters, clusterprior, sparse, verbose,
-                      nthreads);
+  double f = learnGMC(X_, qZ, weights, clusters, clusterprior, maxclusters,
+                      sparse, verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qZ, getweights<GDirichlet>(weights), getmean(clusters),
@@ -214,6 +217,7 @@ tuple wrapperGMC (
 tuple wrapperSGMC (
     const list &X,
     const float clusterprior,
+    const int maxclusters,
     const bool sparse,
     const bool verbose,
     const int nthreads
@@ -228,8 +232,8 @@ tuple wrapperSGMC (
   vector<GaussWish> clusters;
 
   // Do the clustering
-  double f = learnSGMC(X_, qZ, weights, clusters, clusterprior, sparse, verbose,
-                      nthreads);
+  double f = learnSGMC(X_, qZ, weights, clusters, clusterprior, maxclusters, 
+                       sparse, verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qZ, getweights<Dirichlet>(weights), getmean(clusters),
@@ -241,6 +245,7 @@ tuple wrapperSGMC (
 tuple wrapperSCM (
     const list &X,
     const int trunc,
+    const int maxclusters,
     const float dirprior,
     const float gausprior,
     const bool verbose,
@@ -259,7 +264,7 @@ tuple wrapperSCM (
 
   // Do the clustering
   double f = learnSCM(X_, qY, qZ, weights_j, weights_t, clusters, trunc,
-                      dirprior, gausprior, verbose, nthreads);
+                      maxclusters, dirprior, gausprior, verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qY, qZ, getweights<GDirichlet>(weights_j),
@@ -272,6 +277,7 @@ tuple wrapperMCM (
     const list &W,
     const list &X,
     const int trunc,
+    const int maxclusters,
     const float gausprior_t,
     const float gausprior_k,
     const bool verbose,
@@ -292,7 +298,8 @@ tuple wrapperMCM (
 
   // Do the clustering
   double f = learnMCM(W_, X_, qY, qZ, weights_j, weights_t, clusters_t, 
-                clusters_k, trunc, gausprior_t, gausprior_k, verbose, nthreads);
+                clusters_k, trunc, maxclusters, gausprior_t, gausprior_k,
+                verbose, nthreads);
 
   // Return relevant objects
   return make_tuple(f, qY, qZ, getweights<GDirichlet>(weights_j),

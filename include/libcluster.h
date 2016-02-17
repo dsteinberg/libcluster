@@ -180,6 +180,7 @@ double learnVDP (
     distributions::StickBreak& weights,
     std::vector<distributions::GaussWish>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -220,6 +221,7 @@ double learnBGMM (
     distributions::Dirichlet& weights,
     std::vector<distributions::GaussWish>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -243,6 +245,8 @@ double learnBGMM (
  *  \param clusterprior is the prior 'tuning' parameter for the cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
+ *  \param maxclusters is the maximum number of clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -261,6 +265,7 @@ double learnDGMM (
     distributions::Dirichlet& weights,
     std::vector<distributions::NormGamma>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -285,6 +290,8 @@ double learnDGMM (
  *  \param clusterprior is the prior 'tuning' parameter for the cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
+ *  \param maxclusters is the maximum number of clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param verbose flag for triggering algorithm status messages. Default is
  *         0 = silent.
  *  \param nthreads sets the number of threads for the clustering algorithm to
@@ -302,6 +309,7 @@ double learnBEMM (
     distributions::Dirichlet& weights,
     std::vector<distributions::ExpGamma>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
     );
@@ -328,6 +336,8 @@ double learnBEMM (
  *  \param clusterprior is the prior 'tuning' parameter for the cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
+ *  \param maxclusters is the maximum number of clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -349,6 +359,7 @@ double learnGMC (
     std::vector<distributions::GDirichlet>& weights,
     std::vector<distributions::GaussWish>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -378,6 +389,8 @@ double learnGMC (
  *  \param clusterprior is the prior 'tuning' parameter for the cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
+ *  \param maxclusters is the maximum number of clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -399,6 +412,7 @@ double learnSGMC (
     std::vector<distributions::Dirichlet>& weights,
     std::vector<distributions::GaussWish>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -428,6 +442,8 @@ double learnSGMC (
  *  \param clusterprior is the prior 'tuning' parameter for the cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
+ *  \param maxclusters is the maximum number of clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -449,6 +465,7 @@ double learnDGMC (
     std::vector<distributions::GDirichlet>& weights,
     std::vector<distributions::NormGamma>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -477,6 +494,8 @@ double learnDGMC (
  *  \param clusterprior is the prior 'tuning' parameter for the cluster
  *         parameter distributions. This effects how many clusters will be
  *         found.
+ *  \param maxclusters is the maximum number of clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param sparse flag for enabling the "sparse" updates for the GMC. Some
  *         small amount of accuracy is traded off for a potentially large
  *         speed increase by not updating zero group weight cluster
@@ -497,6 +516,7 @@ double learnEGMC (
     std::vector<distributions::GDirichlet>& weights,
     std::vector<distributions::ExpGamma>& clusters,
     const double clusterprior = PRIORVAL,
+    const int maxclusters = -1,
     const bool sparse = false,
     const bool verbose = false,
     const unsigned int nthreads = omp_get_max_threads()
@@ -541,6 +561,8 @@ double learnEGMC (
  *         parameters of the model, this will be size K.
  *  \param T the maximum number of top-level clusters to look for. Usually, if T
  *         is set large, T* < T top-level clusters will be found.
+ *  \param maxK is the maximum number of bottom level clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param dirprior is the prior 'tuning' parameter for the top-level dirichlet
  *         cluster parameter distributions. This effects how many top-level 
  *         clusters will be found.
@@ -566,6 +588,7 @@ double learnSCM (
     std::vector<distributions::Dirichlet>& weights_t,
     std::vector<distributions::GaussWish>& clusters,
     const unsigned int T = TRUNC,
+    const int maxK = -1,
     const double dirprior = PRIORVAL,
     const double gausprior = PRIORVAL,
     const bool verbose = false,
@@ -616,6 +639,8 @@ double learnSCM (
  *         parameters of the model (corresponding to X), this will be size K.
  *  \param T the maximum number of top-level clusters to look for. Usually, if T
  *         is set large, T* < T top-level clusters will be found.
+ *  \param maxK is the maximum number of bottom level clusters to search for, -1
+ *         (default) means no upper bound.
  *  \param prior_t is the prior 'tuning' parameter for the top-level (Gaussian) 
  *         cluster parameter distributions (W). This effects how many top level
  *         clusters will be found.
@@ -643,6 +668,7 @@ double learnMCM (
     std::vector<distributions::GaussWish>& clusters_t,
     std::vector<distributions::GaussWish>& clusters_k,
     const unsigned int T = TRUNC,
+    const int maxK = -1,
     const double prior_t = PRIORVAL,
     const double prior_k = PRIORVAL,
     const bool verbose = false,
