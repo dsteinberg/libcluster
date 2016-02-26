@@ -400,10 +400,10 @@ For best clustering results, I have found the following tips may help:
     column of X.
     
     You may obtain even better results by using PCA or ZCA whitening on X 
-    (assuming ZERO MEAN data), using Matlab syntax:
+    (assuming ZERO MEAN data), using python syntax:
     
-        [U, S, V] = svd(cov(X));
-        X_w = X * U * diag(1./sqrt(diag(S)));   % PCA Whitening
+        [U, S, V] = svd(cov(X))
+        X_w = X.dot(U).dot(diag(1. / sqrt(diag(S))))   #  PCA Whitening
       
     Such that 
     
