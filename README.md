@@ -130,9 +130,8 @@ these include:
   The SCM and MCM only use the greedy split heuristic at this stage.
 
 - `BUILD_PYTHON_INTERFACE` (toggle `ON` or `OFF`, default `OFF`) Build the
-  python interface. This requires boost python. Unfortunately, if this is
-  enabled, then the matlab interface cannot be built. This is because python is
-  row-major, and matlab is column major, so we need to build Eigen accordingly.
+  python interface. This requires boost python, and also uses row-major storage
+  to be compatible with python.
 
 - `BUILD_USE_PYTHON3` (toggle `ON` or `OFF`, default `ON`) Use python 3 or 2 to
   build the python interface. Make sure you have the relevant python and boost
