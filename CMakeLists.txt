@@ -36,7 +36,6 @@ option(BUILD_USE_PYTHON3 "Use python3 instead of python 2?" on)
 set(LIB_SOURCE_DIR    ${PROJECT_SOURCE_DIR}/src)
 set(LIB_INCLUDE_DIR   ${PROJECT_SOURCE_DIR}/include)
 set(TEST_SOURCE_DIR   ${PROJECT_SOURCE_DIR}/test)
-set(MATLAB_SOURCE_DIR ${PROJECT_SOURCE_DIR}/matlab)
 set(PYTHON_SOURCE_DIR ${PROJECT_SOURCE_DIR}/python)
 
 # Locations for binary files
@@ -117,4 +116,4 @@ install(FILES
 # Subdirectories to recurse to   #
 #--------------------------------#
 
-subdirs(test matlab python)
+subdirs(test python)
