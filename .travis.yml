@@ -10,12 +10,6 @@ addons:
             - libboost-python-dev
             - python-numpy
 
-# use sed to replace the SSH URL with the public URL, then init and update
-# submodules, thanks https://gist.github.com/petrbel/c3bf7e0f59c22a52f534
-before_install:
-  - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
-  - git submodule update --init --recursive
-
 install:
     - cd $TRAVIS_BUILD_DIR
     - mkdir build
