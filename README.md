@@ -35,8 +35,8 @@ And also,
 
 
 <section>
-<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="360">
-<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="360">
+<img src="http://dsteinberg.github.io/images/MSRC_im_ex.jpg" width="360">
+<img src="http://dsteinberg.github.io/images/MSRC_seg_ex.jpg" width="360">
 </section>
 
 An example of using the MCM to simultaneously cluster images and objects within
