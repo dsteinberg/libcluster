@@ -64,7 +64,7 @@ def testgroupmix():
 
     # Create points from clusters
     J = 4   # Groups
-    W = [gengmm(2000) for j in range(0, J)]
+    W = [gengmm(2000) for j in range(J)]
 
     # Test GMC
     print("------------ Test GMC -------------")
@@ -90,7 +90,7 @@ def testmultmix():
     # Create points from clusters
     W = np.zeros((I, means.shape[1]))
     X = []
-    for i in range(0, I):
+    for i in range(I):
         W[i, :] = np.random.multivariate_normal(means[Y[i]], sigma[Y[i]], 1)
         X.append(gengmm(Ni, betas[i, :]))
 
@@ -120,7 +120,7 @@ def gengmm(N, weights=None):
     Nk[-1] = N - Nk[0:-1].sum()
 
     X = [np.random.multivariate_normal(means[k, :], sigma[k], int(Nk[k]))
-         for k in range(0, K)]
+         for k in range(K)]
 
     return np.concatenate(X)
 
@@ -136,9 +136,9 @@ def gensetweights(I):
 
     betas = []
     Y = []
-    for t in range(0, T):
-        Y += Nt[t] * [t]
-        betas.append(Nt[t] * [beta[t, :]])
+    for t in range(T):
+        Y += int(Nt[t]) * [t]
+        betas.append(int(Nt[t]) * [beta[t, :]])
 
     return np.concatenate(betas), Y
 
