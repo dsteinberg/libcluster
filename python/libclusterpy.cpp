@@ -57,7 +57,7 @@ MatrixXd numpy2MatrixXd (const object& X)
 
 
 // Convert (memory share) a list of numpy arrays to a vector of Eigen MatrixXd
-vMatrixXd lnumpy2vMatrixXd (const list& X)
+vMatrixXd lnumpy2vMatrixXd (const boost::python::list& X)
 {
 
   vMatrixXd X_;
@@ -71,7 +71,7 @@ vMatrixXd lnumpy2vMatrixXd (const list& X)
 
 // Convert (memory share) a list of lists of arrays to a vector of vectors of
 //  matrices
-vvMatrixXd llnumpy2vvMatrixXd (const list& X)
+vvMatrixXd llnumpy2vvMatrixXd (const boost::python::list& X)
 {
 
   vvMatrixXd X_;
@@ -187,7 +187,7 @@ boost::python::tuple wrapperBGMM (
 
 // GMC
 boost::python::tuple wrapperGMC (
-    const list &X,
+    const boost::python::list &X,
     const float clusterprior,
     const int maxclusters,
     const bool sparse,
@@ -215,7 +215,7 @@ boost::python::tuple wrapperGMC (
 
 // SGMC
 boost::python::tuple wrapperSGMC (
-    const list &X,
+    const boost::python::list &X,
     const float clusterprior,
     const int maxclusters,
     const bool sparse,
@@ -243,7 +243,7 @@ boost::python::tuple wrapperSGMC (
 
 // SCM
 boost::python::tuple wrapperSCM (
-    const list &X,
+    const boost::python::list &X,
     const float dirprior,
     const float gausprior,
     const int trunc,
@@ -276,8 +276,8 @@ boost::python::tuple wrapperSCM (
 
 // MCM
 boost::python::tuple wrapperMCM (
-    const list &W,
-    const list &X,
+    const boost::python::list &W,
+    const boost::python::list &X,
     const float gausprior_t,
     const float gausprior_k,
     const int trunc,

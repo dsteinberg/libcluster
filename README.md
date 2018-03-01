@@ -4,7 +4,7 @@ Libcluster
 [![CI status](https://travis-ci.org/dsteinberg/libcluster.svg?branch=master)](https://travis-ci.org/dsteinberg/libcluster)
 
 ***Author***:
-[Daniel Steinberg](http://www.daniel-steinberg.info)
+[Daniel Steinberg](http://dsteinberg.github.io/)
 
 ***License***: 
 LGPL v3 (See COPYING and COPYING.LESSER)
@@ -35,8 +35,8 @@ And also,
 
 
 <section>
-<img src="http://www.daniel-steinberg.info/images/MSRC_im_ex.jpg" width="360">
-<img src="http://www.daniel-steinberg.info/images/MSRC_seg_ex.jpg" width="360">
+<img src="http://dsteinberg.github.io/images/MSRC_im_ex.jpg" width="360">
+<img src="http://dsteinberg.github.io/images/MSRC_seg_ex.jpg" width="360">
 </section>
 
 An example of using the MCM to simultaneously cluster images and objects within
@@ -459,5 +459,5 @@ Please consider citing the following if you use this code:
  * SCM: [5, 6]
  * MCM: [4, 5, 6]  
 
-You can find these on my [homepage](http://www.daniel-steinberg.info). 
+You can find these on my [homepage](http://dsteinberg.github.io/). 
 Thank you!
